@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Your Messages</h2>
+<div class="list-group">
+    {% for message in messages %}
+    <div class="list-group-item">
+        <p>{{ message.content }}</p>
+        <small>by <strong>{{ message.sender.username }}</strong> on {{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') if message.timestamp else 'unknown date' }}</small>
+        <a href="{{ url_for('reply_message', message_id=message.id) }}" class="btn btn-sm btn-primary mt-2">Reply</a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

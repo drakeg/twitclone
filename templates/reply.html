@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Reply to {{ message.sender.username }}</h2>
+<div class="list-group mb-3">
+    <div class="list-group-item">
+        <p>{{ message.content }}</p>
+        <small>by <strong>{{ message.sender.username }}</strong> on {{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') if message.timestamp else 'unknown date' }}</small>
+    </div>
+</div>
+<form method="POST"
