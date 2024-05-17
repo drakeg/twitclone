@@ -1,10 +1,12 @@
-import hashlib
-from datetime import datetime
-from flask import Flask, render_template, redirect, url_for, request, flash
+from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_migrate import Migrate
+from flask_wtf import CSRFProtect
+import re
+from datetime import datetime
+import hashlib
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///twitter_clone.db'
@@ -15,6 +17,16 @@ migrate = Migrate(app, db)
 bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+csrf = CSRFProtect(app)
+
+def gravatar(email, size=100, default='identicon', rating='g'):
+    url = 'https://www.gravatar.com/avatar/'
+    hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
+    return f'{url}{hash}?s={size}&d={default}&r={rating}'
+
+@app.context_processor
+def utility_processor():
+    return dict(gravatar=gravatar)
 
 class Follows(db.Model):
     follower_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
@@ -25,6 +37,7 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(150), nullable=False, unique=True)
     email = db.Column(db.String(150), nullable=False, unique=True)
     password = db.Column(db.String(150), nullable=False)
+    bio = db.Column(db.String(300))  # Add a bio field for user profile
     followed = db.relationship('User', secondary='follows', 
                                primaryjoin=(id == Follows.follower_id),
                                secondaryjoin=(id == Follows.followed_id),
@@ -58,23 +71,12 @@ class DirectMessage(db.Model):
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
-def gravatar_url(email, size=30):
-    email_hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
-    return f"https://www.gravatar.com/avatar/{email_hash}?d=identicon&s={size}"
-
-@app.context_processor
-def utility_processor():
-    return dict(gravatar_url=gravatar_url)
-
 @app.route('/')
 @login_required
 def index():
     tweets = Tweet.query.order_by(Tweet.timestamp.desc()).all()
     retweets = Retweet.query.order_by(Retweet.timestamp.desc()).all()
-    
-    timeline = sorted(tweets + retweets, key=lambda x: x.timestamp, reverse=True)
-    
-    return render_template('index.html', timeline=timeline, current_user=current_user)
+    return render_template('index.html', tweets=tweets, retweets=retweets, current_user=current_user)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -168,28 +170,75 @@ def reply_message(message_id):
     
     return render_template('reply.html', message=message)
 
-@app.route('/follow/<username>')
+@app.route('/follow/<username>', methods=['POST'])
 @login_required
 def follow(username):
     user = User.query.filter_by(username=username).first()
     if user:
         current_user.followed.append(user)
         db.session.commit()
-        flash(f'You are now following {username}!', 'success')
-    else:
-        flash('User not found.', 'danger')
-    return redirect(url_for('index'))
+        return jsonify({'status': 'success', 'message': f'You are now following {username}.'})
+    return jsonify({'status': 'error', 'message': 'User not found.'})
 
-@app.route('/unfollow/<username>')
+@app.route('/unfollow/<username>', methods=['POST'])
 @login_required
 def unfollow(username):
     user = User.query.filter_by(username=username).first()
     if user:
         current_user.followed.remove(user)
         db.session.commit()
-        flash(f'You have unfollowed {username}.', 'success')
-    else:
-        flash('User not found.', 'danger')
+        return jsonify({'status': 'success', 'message': f'You have unfollowed {username}.'})
+    return jsonify({'status': 'error', 'message': 'User not found.'})
+
+@app.route('/profile/<username>')
+@login_required
+def profile(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    return render_template('profile.html', user=user)
+
+@app.route('/profile/edit', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    if request.method == 'POST':
+        current_user.username = request.form['username']
+        current_user.email = request.form['email']
+        current_user.bio = request.form['bio']
+        db.session.commit()
+        flash('Your profile has been updated!', 'success')
+        return redirect(url_for('profile', username=current_user.username))
+    return render_template('edit_profile.html', user=current_user)
+
+@app.route('/followers/<username>')
+@login_required
+def followers(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    followers = user.followers.all()
+    return render_template('followers.html', user=user, followers=followers)
+
+@app.route('/following/<username>')
+@login_required
+def following(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    following = user.followed.all()
+    return render_template('following.html', user=user, following=following)
+
+@app.route('/unfollow_from_list/<int:user_id>')
+@login_required
+def unfollow_from_list(user_id):
+    user = User.query.get_or_404(user_id)
+    if user in current_user.followed:
+        current_user.followed.remove(user)
+        db.session.commit()
+        flash(f'You have unfollowed {user.username}.', 'success')
+    return redirect(url_for('following', username=current_user.username))
+
+@app.route('/search', methods=['GET', 'POST'])
+@login_required
+def search():
+    if request.method == 'POST':
+        search_query = request.form['search_query']
+        results = User.query.filter(User.username.ilike(f'%{search_query}%')).all()
+        return render_template('search_results.html', search_query=search_query, results=results)
     return redirect(url_for('index'))
 
 if __name__ == '__main__':

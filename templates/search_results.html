@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Search Results for "{{ search_query }}"</h2>
+<ul class="list-group" id="search-results">
+    {% for user in results %}
+    <li class="list-group-item d-flex justify-content-between align-items-center" id="user-{{ user.id }}">
+        <div>
+            <img src="{{ gravatar(user.email, size=40) }}" alt="avatar" class="rounded-circle me-2">
+            <a href="{{ url_for('profile', username=user.username) }}">{{ user.username }}</a>
+        </div>
+        {% if current_user.is_authenticated %}
+        {% if user not in current_user.followed %}
+        <button class="btn btn-success btn-sm follow-btn" data-username="{{ user.username }}" data-action="follow">Follow</button>
+        {% else %}
+        <button class="btn btn-danger btn-sm follow-btn" data-username="{{ user.username }}" data-action="unfollow">Unfollow</button>
+        {% endif %}
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const followButtons = document.querySelectorAll('.follow-btn');
+
+    followButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const username = this.getAttribute('data-username');
+            const action = this.getAttribute('data-action');
+            const url = `/${action}/${username}`;
+            const method = 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}' // Ensure CSRF protection if needed
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (action === 'follow') {
+                        this.textContent = 'Unfollow';
+                        this.classList.remove('btn-success');
+                        this.classList.add('btn-danger');
+                        this.setAttribute('data-action', 'unfollow');
+                    } else {
+                        this.textContent = 'Follow';
+                        this.classList.remove('btn-danger');
+                        this.classList.add('btn-success');
+                        this.setAttribute('data-action', 'follow');
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    });
+});
+</script>
+{% endblock %}

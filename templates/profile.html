@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ user.username }}'s Profile</h2>
+<img src="{{ gravatar(user.email, size=200) }}" alt="avatar" class="rounded-circle mb-3">
+<p>Email: {{ user.email }}</p>
+<p>Bio: {{ user.bio }}</p>
+<a href="{{ url_for('followers', username=user.username) }}" class="btn btn-secondary">View Followers</a>
+<a href="{{ url_for('following', username=user.username) }}" class="btn btn-secondary">View Following</a>
+{% if current_user.id == user.id %}
+<a href="{{ url_for('edit_profile') }}" class="btn btn-primary">Edit Profile</a>
+{% endif %}
+{% endblock %}
