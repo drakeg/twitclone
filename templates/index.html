@@ -11,18 +11,43 @@
         <button type="submit" class="btn btn-primary">Tweet</button>
     </form>
 </div>
-{% for tweet in tweets %}
+{% for post in posts %}
 <div class="card mb-3">
     <div class="card-body">
+        {% if post.__class__.__name__ == 'Tweet' %}
         <h5 class="card-title">
-            <a href="{{ url_for('profile', username=tweet.user.username) }}">{{ tweet.user.username }}</a>
+            <a href="{{ url_for('profile', username=post.user.username) }}">{{ post.user.username }}</a>
         </h5>
-        <p class="card-text">{{ tweet.content | make_clickable | safe }}</p>
-        <p class="card-text"><small class="text-muted">{{ tweet.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
-        <form method="POST" action="{{ url_for('retweet', tweet_id=tweet.id) }}" class="d-inline">
+        <p class="card-text">{{ post.content | make_clickable | safe }}</p>
+        {% elif post.__class__.__name__ == 'Retweet' %}
+        <h5 class="card-title">
+            <a href="{{ url_for('profile', username=post.user.username) }}">{{ post.user.username }}</a> retweeted
+        </h5>
+        <p class="card-text">{{ post.tweet.content | make_clickable | safe }}</p>
+        {% elif post.__class__.__name__ == 'Quote' %}
+        <h5 class="card-title">
+            <a href="{{ url_for('profile', username=post.user.username) }}">{{ post.user.username }}</a> quoted
+        </h5>
+        <p class="card-text">{{ post.content | make_clickable | safe }}</p>
+        <blockquote class="blockquote">
+            <p class="mb-0">{{ post.tweet.content | make_clickable | safe }}</p>
+            <footer class="blockquote-footer">{{ post.tweet.user.username }} on {{ post.tweet.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</footer>
+        </blockquote>
+        {% endif %}
+        <p class="card-text"><small class="text-muted">{{ post.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
+        <form method="POST" action="{{ url_for('retweet', tweet_id=post.id) }}" class="d-inline">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-outline-primary btn-sm">
                 <i class="fas fa-retweet"></i>
+            </button>
+        </form>
+        <a href="{{ url_for('quote', tweet_id=post.id) }}" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-quote-right"></i>
+        </a>
+        <form method="POST" action="{{ url_for('bookmark', tweet_id=post.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-bookmark"></i>
             </button>
         </form>
     </div>

@@ -26,7 +26,22 @@ def gravatar(email, size=100, default='identicon', rating='g'):
 
 @app.context_processor
 def utility_processor():
-    return dict(gravatar=gravatar)
+    trending_hashtags = get_trending_hashtags()
+    newest_users = User.query.order_by(User.id.desc()).limit(5).all()
+    return dict(gravatar=gravatar, trending_hashtags=trending_hashtags, newest_users=newest_users)
+
+def get_trending_hashtags():
+    hashtags = {}
+    tweets = Tweet.query.all()
+    for tweet in tweets:
+        tags = re.findall(r'#(\w+)', tweet.content)
+        for tag in tags:
+            if tag in hashtags:
+                hashtags[tag] += 1
+            else:
+                hashtags[tag] = 1
+    sorted_hashtags = sorted(hashtags.items(), key=lambda x: x[1], reverse=True)
+    return [tag for tag, count in sorted_hashtags[:5]]
 
 class Follows(db.Model):
     follower_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
@@ -43,6 +58,7 @@ class User(db.Model, UserMixin):
                                secondaryjoin=(id == Follows.followed_id),
                                backref=db.backref('followers', lazy='dynamic'), lazy='dynamic')
     notifications = db.relationship('Notification', backref='user', lazy=True)
+    bookmarks = db.relationship('Bookmark', backref='bookmark_user', lazy=True)
 
 class Tweet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -58,6 +74,15 @@ class Retweet(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     user = db.relationship('User', backref=db.backref('retweets', lazy=True))
     tweet = db.relationship('Tweet', backref=db.backref('retweets', lazy=True))
+
+class Quote(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    tweet_id = db.Column(db.Integer, db.ForeignKey('tweet.id'), nullable=False)
+    content = db.Column(db.String(144), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User', backref=db.backref('quotes', lazy=True))
+    tweet = db.relationship('Tweet', backref=db.backref('quotes', lazy=True))
 
 class DirectMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -75,6 +100,14 @@ class Notification(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     read = db.Column(db.Boolean, default=False)
 
+class Bookmark(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    tweet_id = db.Column(db.Integer, db.ForeignKey('tweet.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User', backref='bookmark_relationships')
+    tweet = db.relationship('Tweet', backref='bookmarked_tweets')
+
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
@@ -82,9 +115,18 @@ def load_user(user_id):
 @app.route('/')
 @login_required
 def index():
-    tweets = Tweet.query.order_by(Tweet.timestamp.desc()).all()
-    retweets = Retweet.query.order_by(Retweet.timestamp.desc()).all()
-    return render_template('index.html', tweets=tweets, retweets=retweets, current_user=current_user)
+    tweets = Tweet.query.all()
+    retweets = Retweet.query.all()
+    quotes = Quote.query.all()
+
+    # Combine and sort all posts by timestamp
+    all_posts = sorted(
+        tweets + retweets + quotes,
+        key=lambda post: post.timestamp,
+        reverse=True
+    )
+
+    return render_template('index.html', posts=all_posts, current_user=current_user)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -159,6 +201,22 @@ def retweet(tweet_id):
     db.session.commit()
     flash('You have retweeted this tweet!', 'success')
     return redirect(url_for('index'))
+
+@app.route('/quote/<int:tweet_id>', methods=['GET', 'POST'])
+@login_required
+def quote(tweet_id):
+    tweet = Tweet.query.get_or_404(tweet_id)
+    if request.method == 'POST':
+        content = request.form['content']
+        if len(content) <= 144:
+            quote = Quote(user_id=current_user.id, tweet_id=tweet.id, content=content)
+            db.session.add(quote)
+            db.session.commit()
+            flash('You have quoted this tweet!', 'success')
+            return redirect(url_for('index'))
+        else:
+            flash('Quote content exceeds 144 characters.', 'danger')
+    return render_template('quote.html', tweet=tweet)
 
 @app.route('/messages')
 @login_required
@@ -280,6 +338,22 @@ def hashtag(hashtag):
 def notifications():
     notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.timestamp.desc()).all()
     return render_template('notifications.html', notifications=notifications)
+
+@app.route('/bookmark/<int:tweet_id>', methods=['POST'])
+@login_required
+def bookmark(tweet_id):
+    tweet = Tweet.query.get_or_404(tweet_id)
+    bookmark = Bookmark(user_id=current_user.id, tweet_id=tweet.id)
+    db.session.add(bookmark)
+    db.session.commit()
+    flash('Tweet has been bookmarked!', 'success')
+    return redirect(url_for('index'))
+
+@app.route('/bookmarks')
+@login_required
+def bookmarks():
+    bookmarks = Bookmark.query.filter_by(user_id=current_user.id).order_by(Bookmark.timestamp.desc()).all()
+    return render_template('bookmarks.html', bookmarks=bookmarks)
 
 def make_clickable_links(text):
     # Convert @username to clickable links

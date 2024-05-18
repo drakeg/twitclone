@@ -48,3 +48,31 @@ a:hover {
 .navbar-nav .nav-link i {
     margin-right: 5px;
 }
+
+/* Styles for quoted tweets */
+blockquote {
+    padding: 10px 20px;
+    margin: 0 0 20px;
+    border-left: 5px solid #007bff;
+    background: #f8f9fa;
+}
+
+.blockquote-footer {
+    margin-top: 10px;
+    font-size: 0.875em;
+    color: #6c757d;
+}
+
+/* Styles for user bio in sidebar */
+.bio {
+    font-size: 0.875em;
+    color: #6c757d;
+    margin: 5px 0;
+}
+
+/* Align follow/unfollow button in sidebar */
+.list-group-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
