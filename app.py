@@ -42,6 +42,7 @@ class User(db.Model, UserMixin):
                                primaryjoin=(id == Follows.follower_id),
                                secondaryjoin=(id == Follows.followed_id),
                                backref=db.backref('followers', lazy='dynamic'), lazy='dynamic')
+    notifications = db.relationship('Notification', backref='user', lazy=True)
 
 class Tweet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -66,6 +67,13 @@ class DirectMessage(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')
     receiver = db.relationship('User', foreign_keys=[receiver_id], backref='received_messages')
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    message = db.Column(db.String(200), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    read = db.Column(db.Boolean, default=False)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -126,6 +134,10 @@ def tweet():
                     dm = DirectMessage(content=message, sender_id=current_user.id, receiver_id=user.id)
                     db.session.add(dm)
                     db.session.commit()
+                    # Create notification for the receiver
+                    notification = Notification(user_id=user.id, message=f'{current_user.username} sent you a message')
+                    db.session.add(notification)
+                    db.session.commit()
                     flash('Your direct message has been sent!', 'success')
                 else:
                     flash('User not found.', 'danger')
@@ -164,6 +176,10 @@ def reply_message(message_id):
             dm = DirectMessage(content=content, sender_id=current_user.id, receiver_id=message.sender_id)
             db.session.add(dm)
             db.session.commit()
+            # Create notification for the receiver
+            notification = Notification(user_id=message.sender_id, message=f'{current_user.username} replied to your message')
+            db.session.add(notification)
+            db.session.commit()
             flash('Your reply has been sent!', 'success')
         else:
             flash('Message content exceeds 500 characters.', 'danger')
@@ -178,6 +194,10 @@ def follow(username):
     if user:
         current_user.followed.append(user)
         db.session.commit()
+        # Create notification for the followed user
+        notification = Notification(user_id=user.id, message=f'{current_user.username} followed you')
+        db.session.add(notification)
+        db.session.commit()
         return jsonify({'status': 'success', 'message': f'You are now following {username}.'})
     return jsonify({'status': 'error', 'message': 'User not found.'})
 
@@ -187,6 +207,10 @@ def unfollow(username):
     user = User.query.filter_by(username=username).first()
     if user:
         current_user.followed.remove(user)
+        db.session.commit()
+        # Create notification for the unfollowed user
+        notification = Notification(user_id=user.id, message=f'{current_user.username} unfollowed you')
+        db.session.add(notification)
         db.session.commit()
         return jsonify({'status': 'success', 'message': f'You have unfollowed {username}.'})
     return jsonify({'status': 'error', 'message': 'User not found.'})
@@ -250,6 +274,12 @@ def hashtag(hashtag):
     hashtag = f'#{hashtag}'
     tweets = Tweet.query.filter(Tweet.content.like(f'%{hashtag}%')).order_by(Tweet.timestamp.desc()).all()
     return render_template('hashtag.html', hashtag=hashtag, tweets=tweets)
+
+@app.route('/notifications')
+@login_required
+def notifications():
+    notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.timestamp.desc()).all()
+    return render_template('notifications.html', notifications=notifications)
 
 def make_clickable_links(text):
     # Convert @username to clickable links

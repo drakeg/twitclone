@@ -36,7 +36,9 @@
                 </div>
                 <form method="POST" action="{{ url_for('retweet', tweet_id=tweet.id) }}" class="d-inline">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="btn btn-outline-primary btn-sm">Retweet</button>
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-retweet"></i>
+                    </button>
                 </form>
             </div>
         </li>

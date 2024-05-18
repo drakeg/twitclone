@@ -1,0 +1,50 @@
+/* Custom Styles */
+
+a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #0056b3;
+    text-decoration: none; /* Remove underline on hover */
+}
+
+.card-title a {
+    color: #212529;
+    font-weight: bold;
+}
+
+.card-title a:hover {
+    color: #0056b3;
+}
+
+.card-text a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.card-text a:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+.btn-outline-primary {
+    color: #007bff;
+    border-color: #007bff;
+}
+
+.btn-outline-primary:hover {
+    color: #fff;
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.navbar-nav .nav-link {
+    display: flex;
+    align-items: center;
+}
+
+.navbar-nav .nav-link i {
+    margin-right: 5px;
+}
