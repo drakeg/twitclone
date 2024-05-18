@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Tweets for {{ hashtag }}</h2>
+{% if tweets %}
+    {% for tweet in tweets %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">{{ tweet.user.username }}</h5>
+            <p class="card-text">{{ tweet.content | make_clickable | safe }}</p>
+            <p class="card-text"><small class="text-muted">{{ tweet.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
+            <form method="POST" action="{{ url_for('retweet', tweet_id=tweet.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-outline-primary btn-sm">Retweet</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <p>No tweets found for this hashtag.</p>
+{% endif %}
+<a href="{{ url_for('index') }}" class="btn btn-secondary mt-3">Back to Home</a>
+{% endblock %}

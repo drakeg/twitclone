@@ -1,28 +1,29 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Home</h2>
-<form method="POST" action="{{ url_for('tweet') }}">
-    <div class="mb-3">
-        <textarea class="form-control" name="content" rows="3" placeholder="What's happening?" maxlength="144"></textarea>
-    </div>
-    <button type="submit" class="btn btn-primary">Tweet</button>
-</form>
-<hr>
 <h2>Tweets</h2>
-<div class="list-group">
-    {% for item in timeline %}
-    <div class="list-group-item">
-        {% if item.__class__.__name__ == 'Tweet' %}
-        <p>{{ item.content }}</p>
-        <small>by <strong>{{ item.user.username }}</strong> on {{ item.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small>
-        <form method="POST" action="{{ url_for('retweet', tweet_id=item.id) }}" class="d-inline">
-            <button type="submit" class="btn btn-link p-0" title="Retweet"><i class="fas fa-retweet"></i></button>
-        </form>
-        {% elif item.__class__.__name__ == 'Retweet' %}
-        <p>{{ item.tweet.content }}</p>
-        <small>retweeted by <strong>{{ item.user.username }}</strong> from <strong>{{ item.tweet.user.username }}</strong> on {{ item.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small>
-        {% endif %}
-    </div>
-    {% endfor %}
+<div class="mb-3">
+    <form method="POST" action="{{ url_for('tweet') }}">
+        <div class="mb-3">
+            <label for="content" class="form-label">What's happening?</label>
+            <textarea class="form-control" id="content" name="content" rows="3" maxlength="144"></textarea>
+        </div>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-primary">Tweet</button>
+    </form>
 </div>
+{% for tweet in tweets %}
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title">
+            <a href="{{ url_for('profile', username=tweet.user.username) }}">{{ tweet.user.username }}</a>
+        </h5>
+        <p class="card-text">{{ tweet.content | make_clickable | safe }}</p>
+        <p class="card-text"><small class="text-muted">{{ tweet.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
+        <form method="POST" action="{{ url_for('retweet', tweet_id=tweet.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-outline-primary btn-sm">Retweet</button>
+        </form>
+    </div>
+</div>
+{% endfor %}
 {% endblock %}

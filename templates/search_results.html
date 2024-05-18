@@ -1,23 +1,48 @@
 {% extends "base.html" %}
 {% block content %}
 <h2>Search Results for "{{ search_query }}"</h2>
-<ul class="list-group" id="search-results">
-    {% for user in results %}
-    <li class="list-group-item d-flex justify-content-between align-items-center" id="user-{{ user.id }}">
-        <div>
-            <img src="{{ gravatar(user.email, size=40) }}" alt="avatar" class="rounded-circle me-2">
-            <a href="{{ url_for('profile', username=user.username) }}">{{ user.username }}</a>
-        </div>
-        {% if current_user.is_authenticated %}
-        {% if user not in current_user.followed %}
-        <button class="btn btn-success btn-sm follow-btn" data-username="{{ user.username }}" data-action="follow">Follow</button>
-        {% else %}
-        <button class="btn btn-danger btn-sm follow-btn" data-username="{{ user.username }}" data-action="unfollow">Unfollow</button>
-        {% endif %}
-        {% endif %}
-    </li>
-    {% endfor %}
-</ul>
+<div class="search-results">
+    <h3>Users</h3>
+    <ul class="list-group" id="user-results">
+        {% for user in user_results %}
+        <li class="list-group-item d-flex justify-content-between align-items-center" id="user-{{ user.id }}">
+            <div>
+                <img src="{{ gravatar(user.email, size=40) }}" alt="avatar" class="rounded-circle me-2">
+                <a href="{{ url_for('profile', username=user.username) }}">{{ user.username }}</a>
+            </div>
+            {% if current_user.is_authenticated %}
+            {% if user not in current_user.followed %}
+            <button class="btn btn-success btn-sm follow-btn" data-username="{{ user.username }}" data-action="follow">Follow</button>
+            {% else %}
+            <button class="btn btn-danger btn-sm follow-btn" data-username="{{ user.username }}" data-action="unfollow">Unfollow</button>
+            {% endif %}
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+<div class="search-results">
+    <h3>Tweets</h3>
+    <ul class="list-group" id="tweet-results">
+        {% for tweet in tweet_results %}
+        <li class="list-group-item">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="card-title">
+                        <a href="{{ url_for('profile', username=tweet.user.username) }}">{{ tweet.user.username }}</a>
+                    </h5>
+                    <p class="card-text">{{ tweet.content | make_clickable | safe }}</p>
+                    <p class="card-text"><small class="text-muted">{{ tweet.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
+                </div>
+                <form method="POST" action="{{ url_for('retweet', tweet_id=tweet.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">Retweet</button>
+                </form>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const followButtons = document.querySelectorAll('.follow-btn');
@@ -33,7 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: method,
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token() }}' // Ensure CSRF protection if needed
+                    'X-CSRFToken': '{{ csrf_token() }}'
                 }
             })
             .then(response => response.json())

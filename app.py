@@ -115,26 +115,27 @@ def logout():
 @login_required
 def tweet():
     content = request.form['content']
-    mentioned_usernames = re.findall(r'@(\w+)', content)
-    
-    if mentioned_usernames:
-        for username in mentioned_usernames:
-            user = User.query.filter_by(username=username).first()
-            if user:
-                # Strip @username from the content
-                dm_content = re.sub(r'@\w+', '', content).strip()
-                dm = DirectMessage(content=dm_content, sender_id=current_user.id, receiver_id=user.id)
-                db.session.add(dm)
-        db.session.commit()
-        flash('Your direct message has been sent!', 'success')
-    else:
-        if len(content) <= 144:
+    if len(content) <= 144:
+        if content.startswith('/dm '):
+            dm_parts = content.split(' ', 2)
+            if len(dm_parts) == 3:
+                username = dm_parts[1]
+                message = dm_parts[2]
+                user = User.query.filter_by(username=username).first()
+                if user:
+                    dm = DirectMessage(content=message, sender_id=current_user.id, receiver_id=user.id)
+                    db.session.add(dm)
+                    db.session.commit()
+                    flash('Your direct message has been sent!', 'success')
+                else:
+                    flash('User not found.', 'danger')
+        else:
             tweet = Tweet(content=content, user_id=current_user.id)
             db.session.add(tweet)
             db.session.commit()
             flash('Your tweet has been posted!', 'success')
-        else:
-            flash('Tweet content exceeds 144 characters.', 'danger')
+    else:
+        flash('Tweet content exceeds 144 characters.', 'danger')
     return redirect(url_for('index'))
 
 @app.route('/retweet/<int:tweet_id>', methods=['POST'])
@@ -194,7 +195,8 @@ def unfollow(username):
 @login_required
 def profile(username):
     user = User.query.filter_by(username=username).first_or_404()
-    return render_template('profile.html', user=user)
+    is_following = user in current_user.followed
+    return render_template('profile.html', user=user, is_following=is_following)
 
 @app.route('/profile/edit', methods=['GET', 'POST'])
 @login_required
@@ -237,9 +239,28 @@ def unfollow_from_list(user_id):
 def search():
     if request.method == 'POST':
         search_query = request.form['search_query']
-        results = User.query.filter(User.username.ilike(f'%{search_query}%')).all()
-        return render_template('search_results.html', search_query=search_query, results=results)
+        user_results = User.query.filter(User.username.ilike(f'%{search_query}%')).all()
+        tweet_results = Tweet.query.filter(Tweet.content.ilike(f'%#{search_query}%')).all()
+        return render_template('search_results.html', search_query=search_query, user_results=user_results, tweet_results=tweet_results)
     return redirect(url_for('index'))
+
+@app.route('/hashtag/<hashtag>')
+@login_required
+def hashtag(hashtag):
+    hashtag = f'#{hashtag}'
+    tweets = Tweet.query.filter(Tweet.content.like(f'%{hashtag}%')).order_by(Tweet.timestamp.desc()).all()
+    return render_template('hashtag.html', hashtag=hashtag, tweets=tweets)
+
+def make_clickable_links(text):
+    # Convert @username to clickable links
+    text = re.sub(r'@(\w+)', r'<a href="/profile/\1">@\1</a>', text)
+    # Convert #hashtag to clickable links
+    text = re.sub(r'#(\w+)', r'<a href="/hashtag/\1">#\1</a>', text)
+    return text
+
+@app.template_filter('make_clickable')
+def make_clickable_filter(text):
+    return make_clickable_links(text)
 
 if __name__ == '__main__':
     app.run(debug=True, port=8000)
