@@ -4,13 +4,16 @@ from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_migrate import Migrate
 from flask_wtf import CSRFProtect
+from werkzeug.utils import secure_filename
 import re
+import os
 from datetime import datetime
 import hashlib
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///twitter_clone.db'
 app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['UPLOAD_FOLDER'] = 'static/uploads'  # Folder to store uploaded images
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -63,6 +66,7 @@ class User(db.Model, UserMixin):
 class Tweet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.String(144), nullable=False)
+    image = db.Column(db.String(300), nullable=True)  # Add image column
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     user = db.relationship('User', backref=db.backref('tweets', lazy=True))
@@ -165,6 +169,13 @@ def logout():
 @login_required
 def tweet():
     content = request.form['content']
+    image = request.files['image']
+    image_filename = None
+
+    if image:
+        image_filename = secure_filename(image.filename)
+        image.save(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))
+
     if len(content) <= 144:
         if content.startswith('/dm '):
             dm_parts = content.split(' ', 2)
@@ -184,7 +195,7 @@ def tweet():
                 else:
                     flash('User not found.', 'danger')
         else:
-            tweet = Tweet(content=content, user_id=current_user.id)
+            tweet = Tweet(content=content, image=image_filename, user_id=current_user.id)
             db.session.add(tweet)
             db.session.commit()
             flash('Your tweet has been posted!', 'success')

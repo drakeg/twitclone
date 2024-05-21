@@ -2,10 +2,14 @@
 {% block content %}
 <h2>Tweets</h2>
 <div class="mb-3">
-    <form method="POST" action="{{ url_for('tweet') }}">
+    <form method="POST" action="{{ url_for('tweet') }}" enctype="multipart/form-data">
         <div class="mb-3">
             <label for="content" class="form-label">What's happening?</label>
             <textarea class="form-control" id="content" name="content" rows="3" maxlength="144"></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="image" class="form-label">Upload Image</label>
+            <input class="form-control" type="file" id="image" name="image">
         </div>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-primary">Tweet</button>
@@ -19,11 +23,17 @@
             <a href="{{ url_for('profile', username=post.user.username) }}">{{ post.user.username }}</a>
         </h5>
         <p class="card-text">{{ post.content | make_clickable | safe }}</p>
+        {% if post.image %}
+        <img src="{{ url_for('static', filename='uploads/' ~ post.image) }}" class="img-fluid mt-2" alt="Tweet Image">
+        {% endif %}
         {% elif post.__class__.__name__ == 'Retweet' %}
         <h5 class="card-title">
             <a href="{{ url_for('profile', username=post.user.username) }}">{{ post.user.username }}</a> retweeted
         </h5>
         <p class="card-text">{{ post.tweet.content | make_clickable | safe }}</p>
+        {% if post.tweet.image %}
+        <img src="{{ url_for('static', filename='uploads/' ~ post.tweet.image) }}" class="img-fluid mt-2" alt="Tweet Image">
+        {% endif %}
         {% elif post.__class__.__name__ == 'Quote' %}
         <h5 class="card-title">
             <a href="{{ url_for('profile', username=post.user.username) }}">{{ post.user.username }}</a> quoted
@@ -33,6 +43,9 @@
             <p class="mb-0">{{ post.tweet.content | make_clickable | safe }}</p>
             <footer class="blockquote-footer">{{ post.tweet.user.username }} on {{ post.tweet.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</footer>
         </blockquote>
+        {% if post.tweet.image %}
+        <img src="{{ url_for('static', filename='uploads/' ~ post.tweet.image) }}" class="img-fluid mt-2" alt="Tweet Image">
+        {% endif %}
         {% endif %}
         <p class="card-text"><small class="text-muted">{{ post.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
         <form method="POST" action="{{ url_for('retweet', tweet_id=post.id) }}" class="d-inline">
