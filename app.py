@@ -1,4 +1,6 @@
-from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
+from PIL import Image
+import os
+from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -6,9 +8,13 @@ from flask_migrate import Migrate
 from flask_wtf import CSRFProtect
 from werkzeug.utils import secure_filename
 import re
-import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import hashlib
+from forms import PollForm
+from sqlalchemy import text
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+import atexit
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///twitter_clone.db'
@@ -22,6 +28,25 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 csrf = CSRFProtect(app)
 
+def post_scheduled_tweets():
+    now = datetime.utcnow()
+    tweets = Tweet.query.filter(Tweet.scheduled_at <= now, Tweet.timestamp == None).all()
+    for tweet in tweets:
+        tweet.timestamp = now
+        db.session.commit()
+
+scheduler = BackgroundScheduler()
+scheduler.start()
+scheduler.add_job(
+    func=post_scheduled_tweets,
+    trigger=IntervalTrigger(seconds=60),  # Check every minute
+    id='post_scheduled_tweets',
+    name='Post scheduled tweets every minute',
+    replace_existing=True)
+
+# Shut down the scheduler when exiting the app
+atexit.register(lambda: scheduler.shutdown())
+
 def gravatar(email, size=100, default='identicon', rating='g'):
     url = 'https://www.gravatar.com/avatar/'
     hash = hashlib.md5(email.lower().encode('utf-8')).hexdigest()
@@ -32,6 +57,9 @@ def utility_processor():
     trending_hashtags = get_trending_hashtags()
     newest_users = User.query.order_by(User.id.desc()).limit(5).all()
     return dict(gravatar=gravatar, trending_hashtags=trending_hashtags, newest_users=newest_users)
+
+def get_newest_users(limit=5):
+    return User.query.order_by(User.id.desc()).limit(limit).all()
 
 def get_trending_hashtags():
     hashtags = {}
@@ -66,9 +94,10 @@ class User(db.Model, UserMixin):
 class Tweet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.String(144), nullable=False)
-    image = db.Column(db.String(300), nullable=True)  # Add image column
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    image = db.Column(db.String(100), nullable=True)
+    scheduled_at = db.Column(db.DateTime, nullable=True)
     user = db.relationship('User', backref=db.backref('tweets', lazy=True))
 
 class Retweet(db.Model):
@@ -112,25 +141,104 @@ class Bookmark(db.Model):
     user = db.relationship('User', backref='bookmark_relationships')
     tweet = db.relationship('Tweet', backref='bookmarked_tweets')
 
+class Poll(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    question = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    duration_days = db.Column(db.Integer, nullable=False)
+    duration_hours = db.Column(db.Integer, nullable=False)
+    duration_minutes = db.Column(db.Integer, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship('User', backref=db.backref('polls', lazy=True))
+    options = db.relationship('PollOption', backref='poll', lazy=True)
+
+    @property
+    def is_active(self):
+        expiration_time = self.created_at + timedelta(days=self.duration_days, hours=self.duration_hours, minutes=self.duration_minutes)
+        return datetime.utcnow() < expiration_time
+
+class PollOption(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    option_text = db.Column(db.String(255), nullable=False)
+    poll_id = db.Column(db.Integer, db.ForeignKey('poll.id'), nullable=False)
+    votes = db.Column(db.Integer, default=0)
+
+class PollVote(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    poll_id = db.Column(db.Integer, db.ForeignKey('poll.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    option_id = db.Column(db.Integer, db.ForeignKey('poll_option.id'), nullable=False)
+
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
 @app.route('/')
-@login_required
 def index():
-    tweets = Tweet.query.all()
-    retweets = Retweet.query.all()
-    quotes = Quote.query.all()
+    now = datetime.utcnow()
+    current_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
-    # Combine and sort all posts by timestamp
-    all_posts = sorted(
-        tweets + retweets + quotes,
-        key=lambda post: post.timestamp,
-        reverse=True
+    tweets = db.session.query(
+        Tweet.id.label('id'), 
+        Tweet.content.label('content'), 
+        Tweet.timestamp.label('timestamp'), 
+        Tweet.user_id.label('user_id'),
+        db.literal(None).label('poll_id'),
+        db.literal('tweet').label('type')
+    ).filter((Tweet.scheduled_at == None) | (Tweet.scheduled_at <= now))
+
+    retweets = db.session.query(
+        Retweet.id.label('id'), 
+        Retweet.tweet_id.label('content'), 
+        Retweet.timestamp.label('timestamp'), 
+        Retweet.user_id.label('user_id'),
+        db.literal(None).label('poll_id'),
+        db.literal('retweet').label('type')
     )
 
-    return render_template('index.html', posts=all_posts, current_user=current_user)
+    polls = db.session.query(
+        Poll.id.label('id'),
+        Poll.question.label('content'),
+        Poll.created_at.label('timestamp'),
+        Poll.user_id.label('user_id'),
+        Poll.id.label('poll_id'),
+        db.literal('poll').label('type')
+    )
+
+    combined_query = tweets.union_all(retweets, polls).order_by(text('timestamp desc'))
+
+    posts = combined_query.all()
+
+    # Fetch user data and combine with posts
+    user_ids = {post.user_id for post in posts}
+    users = {user.id: user for user in User.query.filter(User.id.in_(user_ids)).all()}
+
+    posts_with_users = []
+    for post in posts:
+        post_dict = {
+            'id': post.id,
+            'content': post.content,
+            'timestamp': post.timestamp,
+            'user_id': post.user_id,
+            'poll_id': post.poll_id,
+            'type': post.type,
+            'user': users[post.user_id]
+        }
+        if post.type == 'poll':
+            poll = Poll.query.get(post.poll_id)
+            post_dict['poll'] = poll
+            # Check if the current user has already voted
+            if current_user.is_authenticated:
+                vote = PollVote.query.filter_by(poll_id=post.poll_id, user_id=current_user.id).first()
+                post_dict['has_voted'] = vote is not None
+            else:
+                post_dict['has_voted'] = False
+        posts_with_users.append(post_dict)
+    
+    trending_hashtags = get_trending_hashtags()  # Assuming this function is defined elsewhere
+    newest_users = get_newest_users()  # Assuming this function is defined elsewhere
+
+    return render_template('index.html', posts=posts_with_users, current_time=current_time, trending_hashtags=trending_hashtags, newest_users=newest_users)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -165,16 +273,31 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+def resize_image(image_path, output_path, size=(200, 200)):
+    with Image.open(image_path) as img:
+        img.thumbnail(size)
+        img.save(output_path)
+
 @app.route('/tweet', methods=['POST'])
 @login_required
 def tweet():
     content = request.form['content']
-    image = request.files['image']
+    image = request.files.get('image')
     image_filename = None
 
     if image:
         image_filename = secure_filename(image.filename)
-        image.save(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))
+        image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_filename)
+        image.save(image_path)
+        resized_image_path = os.path.join(app.config['UPLOAD_FOLDER'], f"thumb_{image_filename}")
+        resize_image(image_path, resized_image_path)
+        image_filename = f"thumb_{image_filename}"
+
+    scheduled_date = request.form.get('scheduled_date')
+    scheduled_time = request.form.get('scheduled_time')
+    scheduled_at = None
+    if scheduled_date and scheduled_time:
+        scheduled_at = datetime.strptime(f"{scheduled_date} {scheduled_time}", "%Y-%m-%d %H:%M")
 
     if len(content) <= 144:
         if content.startswith('/dm '):
@@ -195,13 +318,20 @@ def tweet():
                 else:
                     flash('User not found.', 'danger')
         else:
-            tweet = Tweet(content=content, image=image_filename, user_id=current_user.id)
+            tweet = Tweet(content=content, user_id=current_user.id, image=image_filename, scheduled_at=scheduled_at)
             db.session.add(tweet)
             db.session.commit()
-            flash('Your tweet has been posted!', 'success')
+            if scheduled_at:
+                flash('Your tweet has been scheduled!', 'success')
+            else:
+                flash('Your tweet has been posted!', 'success')
     else:
         flash('Tweet content exceeds 144 characters.', 'danger')
     return redirect(url_for('index'))
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/retweet/<int:tweet_id>', methods=['POST'])
 @login_required
@@ -366,6 +496,55 @@ def bookmarks():
     bookmarks = Bookmark.query.filter_by(user_id=current_user.id).order_by(Bookmark.timestamp.desc()).all()
     return render_template('bookmarks.html', bookmarks=bookmarks)
 
+@app.route('/create_poll', methods=['GET', 'POST'])
+@login_required
+def create_poll():
+    form = PollForm()
+    if form.validate_on_submit():
+        poll = Poll(
+            question=form.question.data,
+            duration_days=form.duration_days.data,
+            duration_hours=form.duration_hours.data,
+            duration_minutes=form.duration_minutes.data,
+            user_id=current_user.id
+        )
+        db.session.add(poll)
+        db.session.commit()
+
+        for option in form.options.data:
+            poll_option = PollOption(option_text=option['option_text'], poll_id=poll.id)
+            db.session.add(poll_option)
+        db.session.commit()
+
+        flash('Poll created successfully!', 'success')
+        return redirect(url_for('index'))
+    
+    return render_template('create_poll.html', form=form)
+
+@app.route('/vote_poll/<int:poll_id>', methods=['POST'])
+@login_required
+def vote_poll(poll_id):
+    option_id = request.form.get('option_id')
+    if not option_id:
+        flash('You must select an option to vote', 'warning')
+        return redirect(url_for('index'))
+
+    poll = Poll.query.get_or_404(poll_id)
+    option = PollOption.query.get_or_404(option_id)
+
+    # Check if the user has already voted
+    vote = PollVote.query.filter_by(poll_id=poll_id, user_id=current_user.id).first()
+    if vote:
+        flash('You have already voted in this poll', 'warning')
+    else:
+        new_vote = PollVote(poll_id=poll_id, user_id=current_user.id, option_id=option_id)
+        option.votes += 1
+        db.session.add(new_vote)
+        db.session.commit()
+        flash('Your vote has been recorded', 'success')
+
+    return redirect(url_for('index'))
+
 def make_clickable_links(text):
     # Convert @username to clickable links
     text = re.sub(r'@(\w+)', r'<a href="/profile/\1">@\1</a>', text)
@@ -378,4 +557,6 @@ def make_clickable_filter(text):
     return make_clickable_links(text)
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(debug=True, port=8000)

@@ -76,3 +76,39 @@ blockquote {
     justify-content: space-between;
     align-items: center;
 }
+
+.input-group .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.input-group .form-control {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.position-relative {
+    position: relative;
+}
+
+.input-icons {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding-left: 10px;
+}
+
+.input-icons .icon {
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.tweet-image {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 10px 0;
+}

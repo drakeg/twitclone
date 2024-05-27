@@ -2,52 +2,65 @@
 {% block content %}
 <h2>Tweets</h2>
 <div class="mb-3">
-    <form method="POST" action="{{ url_for('tweet') }}" enctype="multipart/form-data">
+    <form id="tweetForm" method="POST" action="{{ url_for('tweet') }}" enctype="multipart/form-data">
         <div class="mb-3">
             <label for="content" class="form-label">What's happening?</label>
-            <textarea class="form-control" id="content" name="content" rows="3" maxlength="144"></textarea>
+            <div class="position-relative">
+                <textarea class="form-control" id="content" name="content" rows="3" maxlength="144" style="padding-left: 40px;"></textarea>
+                <div class="input-icons">
+                    <i class="fas fa-image icon" id="uploadIcon"></i>
+                    <a href="{{ url_for('create_poll') }}" class="icon"><i class="fas fa-poll"></i></a>
+                    <i class="fas fa-clock icon" id="scheduleIcon"></i> <!-- Schedule icon -->
+                </div>
+            </div>
+            <input class="form-control d-none" type="file" id="image" name="image" accept="image/*">
+            <div id="imagePreview" class="mt-2"></div> <!-- Add a div to show image preview -->
         </div>
-        <div class="mb-3">
-            <label for="image" class="form-label">Upload Image</label>
-            <input class="form-control" type="file" id="image" name="image">
+        <div id="scheduleOptions" class="mt-3 d-none"> <!-- Hidden by default -->
+            <label for="scheduled_date" class="form-label">Scheduled Date</label>
+            <input type="date" class="form-control" id="scheduled_date" name="scheduled_date">
+            <label for="scheduled_time" class="form-label mt-2">Scheduled Time</label>
+            <input type="time" class="form-control" id="scheduled_time" name="scheduled_time">
         </div>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn btn-primary">Tweet</button>
+        <button type="submit" class="btn btn-primary mt-3">Tweet</button>
     </form>
 </div>
 {% for post in posts %}
 <div class="card mb-3">
     <div class="card-body">
-        {% if post.__class__.__name__ == 'Tweet' %}
         <h5 class="card-title">
-            <a href="{{ url_for('profile', username=post.user.username) }}">{{ post.user.username }}</a>
+            <a href="{{ url_for('profile', username=post['user'].username) }}">{{ post['user'].username }}</a>
         </h5>
         <p class="card-text">{{ post.content | make_clickable | safe }}</p>
-        {% if post.image %}
-        <img src="{{ url_for('static', filename='uploads/' ~ post.image) }}" class="img-fluid mt-2" alt="Tweet Image">
+        {% if post.type == 'tweet' and post.image %}
+        <img src="{{ url_for('uploaded_file', filename=post.image) }}" class="img-fluid mt-2 tweet-image" alt="Tweet Image">
         {% endif %}
-        {% elif post.__class__.__name__ == 'Retweet' %}
-        <h5 class="card-title">
-            <a href="{{ url_for('profile', username=post.user.username) }}">{{ post.user.username }}</a> retweeted
-        </h5>
-        <p class="card-text">{{ post.tweet.content | make_clickable | safe }}</p>
-        {% if post.tweet.image %}
-        <img src="{{ url_for('static', filename='uploads/' ~ post.tweet.image) }}" class="img-fluid mt-2" alt="Tweet Image">
-        {% endif %}
-        {% elif post.__class__.__name__ == 'Quote' %}
-        <h5 class="card-title">
-            <a href="{{ url_for('profile', username=post.user.username) }}">{{ post.user.username }}</a> quoted
-        </h5>
-        <p class="card-text">{{ post.content | make_clickable | safe }}</p>
-        <blockquote class="blockquote">
-            <p class="mb-0">{{ post.tweet.content | make_clickable | safe }}</p>
-            <footer class="blockquote-footer">{{ post.tweet.user.username }} on {{ post.tweet.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</footer>
-        </blockquote>
-        {% if post.tweet.image %}
-        <img src="{{ url_for('static', filename='uploads/' ~ post.tweet.image) }}" class="img-fluid mt-2" alt="Tweet Image">
+        {% if post.type == 'poll' %}
+        {% if post.poll.is_active and not post.has_voted %}
+        <form method="POST" action="{{ url_for('vote_poll', poll_id=post.poll_id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% for option in post.poll.options %}
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="option_id" value="{{ option.id }}" id="option{{ option.id }}">
+                <label class="form-check-label" for="option{{ option.id }}">
+                    {{ option.option_text }}
+                </label>
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-primary mt-2">Vote</button>
+        </form>
+        {% else %}
+        <p>Poll Results:</p>
+        <ul>
+            {% for option in post.poll.options %}
+            <li>{{ option.option_text }} - {{ option.votes }} votes</li>
+            {% endfor %}
+        </ul>
         {% endif %}
         {% endif %}
         <p class="card-text"><small class="text-muted">{{ post.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
+        {% if post.type != 'poll' %}
         <form method="POST" action="{{ url_for('retweet', tweet_id=post.id) }}" class="d-inline">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-outline-primary btn-sm">
@@ -63,6 +76,7 @@
                 <i class="fas fa-bookmark"></i>
             </button>
         </form>
+        {% endif %}
     </div>
 </div>
 {% endfor %}
