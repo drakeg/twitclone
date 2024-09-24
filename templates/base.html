@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Twitter Clone</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
@@ -16,53 +17,167 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                    <form class="d-flex" method="POST" action="{{ url_for('search') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" name="search_query">
+                        <button class="btn btn-outline-success" type="submit">Search</button>
+                    </form>
                     {% if current_user.is_authenticated %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <img src="{{ gravatar_url(current_user.email) }}" alt="avatar" class="rounded-circle" width="30" height="30">
-                            {{ current_user.username }}
+                            <img src="{{ gravatar(current_user.email) }}" alt="avatar" class="rounded-circle" width="30" height="30"> {{ current_user.username }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                            <li><a class="dropdown-item" href="#">Profile</a></li>
-                            <li><a class="dropdown-item" href="#">Followers</a></li>
-                            <li><a class="dropdown-item" href="#">Following</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('profile', username=current_user.username) }}"><i class="fas fa-user"></i> Profile</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('messages') }}"><i class="fas fa-envelope"></i> Messages</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('notifications') }}"><i class="fas fa-bell"></i> Notifications</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('bookmarks') }}"><i class="fas fa-bookmark"></i> Bookmarks</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                         </ul>
                     </li>
                     {% else %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                        <a class="nav-link" href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> Login</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('register') }}">Register</a>
+                        <a class="nav-link" href="{{ url_for('register') }}"><i class="fas fa-user-plus"></i> Register</a>
                     </li>
                     {% endif %}
+                    <li class="nav-item text-center">
+                        <div class="small">Current Time</div>
+                        <div class="small" id="currentTime"></div>
+                    </li>
                 </ul>
             </div>
         </div>
     </nav>
     <div class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        {% block content %}{% endblock %}
+        <div class="row">
+            <div class="col-md-8">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                {% block content %}{% endblock %}
+            </div>
+            <div class="col-md-4">
+                <div class="sidebar">
+                    <h5>Trending Hashtags</h5>
+                    <ul class="list-group">
+                        {% for hashtag in trending_hashtags %}
+                        <li class="list-group-item">
+                            <a href="{{ url_for('hashtag', hashtag=hashtag) }}">#{{ hashtag }}</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <h5 class="mt-4">Newest Users</h5>
+                    <ul class="list-group">
+                        {% for user in newest_users %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center" id="user-{{ user.id }}">
+                            <div>
+                                <a href="{{ url_for('profile', username=user.username) }}">{{ user.username }}</a>
+                                <p class="bio">{{ user.bio }}</p>
+                            </div>
+                            {% if user != current_user %}
+                                {% if user not in current_user.followed %}
+                                <button class="btn btn-success btn-sm follow-btn" data-username="{{ user.username }}" data-action="follow">Follow</button>
+                                {% else %}
+                                <button class="btn btn-danger btn-sm follow-btn" data-username="{{ user.username }}" data-action="unfollow">Unfollow</button>
+                                {% endif %}
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'))
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl)
-            })
+    document.addEventListener('DOMContentLoaded', function() {
+        const followButtons = document.querySelectorAll('.follow-btn');
+
+        followButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const username = this.getAttribute('data-username');
+                const action = this.getAttribute('data-action');
+                const url = `/${action}/${username}`;
+                const method = 'POST';
+
+                fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        if (action === 'follow') {
+                            this.textContent = 'Unfollow';
+                            this.classList.remove('btn-success');
+                            this.classList.add('btn-danger');
+                            this.setAttribute('data-action', 'unfollow');
+                        } else {
+                            this.textContent = 'Follow';
+                            this.classList.remove('btn-danger');
+                            this.classList.add('btn-success');
+                            this.setAttribute('data-action', 'follow');
+                        }
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            });
         });
+
+        // File upload logic
+        const uploadIcon = document.getElementById('uploadIcon');
+        const imageInput = document.getElementById('image');
+        const imagePreview = document.getElementById('imagePreview');
+
+        uploadIcon.addEventListener('click', function() {
+            imageInput.click();
+        });
+
+        imageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.innerHTML = `<img src="${e.target.result}" class="img-fluid mt-2 tweet-image" alt="Image Preview" style="max-height: 200px; max-width: 100%;">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Schedule options toggle
+        document.getElementById('scheduleIcon').addEventListener('click', function() {
+            var scheduleOptions = document.getElementById('scheduleOptions');
+            if (scheduleOptions.classList.contains('d-none')) {
+                scheduleOptions.classList.remove('d-none');
+            } else {
+                scheduleOptions.classList.add('d-none');
+            }
+        });
+
+        // Update current time every second
+        function updateTime() {
+            const currentTimeElement = document.getElementById('currentTime');
+            const now = new Date();
+            const formattedTime = now.toLocaleTimeString();
+            currentTimeElement.textContent = formattedTime;
+        }
+        setInterval(updateTime, 1000);
+        updateTime();  // Initial call to set the time immediately
+    });
     </script>
 </body>
 </html>

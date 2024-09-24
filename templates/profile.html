@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ user.username }}'s Profile</h2>
+<img src="{{ gravatar(user.email, size=200) }}" alt="avatar" class="rounded-circle mb-3">
+<p>Email: {{ user.email }}</p>
+<p>Bio: {{ user.bio }}</p>
+{% if current_user.id != user.id %}
+<button id="follow-btn" class="btn {% if is_following %}btn-danger{% else %}btn-success{% endif %}" data-username="{{ user.username }}">
+    {% if is_following %}Unfollow{% else %}Follow{% endif %}
+</button>
+{% endif %}
+<a href="{{ url_for('followers', username=user.username) }}" class="btn btn-secondary">View Followers</a>
+<a href="{{ url_for('following', username=user.username) }}" class="btn btn-secondary">View Following</a>
+{% if current_user.id == user.id %}
+<a href="{{ url_for('edit_profile') }}" class="btn btn-primary">Edit Profile</a>
+{% endif %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const followBtn = document.getElementById('follow-btn');
+
+    followBtn.addEventListener('click', function() {
+        const username = this.getAttribute('data-username');
+        const action = this.textContent.trim().toLowerCase();
+        const url = `/${action}/${username}`;
+        const method = 'POST';
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                if (action === 'follow') {
+                    this.textContent = 'Unfollow';
+                    this.classList.remove('btn-success');
+                    this.classList.add('btn-danger');
+                } else {
+                    this.textContent = 'Follow';
+                    this.classList.remove('btn-danger');
+                    this.classList.add('btn-success');
+                }
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+});
+</script>
+{% endblock %}

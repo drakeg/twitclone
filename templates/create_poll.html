@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Create Poll</h2>
+<form method="POST" action="{{ url_for('create_poll') }}">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+        {{ form.question.label(class="form-label") }}
+        {{ form.question(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Choices</label>
+        <div id="choices">
+            {% for subfield in form.options %}
+            <div class="input-group mb-2">
+                <span class="input-group-text">Choice {{ loop.index }}</span>
+                {{ subfield.option_text(class="form-control") }}
+            </div>
+            {% endfor %}
+        </div>
+        <button type="button" id="add-choice" class="btn btn-secondary">+</button>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Duration</label>
+        <div class="d-flex">
+            <div class="me-2">
+                {{ form.duration_days.label(class="form-label") }}
+                {{ form.duration_days(class="form-control", placeholder="Days") }}
+            </div>
+            <div class="me-2">
+                {{ form.duration_hours.label(class="form-label") }}
+                {{ form.duration_hours(class="form-control", placeholder="Hours") }}
+            </div>
+            <div>
+                {{ form.duration_minutes.label(class="form-label") }}
+                {{ form.duration_minutes(class="form-control", placeholder="Minutes") }}
+            </div>
+        </div>
+    </div>
+    <div class="mb-3">
+        {{ form.submit(class="btn btn-primary") }}
+    </div>
+</form>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let choiceCount = {{ form.options|length }};
+    const maxChoices = 4;
+
+    document.getElementById('add-choice').addEventListener('click', function() {
+        if (choiceCount < maxChoices) {
+            choiceCount++;
+            const choiceDiv = document.createElement('div');
+            choiceDiv.classList.add('input-group', 'mb-2');
+            choiceDiv.innerHTML = `
+                <span class="input-group-text">Choice ${choiceCount}</span>
+                <input class="form-control" id="options-${choiceCount - 1}-option_text" name="options-${choiceCount - 1}-option_text" type="text">
+            `;
+            document.getElementById('choices').appendChild(choiceDiv);
+        }
+    });
+});
+</script>
+{% endblock %}

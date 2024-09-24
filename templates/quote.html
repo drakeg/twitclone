@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Quote Tweet</h2>
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title">
+            <a href="{{ url_for('profile', username=tweet.user.username) }}">{{ tweet.user.username }}</a>
+        </h5>
+        <p class="card-text">{{ tweet.content | make_clickable | safe }}</p>
+        <p class="card-text"><small class="text-muted">{{ tweet.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
+    </div>
+</div>
+<form method="POST" action="{{ url_for('quote', tweet_id=tweet.id) }}">
+    <div class="mb-3">
+        <label for="content" class="form-label">Add your comment</label>
+        <textarea class="form-control" id="content" name="content" rows="3" maxlength="144"></textarea>
+    </div>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-primary">Quote</button>
+</form>
+{% endblock %}

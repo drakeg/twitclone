@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ user.username }}'s Followers</h2>
+<ul class="list-group">
+    {% for follower in followers %}
+    <li class="list-group-item">
+        <img src="{{ gravatar(follower.email, size=40) }}" alt="avatar" class="rounded-circle me-2">
+        <a href="{{ url_for('profile', username=follower.username) }}">{{ follower.username }}</a>
+    </li>
+    {% endfor %}
+</ul>
+<a href="{{ url_for('profile', username=user.username) }}" class="btn btn-secondary mt-3">Back to Profile</a>
+{% endblock %}

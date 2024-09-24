@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Bookmarked Tweets</h2>
+{% for bookmark in bookmarks %}
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title">
+            <a href="{{ url_for('profile', username=bookmark.tweet.user.username) }}">{{ bookmark.tweet.user.username }}</a>
+        </h5>
+        <p class="card-text">{{ bookmark.tweet.content | make_clickable | safe }}</p>
+        <p class="card-text"><small class="text-muted">{{ bookmark.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
