@@ -1,0 +1,9 @@
+Single-database migration configuration for TwitClone.
+
+This directory is version-controlled. Create new revisions with:
+
+    flask --app application db migrate -m "describe schema change"
+
+Apply revisions with:
+
+    flask --app application db upgrade

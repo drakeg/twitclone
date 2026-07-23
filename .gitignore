@@ -1,5 +1,6 @@
 .venv
 *.db
-migrations/
 __pycache__/
 static/uploads
+.env
+.pytest_cache/
