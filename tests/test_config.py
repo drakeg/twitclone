@@ -24,13 +24,19 @@ def load_config(monkeypatch, **environment):
     return importlib.import_module("config")
 
 
-def test_development_defaults_are_usable(monkeypatch):
-    config = load_config(monkeypatch)
+def test_secret_key_is_required_in_development(monkeypatch):
+    with pytest.raises(RuntimeError, match="SECRET_KEY is required"):
+        load_config(monkeypatch, TWITCLONE_ENV="development")
 
-    assert config.Config.ENVIRONMENT == "development"
-    assert config.Config.SECRET_KEY == "development-only-change-me"
-    assert config.Config.SQLALCHEMY_DATABASE_URI.startswith("sqlite:///")
-    assert config.Config.SCHEDULER_ENABLED is True
+
+def test_secret_key_is_required_in_testing(monkeypatch):
+    with pytest.raises(RuntimeError, match="SECRET_KEY is required"):
+        load_config(monkeypatch, TWITCLONE_ENV="testing")
+
+
+def test_secret_key_is_required_in_production(monkeypatch):
+    with pytest.raises(RuntimeError, match="SECRET_KEY is required"):
+        load_config(monkeypatch, TWITCLONE_ENV="production")
 
 
 def test_environment_values_override_defaults(monkeypatch, tmp_path):
@@ -38,7 +44,7 @@ def test_environment_values_override_defaults(monkeypatch, tmp_path):
     config = load_config(
         monkeypatch,
         TWITCLONE_ENV="testing",
-        SECRET_KEY="test-secret",
+        SECRET_KEY="test-only-secret-not-for-production",
         DATABASE_URL="sqlite:///:memory:",
         UPLOAD_FOLDER=str(upload_folder),
         SCHEDULER_ENABLED="false",
@@ -46,18 +52,17 @@ def test_environment_values_override_defaults(monkeypatch, tmp_path):
     )
 
     assert config.Config.TESTING is True
-    assert config.Config.SECRET_KEY == "test-secret"
+    assert config.Config.SECRET_KEY == "test-only-secret-not-for-production"
     assert config.Config.SQLALCHEMY_DATABASE_URI == "sqlite:///:memory:"
     assert config.Config.UPLOAD_FOLDER == str(upload_folder)
     assert config.Config.SCHEDULER_ENABLED is False
     assert config.Config.SCHEDULER_INTERVAL_SECONDS == 15
 
 
-def test_production_requires_secret_key(monkeypatch):
-    with pytest.raises(RuntimeError, match="SECRET_KEY is required"):
-        load_config(monkeypatch, TWITCLONE_ENV="production")
-
-
 def test_scheduler_interval_must_be_positive(monkeypatch):
     with pytest.raises(RuntimeError, match="must be at least 1"):
-        load_config(monkeypatch, SCHEDULER_INTERVAL_SECONDS="0")
+        load_config(
+            monkeypatch,
+            SECRET_KEY="test-only-secret-not-for-production",
+            SCHEDULER_INTERVAL_SECONDS="0",
+        )
