@@ -36,13 +36,13 @@ class Config:
 
     @classmethod
     def validate(cls) -> None:
-        """Fail clearly when production configuration is unsafe or incomplete."""
-
-        if cls.ENVIRONMENT == "production" and not cls.SECRET_KEY:
-            raise RuntimeError("SECRET_KEY is required when TWITCLONE_ENV=production")
+        """Fail clearly when required configuration is unsafe or incomplete."""
 
         if not cls.SECRET_KEY:
-            cls.SECRET_KEY = "development-only-change-me"
+            raise RuntimeError(
+                "SECRET_KEY is required for every TwitClone environment. "
+                "Set it outside source control before starting the application."
+            )
 
         if cls.SCHEDULER_INTERVAL_SECONDS < 1:
             raise RuntimeError("SCHEDULER_INTERVAL_SECONDS must be at least 1")
