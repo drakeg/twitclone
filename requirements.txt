@@ -14,7 +14,7 @@ gravatar==0.1
 pytz==2024.1
 SQLAlchemy==2.0.51
 tzlocal==5.2
-WTForms==3.1.2
+WTForms==3.2.2
 
 # Transitive dependencies retained as exact pins after the July 2026
 # Dependabot, Mend, Renovate, and Snyk security updates. Issue #13 will
