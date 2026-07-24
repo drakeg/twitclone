@@ -1,11 +1,7 @@
 from PIL import Image
 import os
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, send_from_directory
-from flask_sqlalchemy import SQLAlchemy
-from flask_bcrypt import Bcrypt
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from flask_migrate import Migrate
-from flask_wtf import CSRFProtect
+from flask_login import UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.utils import secure_filename
 import re
 from datetime import datetime, timedelta
@@ -17,19 +13,15 @@ from apscheduler.triggers.interval import IntervalTrigger
 import atexit
 
 from config import Config
+from twitclone.extensions import bcrypt, csrf, db, init_extensions, login_manager, migrate
 
 
 Config.validate()
 app = Flask(__name__)
 app.config.from_object(Config)
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+init_extensions(app)
 
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
-bcrypt = Bcrypt(app)
-login_manager = LoginManager(app)
-login_manager.login_view = 'login'
-csrf = CSRFProtect(app)
 
 def post_scheduled_tweets():
     now = datetime.utcnow()
