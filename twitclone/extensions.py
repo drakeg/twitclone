@@ -1,39 +1,36 @@
-"""Stable import boundary for TwitClone Flask extensions.
+"""Shared, application-independent Flask extension objects."""
 
-This module is the supported import location for shared Flask extension objects.
-During the incremental monolith refactor, the objects are still initialized by
-``app.py``. Later Sprint 2 work will move their definitions here without
-requiring models, migrations, tests, and routes to change imports again.
-"""
+from flask_bcrypt import Bcrypt
+from flask_login import LoginManager
+from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
+from flask_wtf import CSRFProtect
 
-from __future__ import annotations
+# Extensions are intentionally created without an application. The configured
+# application initializes them after configuration has been loaded and validated.
+db = SQLAlchemy()
+migrate = Migrate()
+bcrypt = Bcrypt()
+login_manager = LoginManager()
+login_manager.login_view = "login"
+csrf = CSRFProtect()
 
-from typing import Any
 
-_EXTENSION_NAMES = {
-    "db",
-    "migrate",
+def init_extensions(app) -> None:
+    """Bind all shared extensions to a configured Flask application."""
+
+    db.init_app(app)
+    migrate.init_app(app, db)
+    bcrypt.init_app(app)
+    login_manager.init_app(app)
+    csrf.init_app(app)
+
+
+__all__ = [
     "bcrypt",
-    "login_manager",
     "csrf",
-}
-
-
-def __getattr__(name: str) -> Any:
-    """Return the extension object currently owned by the legacy module."""
-
-    if name not in _EXTENSION_NAMES:
-        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-    import app as legacy_app
-
-    return getattr(legacy_app, name)
-
-
-def __dir__() -> list[str]:
-    """Expose supported extension names to interactive tooling."""
-
-    return sorted(set(globals()) | _EXTENSION_NAMES)
-
-
-__all__ = sorted(_EXTENSION_NAMES)
+    "db",
+    "init_extensions",
+    "login_manager",
+    "migrate",
+]
