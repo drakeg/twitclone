@@ -13,7 +13,7 @@ bcrypt==4.3.0
 gravatar==0.1
 pytz==2024.1
 SQLAlchemy==2.0.51
-tzlocal==5.2
+tzlocal==5.4.4
 WTForms==3.1.2
 
 # Transitive dependencies retained as exact pins after the July 2026
