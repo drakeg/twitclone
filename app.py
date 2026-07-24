@@ -16,10 +16,13 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 import atexit
 
+from config import Config
+
+
+Config.validate()
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///twitter_clone.db'
-app.config['SECRET_KEY'] = 'your_secret_key'
-app.config['UPLOAD_FOLDER'] = 'static/uploads'  # Folder to store uploaded images
+app.config.from_object(Config)
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -36,16 +39,17 @@ def post_scheduled_tweets():
         db.session.commit()
 
 scheduler = BackgroundScheduler()
-scheduler.start()
-scheduler.add_job(
-    func=post_scheduled_tweets,
-    trigger=IntervalTrigger(seconds=60),  # Check every minute
-    id='post_scheduled_tweets',
-    name='Post scheduled tweets every minute',
-    replace_existing=True)
+if app.config['SCHEDULER_ENABLED']:
+    scheduler.add_job(
+        func=post_scheduled_tweets,
+        trigger=IntervalTrigger(seconds=app.config['SCHEDULER_INTERVAL_SECONDS']),
+        id='post_scheduled_tweets',
+        name='Post scheduled tweets',
+        replace_existing=True)
+    scheduler.start()
 
-# Shut down the scheduler when exiting the app
-atexit.register(lambda: scheduler.shutdown())
+    # Shut down the scheduler when exiting the app.
+    atexit.register(lambda: scheduler.shutdown() if scheduler.running else None)
 
 def gravatar(email, size=100, default='identicon', rating='g'):
     url = 'https://www.gravatar.com/avatar/'
@@ -557,6 +561,7 @@ def make_clickable_filter(text):
     return make_clickable_links(text)
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True, port=8000)
+    app.run(
+        debug=Config.ENVIRONMENT == 'development',
+        port=int(os.getenv('PORT', '8000')),
+    )
