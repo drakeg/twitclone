@@ -11,7 +11,7 @@ Pillow==12.3.0
 # Explicit application/runtime dependencies
 bcrypt==4.3.0
 gravatar==0.1
-pytz==2024.1
+pytz==2024.2
 SQLAlchemy==2.0.51
 tzlocal==5.2
 WTForms==3.1.2
