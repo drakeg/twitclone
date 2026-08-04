@@ -1,7 +1,7 @@
 from PIL import Image
 import os
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, send_from_directory
-from flask_login import login_user, login_required, logout_user, current_user
+from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
 import re
 from datetime import datetime
@@ -13,7 +13,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 import atexit
 
 from config import Config
-from twitclone.extensions import bcrypt, csrf, db, init_extensions, login_manager, migrate
+from twitclone.extensions import csrf, db, init_extensions, login_manager, migrate
 from twitclone.models import (
     Bookmark,
     DirectMessage,
@@ -153,39 +153,6 @@ def index():
     newest_users = get_newest_users()  # Assuming this function is defined elsewhere
 
     return render_template('index.html', posts=posts_with_users, current_time=current_time, trending_hashtags=trending_hashtags, newest_users=newest_users)
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
-        password = request.form['password']
-        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        user = User(username=username, email=email, password=hashed_password)
-        db.session.add(user)
-        db.session.commit()
-        flash('Your account has been created!', 'success')
-        return redirect(url_for('login'))
-    return render_template('register.html')
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
-        user = User.query.filter_by(email=email).first()
-        if user and bcrypt.check_password_hash(user.password, password):
-            login_user(user)
-            return redirect(url_for('index'))
-        else:
-            flash('Login Unsuccessful. Please check email and password', 'danger')
-    return render_template('login.html')
-
-@app.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    return redirect(url_for('login'))
 
 def resize_image(image_path, output_path, size=(200, 200)):
     with Image.open(image_path) as img:

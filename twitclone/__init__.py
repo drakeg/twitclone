@@ -29,6 +29,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     import app as legacy_app
 
     from twitclone.utils import bind_legacy_module
+    from twitclone.auth import auth_blueprint
 
     bind_legacy_module(legacy_app)
 
@@ -37,6 +38,9 @@ def create_app(config_object: type[Config] = Config) -> Flask:
 
     flask_app.config.from_object(config_object)
     Path(flask_app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
+
+    if auth_blueprint.name not in flask_app.blueprints:
+        flask_app.register_blueprint(auth_blueprint)
 
     if not flask_app.config["SCHEDULER_ENABLED"] and scheduler.running:
         scheduler.shutdown(wait=False)
