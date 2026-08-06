@@ -343,8 +343,6 @@ def hashtag(hashtag):
     tweets = Tweet.query.filter(Tweet.content.like(f'%{hashtag}%')).order_by(Tweet.timestamp.desc()).all()
     return render_template('hashtag.html', hashtag=hashtag, tweets=tweets)
 
-@app.route('/notifications')
-@login_required
 def notifications():
     notifications = Notification.query.filter_by(user_id=current_user.id).order_by(Notification.timestamp.desc()).all()
     return render_template('notifications.html', notifications=notifications)
