@@ -232,14 +232,10 @@ def quote(tweet_id):
             flash('Quote content exceeds 144 characters.', 'danger')
     return render_template('quote.html', tweet=tweet)
 
-@app.route('/messages')
-@login_required
 def messages():
     messages = DirectMessage.query.filter_by(receiver_id=current_user.id).order_by(DirectMessage.timestamp.desc()).all()
     return render_template('messages.html', messages=messages)
 
-@app.route('/reply/<int:message_id>', methods=['GET', 'POST'])
-@login_required
 def reply_message(message_id):
     message = DirectMessage.query.get_or_404(message_id)
     if request.method == 'POST':
