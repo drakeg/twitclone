@@ -30,6 +30,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
 
     from twitclone.auth import auth_blueprint
     from twitclone.messaging import messaging_blueprint
+    from twitclone.polls import polls_blueprint
     from twitclone.timeline import timeline_blueprint
     from twitclone.utils import bind_legacy_module
 
@@ -47,6 +48,8 @@ def create_app(config_object: type[Config] = Config) -> Flask:
         flask_app.register_blueprint(timeline_blueprint)
     if messaging_blueprint.name not in flask_app.blueprints:
         flask_app.register_blueprint(messaging_blueprint)
+    if polls_blueprint.name not in flask_app.blueprints:
+        flask_app.register_blueprint(polls_blueprint)
 
     if not flask_app.config["SCHEDULER_ENABLED"] and scheduler.running:
         scheduler.shutdown(wait=False)

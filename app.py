@@ -365,8 +365,6 @@ def bookmarks():
     bookmarks = Bookmark.query.filter_by(user_id=current_user.id).order_by(Bookmark.timestamp.desc()).all()
     return render_template('bookmarks.html', bookmarks=bookmarks)
 
-@app.route('/create_poll', methods=['GET', 'POST'])
-@login_required
 def create_poll():
     form = PollForm()
     if form.validate_on_submit():
@@ -390,8 +388,6 @@ def create_poll():
     
     return render_template('create_poll.html', form=form)
 
-@app.route('/vote_poll/<int:poll_id>', methods=['POST'])
-@login_required
 def vote_poll(poll_id):
     option_id = request.form.get('option_id')
     if not option_id:
