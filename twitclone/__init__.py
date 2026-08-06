@@ -28,8 +28,9 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     # legacy module and its Flask extensions are loaded.
     import app as legacy_app
 
-    from twitclone.utils import bind_legacy_module
     from twitclone.auth import auth_blueprint
+    from twitclone.timeline import timeline_blueprint
+    from twitclone.utils import bind_legacy_module
 
     bind_legacy_module(legacy_app)
 
@@ -41,6 +42,8 @@ def create_app(config_object: type[Config] = Config) -> Flask:
 
     if auth_blueprint.name not in flask_app.blueprints:
         flask_app.register_blueprint(auth_blueprint)
+    if timeline_blueprint.name not in flask_app.blueprints:
+        flask_app.register_blueprint(timeline_blueprint)
 
     if not flask_app.config["SCHEDULER_ENABLED"] and scheduler.running:
         scheduler.shutdown(wait=False)

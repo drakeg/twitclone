@@ -13,7 +13,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 import atexit
 
 from config import Config
-from twitclone.extensions import csrf, db, init_extensions, login_manager, migrate
+from twitclone.extensions import bcrypt, csrf, db, init_extensions, login_manager, migrate
 from twitclone.models import (
     Bookmark,
     DirectMessage,
@@ -87,7 +87,6 @@ def get_trending_hashtags():
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
-@app.route('/')
 def index():
     now = datetime.utcnow()
     current_time = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -159,8 +158,6 @@ def resize_image(image_path, output_path, size=(200, 200)):
         img.thumbnail(size)
         img.save(output_path)
 
-@app.route('/tweet', methods=['POST'])
-@login_required
 def tweet():
     content = request.form['content']
     image = request.files.get('image')
@@ -210,12 +207,9 @@ def tweet():
         flash('Tweet content exceeds 144 characters.', 'danger')
     return redirect(url_for('index'))
 
-@app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-@app.route('/retweet/<int:tweet_id>', methods=['POST'])
-@login_required
 def retweet(tweet_id):
     tweet = Tweet.query.get_or_404(tweet_id)
     retweet = Retweet(user_id=current_user.id, tweet_id=tweet.id)
@@ -224,8 +218,6 @@ def retweet(tweet_id):
     flash('You have retweeted this tweet!', 'success')
     return redirect(url_for('index'))
 
-@app.route('/quote/<int:tweet_id>', methods=['GET', 'POST'])
-@login_required
 def quote(tweet_id):
     tweet = Tweet.query.get_or_404(tweet_id)
     if request.method == 'POST':
