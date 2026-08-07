@@ -1,8 +1,7 @@
 """TwitClone application factory.
 
-This factory provides one supported construction path while the existing routes
-remain in the legacy ``app.py`` module. Later Sprint 2 stories will move those
-responsibilities into this package incrementally.
+This factory provides one supported construction path while ``app.py`` remains
+as a transitional startup and compatibility module.
 """
 
 from __future__ import annotations
@@ -29,9 +28,12 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     import app as legacy_app
 
     from twitclone.auth import auth_blueprint
+    from twitclone.bookmarks import bookmarks_blueprint
+    from twitclone.discovery import discovery_blueprint
     from twitclone.messaging import messaging_blueprint
     from twitclone.notifications import notifications_blueprint
     from twitclone.polls import polls_blueprint
+    from twitclone.profiles import profiles_blueprint
     from twitclone.timeline import timeline_blueprint
     from twitclone.utils import bind_legacy_module
 
@@ -53,6 +55,12 @@ def create_app(config_object: type[Config] = Config) -> Flask:
         flask_app.register_blueprint(polls_blueprint)
     if notifications_blueprint.name not in flask_app.blueprints:
         flask_app.register_blueprint(notifications_blueprint)
+    if profiles_blueprint.name not in flask_app.blueprints:
+        flask_app.register_blueprint(profiles_blueprint)
+    if discovery_blueprint.name not in flask_app.blueprints:
+        flask_app.register_blueprint(discovery_blueprint)
+    if bookmarks_blueprint.name not in flask_app.blueprints:
+        flask_app.register_blueprint(bookmarks_blueprint)
 
     if not flask_app.config["SCHEDULER_ENABLED"] and scheduler.running:
         scheduler.shutdown(wait=False)
