@@ -13,21 +13,19 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required
-from sqlalchemy import text
 from werkzeug.utils import secure_filename
 
 from twitclone.extensions import db
 from twitclone.models import (
     DirectMessage,
     Notification,
-    Poll,
-    PollVote,
     Quote,
     Retweet,
     Tweet,
     User,
 )
 from twitclone.timeline import timeline_blueprint
+from twitclone.timeline.service import build_timeline_posts
 from twitclone.timeline.validation import validate_post_content
 from twitclone.utils import get_newest_users, get_trending_hashtags, resize_image
 
@@ -36,65 +34,11 @@ def index():
     now = datetime.utcnow()
     current_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
-    tweets = db.session.query(
-        Tweet.id.label("id"),
-        Tweet.content.label("content"),
-        Tweet.timestamp.label("timestamp"),
-        Tweet.user_id.label("user_id"),
-        db.literal(None).label("poll_id"),
-        db.literal("tweet").label("type"),
-    ).filter((Tweet.scheduled_at == None) | (Tweet.scheduled_at <= now))
-
-    retweets = db.session.query(
-        Retweet.id.label("id"),
-        Retweet.tweet_id.label("content"),
-        Retweet.timestamp.label("timestamp"),
-        Retweet.user_id.label("user_id"),
-        db.literal(None).label("poll_id"),
-        db.literal("retweet").label("type"),
-    )
-
-    polls = db.session.query(
-        Poll.id.label("id"),
-        Poll.question.label("content"),
-        Poll.created_at.label("timestamp"),
-        Poll.user_id.label("user_id"),
-        Poll.id.label("poll_id"),
-        db.literal("poll").label("type"),
-    )
-
-    combined_query = tweets.union_all(retweets, polls).order_by(text("timestamp desc"))
-    posts = combined_query.all()
-
-    user_ids = {post.user_id for post in posts}
-    users = {user.id: user for user in User.query.filter(User.id.in_(user_ids)).all()}
-
-    posts_with_users = []
-    for post in posts:
-        post_dict = {
-            "id": post.id,
-            "content": post.content,
-            "timestamp": post.timestamp,
-            "user_id": post.user_id,
-            "poll_id": post.poll_id,
-            "type": post.type,
-            "user": users[post.user_id],
-        }
-        if post.type == "poll":
-            poll = Poll.query.get(post.poll_id)
-            post_dict["poll"] = poll
-            if current_user.is_authenticated:
-                vote = PollVote.query.filter_by(
-                    poll_id=post.poll_id, user_id=current_user.id
-                ).first()
-                post_dict["has_voted"] = vote is not None
-            else:
-                post_dict["has_voted"] = False
-        posts_with_users.append(post_dict)
+    posts = build_timeline_posts(now=now, viewer=current_user)
 
     return render_template(
         "index.html",
-        posts=posts_with_users,
+        posts=posts,
         current_time=current_time,
         trending_hashtags=get_trending_hashtags(),
         newest_users=get_newest_users(),
