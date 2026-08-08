@@ -13,7 +13,7 @@
 <form method="POST" action="{{ url_for('quote', tweet_id=tweet.id) }}">
     <div class="mb-3">
         <label for="content" class="form-label">Add your comment</label>
-        <textarea class="form-control" id="content" name="content" rows="3" maxlength="144"></textarea>
+        <textarea class="form-control" id="content" name="content" rows="3" maxlength="144" required></textarea>
     </div>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit" class="btn btn-primary">Quote</button>

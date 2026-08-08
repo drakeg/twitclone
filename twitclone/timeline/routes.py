@@ -28,6 +28,7 @@ from twitclone.models import (
     User,
 )
 from twitclone.timeline import timeline_blueprint
+from twitclone.timeline.validation import validate_post_content
 from twitclone.utils import get_newest_users, get_trending_hashtags, resize_image
 
 
@@ -102,7 +103,12 @@ def index():
 
 @login_required
 def tweet():
-    content = request.form["content"]
+    content = request.form.get("content")
+    validation_error = validate_post_content(content, post_type="Tweet")
+    if validation_error:
+        flash(validation_error, "danger")
+        return redirect(url_for("index"))
+
     image = request.files.get("image")
     image_filename = None
 
@@ -124,45 +130,42 @@ def tweet():
             f"{scheduled_date} {scheduled_time}", "%Y-%m-%d %H:%M"
         )
 
-    if len(content) <= 144:
-        if content.startswith("/dm "):
-            dm_parts = content.split(" ", 2)
-            if len(dm_parts) == 3:
-                username = dm_parts[1]
-                message = dm_parts[2]
-                user = User.query.filter_by(username=username).first()
-                if user:
-                    dm = DirectMessage(
-                        content=message,
-                        sender_id=current_user.id,
-                        receiver_id=user.id,
-                    )
-                    db.session.add(dm)
-                    db.session.commit()
-                    notification = Notification(
-                        user_id=user.id,
-                        message=f"{current_user.username} sent you a message",
-                    )
-                    db.session.add(notification)
-                    db.session.commit()
-                    flash("Your direct message has been sent!", "success")
-                else:
-                    flash("User not found.", "danger")
-        else:
-            new_tweet = Tweet(
-                content=content,
-                user_id=current_user.id,
-                image=image_filename,
-                scheduled_at=scheduled_at,
-            )
-            db.session.add(new_tweet)
-            db.session.commit()
-            if scheduled_at:
-                flash("Your tweet has been scheduled!", "success")
+    if content.startswith("/dm "):
+        dm_parts = content.split(" ", 2)
+        if len(dm_parts) == 3:
+            username = dm_parts[1]
+            message = dm_parts[2]
+            user = User.query.filter_by(username=username).first()
+            if user:
+                dm = DirectMessage(
+                    content=message,
+                    sender_id=current_user.id,
+                    receiver_id=user.id,
+                )
+                db.session.add(dm)
+                db.session.commit()
+                notification = Notification(
+                    user_id=user.id,
+                    message=f"{current_user.username} sent you a message",
+                )
+                db.session.add(notification)
+                db.session.commit()
+                flash("Your direct message has been sent!", "success")
             else:
-                flash("Your tweet has been posted!", "success")
+                flash("User not found.", "danger")
     else:
-        flash("Tweet content exceeds 144 characters.", "danger")
+        new_tweet = Tweet(
+            content=content,
+            user_id=current_user.id,
+            image=image_filename,
+            scheduled_at=scheduled_at,
+        )
+        db.session.add(new_tweet)
+        db.session.commit()
+        if scheduled_at:
+            flash("Your tweet has been scheduled!", "success")
+        else:
+            flash("Your tweet has been posted!", "success")
     return redirect(url_for("index"))
 
 
@@ -184,18 +187,20 @@ def retweet(tweet_id):
 def quote(tweet_id):
     original_tweet = Tweet.query.get_or_404(tweet_id)
     if request.method == "POST":
-        content = request.form["content"]
-        if len(content) <= 144:
-            new_quote = Quote(
-                user_id=current_user.id,
-                tweet_id=original_tweet.id,
-                content=content,
-            )
-            db.session.add(new_quote)
-            db.session.commit()
-            flash("You have quoted this tweet!", "success")
-            return redirect(url_for("index"))
-        flash("Quote content exceeds 144 characters.", "danger")
+        content = request.form.get("content")
+        validation_error = validate_post_content(content, post_type="Quote")
+        if validation_error:
+            flash(validation_error, "danger")
+            return render_template("quote.html", tweet=original_tweet)
+        new_quote = Quote(
+            user_id=current_user.id,
+            tweet_id=original_tweet.id,
+            content=content,
+        )
+        db.session.add(new_quote)
+        db.session.commit()
+        flash("You have quoted this tweet!", "success")
+        return redirect(url_for("index"))
     return render_template("quote.html", tweet=original_tweet)
 
 
