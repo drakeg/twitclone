@@ -19,7 +19,7 @@ WTForms==3.2.2
 # Transitive dependencies retained as exact pins after the July 2026
 # Dependabot, Mend, Renovate, and Snyk security updates. Issue #13 will
 # validate this complete lock set in CI before future cleanup.
-alembic==1.19.0
+alembic==1.19.1
 blinker==1.9.0
 click==8.4.2
 colorama==0.4.6
