@@ -2,14 +2,22 @@
 
 from twitclone.models import Poll, PollVote, Quote, Retweet, Tweet
 
+TIMELINE_TYPE_PRIORITY = {"tweet": 0, "retweet": 1, "quote": 2, "poll": 3}
+
+
+def _visible_tweet_filter(now):
+    return (Tweet.scheduled_at == None) | (Tweet.scheduled_at <= now)
+
+
+def _tweet_timeline_timestamp(tweet):
+    return tweet.scheduled_at if tweet.scheduled_at is not None else tweet.timestamp
+
 
 def build_timeline_posts(*, now, viewer=None):
     """Return all supported timeline items in newest-first order."""
     posts = []
 
-    visible_tweets = Tweet.query.filter(
-        (Tweet.scheduled_at == None) | (Tweet.scheduled_at <= now)
-    ).all()
+    visible_tweets = Tweet.query.filter(_visible_tweet_filter(now)).all()
     for tweet in visible_tweets:
         posts.append(
             {
@@ -17,7 +25,7 @@ def build_timeline_posts(*, now, viewer=None):
                 "source_id": tweet.id,
                 "action_tweet_id": tweet.id,
                 "content": tweet.content,
-                "timestamp": tweet.timestamp,
+                "timestamp": _tweet_timeline_timestamp(tweet),
                 "type": "tweet",
                 "user": tweet.user,
                 "image": tweet.image,
@@ -29,7 +37,10 @@ def build_timeline_posts(*, now, viewer=None):
             }
         )
 
-    for retweet in Retweet.query.all():
+    visible_retweets = (
+        Retweet.query.join(Retweet.tweet).filter(_visible_tweet_filter(now)).all()
+    )
+    for retweet in visible_retweets:
         posts.append(
             {
                 "id": retweet.id,
@@ -48,7 +59,8 @@ def build_timeline_posts(*, now, viewer=None):
             }
         )
 
-    for quote in Quote.query.all():
+    visible_quotes = Quote.query.join(Quote.tweet).filter(_visible_tweet_filter(now)).all()
+    for quote in visible_quotes:
         posts.append(
             {
                 "id": quote.id,
@@ -92,8 +104,15 @@ def build_timeline_posts(*, now, viewer=None):
             }
         )
 
-    posts.sort(key=lambda post: post["timestamp"], reverse=True)
+    posts.sort(
+        key=lambda post: (
+            post["timestamp"],
+            -TIMELINE_TYPE_PRIORITY[post["type"]],
+            post["source_id"],
+        ),
+        reverse=True,
+    )
     return posts
 
 
-__all__ = ["build_timeline_posts"]
+__all__ = ["TIMELINE_TYPE_PRIORITY", "build_timeline_posts"]
