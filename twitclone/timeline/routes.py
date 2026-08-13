@@ -25,7 +25,7 @@ from twitclone.models import (
     User,
 )
 from twitclone.timeline import timeline_blueprint
-from twitclone.timeline.service import build_timeline_posts
+from twitclone.timeline.service import build_timeline_posts, paginate_timeline_posts
 from twitclone.timeline.validation import validate_post_content
 from twitclone.utils import get_newest_users, get_trending_hashtags, resize_image
 
@@ -35,10 +35,13 @@ def index():
     current_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
     posts = build_timeline_posts(now=now, viewer=current_user)
+    page = request.args.get("page", default=1, type=int) or 1
+    timeline_page = paginate_timeline_posts(posts, page=page)
 
     return render_template(
         "index.html",
-        posts=posts,
+        posts=timeline_page.items,
+        timeline_page=timeline_page,
         current_time=current_time,
         trending_hashtags=get_trending_hashtags(),
         newest_users=get_newest_users(),
