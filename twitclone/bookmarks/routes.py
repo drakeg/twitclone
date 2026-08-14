@@ -11,9 +11,13 @@ from twitclone.models import Bookmark, Tweet
 @login_required
 def bookmark(tweet_id):
     tweet = Tweet.query.get_or_404(tweet_id)
-    new_bookmark = Bookmark(user_id=current_user.id, tweet_id=tweet.id)
-    db.session.add(new_bookmark)
-    db.session.commit()
+    existing = Bookmark.query.filter_by(
+        user_id=current_user.id, tweet_id=tweet.id
+    ).first()
+    if existing is None:
+        new_bookmark = Bookmark(user_id=current_user.id, tweet_id=tweet.id)
+        db.session.add(new_bookmark)
+        db.session.commit()
     flash("Tweet has been bookmarked!", "success")
     return redirect(url_for("index"))
 
