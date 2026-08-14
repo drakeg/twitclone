@@ -83,7 +83,9 @@ class Notification(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     message = db.Column(db.String(200), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    read = db.Column(db.Boolean, default=False)
+    read = db.Column(
+        db.Boolean, default=False, server_default=db.false(), nullable=False
+    )
 
 
 class Bookmark(db.Model):
