@@ -7,4 +7,12 @@
         <small>by <strong>{{ message.sender.username }}</strong> on {{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') if message.timestamp else 'unknown date' }}</small>
     </div>
 </div>
-<form method="POST"
+<form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="mb-3">
+        <label for="content" class="form-label">Message</label>
+        <textarea class="form-control" id="content" name="content" rows="4" maxlength="500" required></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Send reply</button>
+</form>
+{% endblock %}
