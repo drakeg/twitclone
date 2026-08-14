@@ -123,9 +123,13 @@ def uploaded_file(filename):
 @login_required
 def retweet(tweet_id):
     original_tweet = Tweet.query.get_or_404(tweet_id)
-    new_retweet = Retweet(user_id=current_user.id, tweet_id=original_tweet.id)
-    db.session.add(new_retweet)
-    db.session.commit()
+    existing = Retweet.query.filter_by(
+        user_id=current_user.id, tweet_id=original_tweet.id
+    ).first()
+    if existing is None:
+        new_retweet = Retweet(user_id=current_user.id, tweet_id=original_tweet.id)
+        db.session.add(new_retweet)
+        db.session.commit()
     flash("You have retweeted this tweet!", "success")
     return redirect(url_for("index"))
 

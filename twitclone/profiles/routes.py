@@ -11,7 +11,7 @@ from twitclone.profiles import profiles_blueprint
 @login_required
 def follow(username):
     user = User.query.filter_by(username=username).first()
-    if user:
+    if user and user not in current_user.followed:
         current_user.followed.append(user)
         db.session.commit()
         notification = Notification(
@@ -22,13 +22,17 @@ def follow(username):
         return jsonify(
             {"status": "success", "message": f"You are now following {username}."}
         )
+    if user:
+        return jsonify(
+            {"status": "success", "message": f"You are now following {username}."}
+        )
     return jsonify({"status": "error", "message": "User not found."})
 
 
 @login_required
 def unfollow(username):
     user = User.query.filter_by(username=username).first()
-    if user:
+    if user and user in current_user.followed:
         current_user.followed.remove(user)
         db.session.commit()
         notification = Notification(
@@ -36,6 +40,10 @@ def unfollow(username):
         )
         db.session.add(notification)
         db.session.commit()
+        return jsonify(
+            {"status": "success", "message": f"You have unfollowed {username}."}
+        )
+    if user:
         return jsonify(
             {"status": "success", "message": f"You have unfollowed {username}."}
         )
