@@ -46,6 +46,10 @@ class Tweet(db.Model):
 
 
 class Retweet(db.Model):
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'tweet_id', name='uq_retweet_user_tweet'),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     tweet_id = db.Column(db.Integer, db.ForeignKey('tweet.id'), nullable=False)
@@ -83,6 +87,10 @@ class Notification(db.Model):
 
 
 class Bookmark(db.Model):
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'tweet_id', name='uq_bookmark_user_tweet'),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     tweet_id = db.Column(db.Integer, db.ForeignKey('tweet.id'), nullable=False)
