@@ -1,5 +1,7 @@
 """Focused tests for the messaging Blueprint."""
 
+import pytest
+
 from flask import url_for
 
 from twitclone.extensions import db
@@ -75,6 +77,60 @@ def test_overlength_reply_preserves_redirect_without_writes(client, app):
     with app.app_context():
         assert DirectMessage.query.count() == 1
         assert Notification.query.filter_by(user_id=sender_id).count() == 0
+
+
+@pytest.mark.parametrize("data", [{}, {"content": ""}, {"content": "   \t"}])
+def test_missing_or_blank_reply_redirects_without_writes(client, app, data):
+    sender_id, receiver_id, message_id = create_message_users(app)
+    log_in(client, receiver_id)
+
+    response = client.post(f"/reply/{message_id}", data=data)
+
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/messages"
+    with app.app_context():
+        assert DirectMessage.query.count() == 1
+        assert Notification.query.filter_by(user_id=sender_id).count() == 0
+
+
+@pytest.mark.parametrize("method", ["get", "post"])
+def test_only_recipient_can_access_reply(client, app, method):
+    sender_id, _, message_id = create_message_users(app)
+    log_in(client, sender_id)
+
+    response = getattr(client, method)(
+        f"/reply/{message_id}", data={"content": "unauthorized reply"}
+    )
+
+    assert response.status_code == 404
+    with app.app_context():
+        assert DirectMessage.query.count() == 1
+        assert Notification.query.count() == 0
+
+
+def test_exactly_500_character_reply_is_accepted(client, app):
+    sender_id, receiver_id, message_id = create_message_users(app)
+    log_in(client, receiver_id)
+
+    response = client.post(f"/reply/{message_id}", data={"content": "x" * 500})
+
+    assert response.status_code == 302
+    with app.app_context():
+        reply = DirectMessage.query.filter_by(sender_id=receiver_id).one()
+        assert len(reply.content) == 500
+        assert Notification.query.filter_by(user_id=sender_id, read=False).count() == 1
+
+
+def test_reply_form_exposes_matching_browser_constraints(client, app):
+    _, receiver_id, message_id = create_message_users(app)
+    log_in(client, receiver_id)
+
+    response = client.get(f"/reply/{message_id}")
+
+    assert response.status_code == 200
+    assert b'name="content"' in response.data
+    assert b'maxlength="500"' in response.data
+    assert b"required" in response.data
 
 
 def test_messaging_routes_still_require_login(client):
