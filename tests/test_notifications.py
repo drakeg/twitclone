@@ -63,6 +63,61 @@ def test_notifications_render_for_current_user_in_newest_first_order(client, app
     )
 
 
+def test_new_notifications_start_unread(app):
+    with app.app_context():
+        user = User(username="alice", email="alice@example.com", password="hash")
+        db.session.add(user)
+        db.session.commit()
+        notification = Notification(user_id=user.id, message="new notification")
+        db.session.add(notification)
+        db.session.commit()
+
+        assert notification.read is False
+
+
+def test_database_default_creates_notifications_unread(app):
+    with app.app_context():
+        user = User(username="alice", email="alice@example.com", password="hash")
+        db.session.add(user)
+        db.session.commit()
+        db.session.execute(
+            db.text(
+                "INSERT INTO notification (user_id, message) "
+                "VALUES (:user_id, :message)"
+            ),
+            {"user_id": user.id, "message": "database-created notification"},
+        )
+        db.session.commit()
+
+        notification = Notification.query.one()
+        assert notification.read is False
+
+
+def test_opening_notifications_marks_only_current_users_items_read(client, app):
+    user_id, other_id = create_logged_in_user(client, app)
+    with app.app_context():
+        db.session.add_all(
+            [
+                Notification(user_id=user_id, message="first unread"),
+                Notification(user_id=user_id, message="second unread"),
+                Notification(user_id=user_id, message="already read", read=True),
+                Notification(user_id=other_id, message="other unread"),
+            ]
+        )
+        db.session.commit()
+
+    first_response = client.get("/notifications")
+    second_response = client.get("/notifications")
+
+    assert first_response.status_code == 200
+    assert second_response.status_code == 200
+    with app.app_context():
+        own_notifications = Notification.query.filter_by(user_id=user_id).all()
+        other_notification = Notification.query.filter_by(user_id=other_id).one()
+        assert all(notification.read for notification in own_notifications)
+        assert other_notification.read is False
+
+
 def test_notifications_still_require_login(client):
     response = client.get("/notifications")
 
