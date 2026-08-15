@@ -5,10 +5,13 @@ from pathlib import Path
 import re
 
 from PIL import Image
+import pytest
+from werkzeug.datastructures import FileStorage
 
 from twitclone.extensions import db
 from twitclone.models import Tweet, User
 from twitclone.timeline.media import IMAGE_UPLOAD_MAX_BYTES
+from twitclone.timeline.media import store_image_upload
 
 
 def log_in(client, app):
@@ -38,11 +41,15 @@ def test_valid_image_uses_generated_filename(client, app):
 
     assert response.status_code == 302
     with app.app_context():
-        filename = Tweet.query.one().image
+        tweet = Tweet.query.one()
+        filename = tweet.image
+        original_filename = tweet.original_image
         upload_folder = Path(app.config["UPLOAD_FOLDER"])
     assert re.fullmatch(r"thumb_[0-9a-f]{32}\.png", filename)
+    assert re.fullmatch(r"original_[0-9a-f]{32}\.png", original_filename)
     assert (upload_folder / filename).is_file()
-    assert (upload_folder / filename.removeprefix("thumb_")).is_file()
+    assert (upload_folder / original_filename).is_file()
+    assert filename.removeprefix("thumb_") == original_filename.removeprefix("original_")
 
 
 def assert_rejected(client, app, image):
@@ -79,3 +86,18 @@ def test_rejects_image_above_size_limit(client, app):
         app,
         (BytesIO(b"x" * (IMAGE_UPLOAD_MAX_BYTES + 1)), "image.png", "image/png"),
     )
+
+
+def test_processing_failure_cleans_up_partial_files(tmp_path, monkeypatch):
+    upload = FileStorage(
+        stream=BytesIO(png_bytes()), filename="image.png", content_type="image/png"
+    )
+
+    def fail_resize(*args, **kwargs):
+        raise OSError("thumbnail failure")
+
+    monkeypatch.setattr("twitclone.timeline.media.resize_image", fail_resize)
+    with pytest.raises(OSError, match="thumbnail failure"):
+        store_image_upload(upload, tmp_path)
+
+    assert list(tmp_path.iterdir()) == []

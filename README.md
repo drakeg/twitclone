@@ -16,6 +16,19 @@ TwitClone is a Flask-based social networking application inspired by early micro
 
 ## Local development
 
+### Docker Compose (simplest)
+
+With Docker Desktop or Docker Engine running:
+
+```bash
+docker compose up --build
+```
+
+Open <http://localhost:8000>. The container applies database migrations at
+startup, and a named volume preserves the SQLite database and uploaded media.
+Stop it with `Ctrl+C`; use `docker compose down` to stop and
+`docker compose down -v` only when you intentionally want to erase local data.
+
 ### Prerequisites
 
 - Python 3.11 or newer

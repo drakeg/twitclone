@@ -6,6 +6,8 @@ from uuid import uuid4
 
 from PIL import Image, UnidentifiedImageError
 
+from twitclone.utils.images import resize_image
+
 IMAGE_UPLOAD_MAX_BYTES = 5 * 1024 * 1024
 ALLOWED_IMAGE_TYPES = {
     ".gif": ("image/gif", "GIF"),
@@ -41,4 +43,25 @@ def prepare_image_upload(upload):
     return None, f"{uuid4().hex}{extension}"
 
 
-__all__ = ["IMAGE_UPLOAD_MAX_BYTES", "prepare_image_upload"]
+def store_image_upload(upload, upload_folder):
+    """Validate and store distinct original and thumbnail files."""
+    error, generated_name = prepare_image_upload(upload)
+    if error:
+        return error, None, None
+
+    folder = Path(upload_folder)
+    original_name = f"original_{generated_name}"
+    thumbnail_name = f"thumb_{generated_name}"
+    original_path = folder / original_name
+    thumbnail_path = folder / thumbnail_name
+    try:
+        upload.save(original_path)
+        resize_image(original_path, thumbnail_path)
+    except Exception:
+        original_path.unlink(missing_ok=True)
+        thumbnail_path.unlink(missing_ok=True)
+        raise
+    return None, original_name, thumbnail_name
+
+
+__all__ = ["IMAGE_UPLOAD_MAX_BYTES", "prepare_image_upload", "store_image_upload"]

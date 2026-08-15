@@ -1,6 +1,5 @@
 """Timeline and post routes."""
 
-import os
 from datetime import datetime
 
 from flask import (
@@ -23,10 +22,10 @@ from twitclone.models import (
     User,
 )
 from twitclone.timeline import timeline_blueprint
-from twitclone.timeline.media import prepare_image_upload
+from twitclone.timeline.media import store_image_upload
 from twitclone.timeline.service import build_timeline_posts, paginate_timeline_posts
 from twitclone.timeline.validation import validate_post_content
-from twitclone.utils import get_newest_users, get_trending_hashtags, resize_image
+from twitclone.utils import get_newest_users, get_trending_hashtags
 
 
 def index():
@@ -57,19 +56,15 @@ def tweet():
 
     image = request.files.get("image")
     image_filename = None
+    original_image_filename = None
 
     if image and image.filename:
-        image_error, image_filename = prepare_image_upload(image)
+        image_error, original_image_filename, image_filename = store_image_upload(
+            image, current_app.config["UPLOAD_FOLDER"]
+        )
         if image_error:
             flash(image_error, "danger")
             return redirect(url_for("index"))
-        image_path = os.path.join(current_app.config["UPLOAD_FOLDER"], image_filename)
-        image.save(image_path)
-        resized_image_path = os.path.join(
-            current_app.config["UPLOAD_FOLDER"], f"thumb_{image_filename}"
-        )
-        resize_image(image_path, resized_image_path)
-        image_filename = f"thumb_{image_filename}"
 
     scheduled_date = request.form.get("scheduled_date")
     scheduled_time = request.form.get("scheduled_time")
@@ -107,6 +102,7 @@ def tweet():
             content=content,
             user_id=current_user.id,
             image=image_filename,
+            original_image=original_image_filename,
             scheduled_at=scheduled_at,
         )
         db.session.add(new_tweet)

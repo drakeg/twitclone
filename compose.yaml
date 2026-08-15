@@ -1,0 +1,15 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      SECRET_KEY: local-compose-development-key
+      DATABASE_URL: sqlite:////data/twitclone.db
+      UPLOAD_FOLDER: /data/uploads
+      SCHEDULER_ENABLED: "false"
+    volumes:
+      - twitclone_data:/data
+
+volumes:
+  twitclone_data:
