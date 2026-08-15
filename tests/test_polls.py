@@ -1,5 +1,7 @@
 """Focused tests for the polls Blueprint."""
 
+from datetime import datetime, timedelta
+
 from flask import url_for
 import pytest
 from sqlalchemy.exc import IntegrityError
@@ -141,3 +143,53 @@ def test_vote_option_must_belong_to_route_poll(client, app):
     with app.app_context():
         assert PollVote.query.count() == 0
         assert db.session.get(PollOption, option_id).votes == 0
+
+
+def test_poll_is_inactive_at_exact_expiration(app):
+    created_at = datetime(2026, 8, 15, 12, 0, 0)
+    with app.app_context():
+        poll = Poll(question="Boundary", created_at=created_at, duration_days=0,
+                    duration_hours=1, duration_minutes=0, user_id=1)
+        assert poll.is_active_at(created_at + timedelta(minutes=59, seconds=59))
+        assert not poll.is_active_at(created_at + timedelta(hours=1))
+
+
+def test_expired_poll_rejects_vote_without_writes(client, app):
+    user_id = create_logged_in_user(client, app)
+    with app.app_context():
+        poll = Poll(question="Expired", created_at=datetime.utcnow() - timedelta(days=2),
+                    duration_days=1, duration_hours=0, duration_minutes=0,
+                    user_id=user_id)
+        db.session.add(poll)
+        db.session.commit()
+        option = PollOption(option_text="Late", poll_id=poll.id)
+        db.session.add(option)
+        db.session.commit()
+        poll_id, option_id = poll.id, option.id
+
+    response = client.post(f"/vote_poll/{poll_id}", data={"option_id": option_id})
+
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/"
+    with app.app_context():
+        assert PollVote.query.count() == 0
+        assert db.session.get(PollOption, option_id).votes == 0
+
+
+def test_expired_poll_renders_results_without_vote_form(client, app):
+    user_id = create_logged_in_user(client, app)
+    with app.app_context():
+        poll = Poll(question="Closed poll", created_at=datetime.utcnow() - timedelta(days=2),
+                    duration_days=1, duration_hours=0, duration_minutes=0,
+                    user_id=user_id)
+        db.session.add(poll)
+        db.session.commit()
+        db.session.add(PollOption(option_text="Result option", poll_id=poll.id, votes=3))
+        db.session.commit()
+        poll_id = poll.id
+
+    response = client.get("/")
+
+    assert b"Poll Results:" in response.data
+    assert b"Result option - 3 votes" in response.data
+    assert f'/vote_poll/{poll_id}'.encode() not in response.data

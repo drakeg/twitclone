@@ -1,5 +1,7 @@
 """Poll creation and voting routes."""
 
+from datetime import datetime
+
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy.exc import IntegrityError
@@ -44,7 +46,10 @@ def vote_poll(poll_id):
         flash("You must select an option to vote", "warning")
         return redirect(url_for("index"))
 
-    Poll.query.get_or_404(poll_id)
+    poll = Poll.query.get_or_404(poll_id)
+    if not poll.is_active_at(datetime.utcnow()):
+        flash("This poll has expired", "warning")
+        return redirect(url_for("index"))
     option = PollOption.query.filter_by(id=option_id, poll_id=poll_id).first_or_404()
 
     vote = PollVote.query.filter_by(

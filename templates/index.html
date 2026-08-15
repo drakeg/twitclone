@@ -48,7 +48,7 @@
         <img src="{{ url_for('uploaded_file', filename=post.image) }}" class="img-fluid mt-2 tweet-image" alt="Tweet Image">
         {% endif %}
         {% if post.type == 'poll' %}
-        {% if post.poll.is_active and not post.has_voted %}
+        {% if post.poll_is_active and not post.has_voted %}
         <form method="POST" action="{{ url_for('vote_poll', poll_id=post.poll_id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             {% for option in post.poll.options %}

@@ -114,13 +114,19 @@ class Poll(db.Model):
     options = db.relationship('PollOption', backref='poll', lazy=True)
 
     @property
-    def is_active(self):
-        expiration_time = self.created_at + timedelta(
+    def expires_at(self):
+        return self.created_at + timedelta(
             days=self.duration_days,
             hours=self.duration_hours,
             minutes=self.duration_minutes,
         )
-        return datetime.utcnow() < expiration_time
+
+    def is_active_at(self, now):
+        return now < self.expires_at
+
+    @property
+    def is_active(self):
+        return self.is_active_at(datetime.utcnow())
 
 
 class PollOption(db.Model):

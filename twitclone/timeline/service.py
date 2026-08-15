@@ -130,6 +130,7 @@ def build_timeline_posts(*, now, viewer=None):
                 "poll": poll,
                 "poll_id": poll.id,
                 "has_voted": has_voted,
+                "poll_is_active": poll.is_active_at(now),
             }
         )
 
