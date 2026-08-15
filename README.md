@@ -25,11 +25,14 @@ docker compose up --build
 ```
 
 Open <http://localhost:8000>. The container applies database migrations at
-startup, and a named volume preserves the SQLite database and uploaded media.
+startup, runs scheduled-post processing in a separate worker, and uses a named
+volume to preserve the SQLite database and uploaded media.
 After pulling new changes, run the same command; startup applies any new
 database migrations before serving requests.
 Stop it with `Ctrl+C`; use `docker compose down` to stop and
 `docker compose down -v` only when you intentionally want to erase local data.
+
+Use `docker compose logs -f worker` to observe scheduled-post processing.
 
 ### Prerequisites
 

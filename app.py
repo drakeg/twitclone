@@ -1,11 +1,8 @@
 """Legacy compatibility module for TwitClone startup and public imports."""
 
-import atexit
 import os
-from datetime import datetime
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.interval import IntervalTrigger
 from flask import Flask
 
 from config import Config
@@ -30,6 +27,7 @@ from twitclone.utils import (
     make_clickable_links,
     resize_image,
 )
+from twitclone.scheduling import publish_due_tweets
 
 
 Config.validate()
@@ -40,26 +38,11 @@ init_extensions(app)
 
 
 def post_scheduled_tweets():
-    now = datetime.utcnow()
-    tweets = Tweet.query.filter(
-        Tweet.scheduled_at <= now, Tweet.timestamp == None
-    ).all()
-    for scheduled_tweet in tweets:
-        scheduled_tweet.timestamp = now
-        db.session.commit()
+    """Compatibility wrapper for the package-owned worker operation."""
+    return publish_due_tweets()
 
 
 scheduler = BackgroundScheduler()
-if app.config["SCHEDULER_ENABLED"]:
-    scheduler.add_job(
-        func=post_scheduled_tweets,
-        trigger=IntervalTrigger(seconds=app.config["SCHEDULER_INTERVAL_SECONDS"]),
-        id="post_scheduled_tweets",
-        name="Post scheduled tweets",
-        replace_existing=True,
-    )
-    scheduler.start()
-    atexit.register(lambda: scheduler.shutdown() if scheduler.running else None)
 
 
 @app.context_processor
