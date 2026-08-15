@@ -58,7 +58,6 @@ def test_relationships_remain_registered():
         "sent_messages",
         "received_messages",
         "polls",
-        "bookmark_relationships",
     }
     assert {relationship.key for relationship in Tweet.__mapper__.relationships} == {
         "user",
