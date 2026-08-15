@@ -6,7 +6,9 @@ import inspect
 EXPECTED_COLUMNS = {
     "follows": {"follower_id", "followed_id"},
     "user": {"id", "username", "email", "password", "bio"},
-    "tweet": {"id", "content", "timestamp", "user_id", "image", "scheduled_at"},
+    "tweet": {
+        "id", "content", "timestamp", "user_id", "image", "original_image", "scheduled_at"
+    },
     "retweet": {"id", "user_id", "tweet_id", "timestamp"},
     "quote": {"id", "user_id", "tweet_id", "content", "timestamp"},
     "direct_message": {"id", "content", "sender_id", "receiver_id", "timestamp"},

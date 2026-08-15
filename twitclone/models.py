@@ -41,6 +41,7 @@ class Tweet(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     image = db.Column(db.String(100), nullable=True)
+    original_image = db.Column(db.String(100), nullable=True)
     scheduled_at = db.Column(db.DateTime, nullable=True)
     user = db.relationship('User', backref=db.backref('tweets', lazy=True))
 
