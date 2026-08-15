@@ -131,6 +131,10 @@ class PollOption(db.Model):
 
 
 class PollVote(db.Model):
+    __table_args__ = (
+        db.UniqueConstraint('poll_id', 'user_id', name='uq_poll_vote_poll_user'),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
     poll_id = db.Column(db.Integer, db.ForeignKey('poll.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)

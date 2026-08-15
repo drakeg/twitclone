@@ -1,6 +1,8 @@
 """Focused tests for the polls Blueprint."""
 
 from flask import url_for
+import pytest
+from sqlalchemy.exc import IntegrityError
 
 from twitclone.extensions import db
 from twitclone.models import Poll, PollOption, PollVote, User
@@ -100,3 +102,42 @@ def test_missing_option_and_anonymous_access_preserve_redirects(client, app):
     response = client.post("/vote_poll/999", data={})
     assert response.status_code == 302
     assert response.headers["Location"] == "/"
+
+
+def test_database_rejects_second_vote_for_same_user_and_poll(client, app):
+    user_id = create_logged_in_user(client, app)
+    with app.app_context():
+        poll = Poll(question="Choose", duration_days=1, duration_hours=0,
+                    duration_minutes=0, user_id=user_id)
+        db.session.add(poll)
+        db.session.commit()
+        options = [PollOption(option_text=text, poll_id=poll.id) for text in ("A", "B")]
+        db.session.add_all(options)
+        db.session.commit()
+        db.session.add(PollVote(poll_id=poll.id, user_id=user_id, option_id=options[0].id))
+        db.session.commit()
+        db.session.add(PollVote(poll_id=poll.id, user_id=user_id, option_id=options[1].id))
+
+        with pytest.raises(IntegrityError):
+            db.session.commit()
+        db.session.rollback()
+
+
+def test_vote_option_must_belong_to_route_poll(client, app):
+    user_id = create_logged_in_user(client, app)
+    with app.app_context():
+        polls = [Poll(question=q, duration_days=1, duration_hours=0,
+                      duration_minutes=0, user_id=user_id) for q in ("One", "Two")]
+        db.session.add_all(polls)
+        db.session.commit()
+        option = PollOption(option_text="Second poll option", poll_id=polls[1].id)
+        db.session.add(option)
+        db.session.commit()
+        first_poll_id, option_id = polls[0].id, option.id
+
+    response = client.post(f"/vote_poll/{first_poll_id}", data={"option_id": option_id})
+
+    assert response.status_code == 404
+    with app.app_context():
+        assert PollVote.query.count() == 0
+        assert db.session.get(PollOption, option_id).votes == 0

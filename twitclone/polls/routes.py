@@ -2,6 +2,7 @@
 
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
+from sqlalchemy.exc import IntegrityError
 
 from forms import PollForm
 from twitclone.extensions import db
@@ -44,7 +45,7 @@ def vote_poll(poll_id):
         return redirect(url_for("index"))
 
     Poll.query.get_or_404(poll_id)
-    option = PollOption.query.get_or_404(option_id)
+    option = PollOption.query.filter_by(id=option_id, poll_id=poll_id).first_or_404()
 
     vote = PollVote.query.filter_by(
         poll_id=poll_id, user_id=current_user.id
@@ -57,8 +58,13 @@ def vote_poll(poll_id):
         )
         option.votes += 1
         db.session.add(new_vote)
-        db.session.commit()
-        flash("Your vote has been recorded", "success")
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash("You have already voted in this poll", "warning")
+        else:
+            flash("Your vote has been recorded", "success")
 
     return redirect(url_for("index"))
 
