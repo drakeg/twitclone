@@ -13,8 +13,6 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required
-from werkzeug.utils import secure_filename
-
 from twitclone.extensions import db
 from twitclone.models import (
     DirectMessage,
@@ -25,6 +23,7 @@ from twitclone.models import (
     User,
 )
 from twitclone.timeline import timeline_blueprint
+from twitclone.timeline.media import prepare_image_upload
 from twitclone.timeline.service import build_timeline_posts, paginate_timeline_posts
 from twitclone.timeline.validation import validate_post_content
 from twitclone.utils import get_newest_users, get_trending_hashtags, resize_image
@@ -59,8 +58,11 @@ def tweet():
     image = request.files.get("image")
     image_filename = None
 
-    if image:
-        image_filename = secure_filename(image.filename)
+    if image and image.filename:
+        image_error, image_filename = prepare_image_upload(image)
+        if image_error:
+            flash(image_error, "danger")
+            return redirect(url_for("index"))
         image_path = os.path.join(current_app.config["UPLOAD_FOLDER"], image_filename)
         image.save(image_path)
         resized_image_path = os.path.join(
