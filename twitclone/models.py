@@ -32,7 +32,7 @@ class User(db.Model, UserMixin):
         lazy='dynamic',
     )
     notifications = db.relationship('Notification', backref='user', lazy=True)
-    bookmarks = db.relationship('Bookmark', backref='bookmark_user', lazy=True)
+    bookmarks = db.relationship('Bookmark', back_populates='user', lazy=True)
 
 
 class Tweet(db.Model):
@@ -97,7 +97,7 @@ class Bookmark(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     tweet_id = db.Column(db.Integer, db.ForeignKey('tweet.id'), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    user = db.relationship('User', backref='bookmark_relationships')
+    user = db.relationship('User', back_populates='bookmarks')
     tweet = db.relationship('Tweet', backref='bookmarked_tweets')
 
 
