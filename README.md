@@ -10,6 +10,7 @@ TwitClone is a Flask-based social networking application inspired by early micro
 - Flask-SQLAlchemy and Alembic/Flask-Migrate
 - Flask-Login and Flask-Bcrypt
 - Flask-WTF/CSRF protection
+- Gunicorn for WSGI serving
 - SQLite for local development
 - APScheduler for scheduled posts
 - Pillow for uploaded-image processing
@@ -24,15 +25,19 @@ With Docker Desktop or Docker Engine running:
 docker compose up --build
 ```
 
-Open <http://localhost:8000>. The container applies database migrations at
-startup, runs scheduled-post processing in a separate worker, and uses a named
-volume to preserve the SQLite database and uploaded media.
+Open <http://localhost:8000>. Compose applies database migrations before its
+Gunicorn web service starts, runs scheduled-post processing in a separate
+worker, and uses a named volume to preserve the SQLite database and uploaded
+media.
 After pulling new changes, run the same command; startup applies any new
 database migrations before serving requests.
 Stop it with `Ctrl+C`; use `docker compose down` to stop and
 `docker compose down -v` only when you intentionally want to erase local data.
 
 Use `docker compose logs -f worker` to observe scheduled-post processing.
+
+See [`docs/production-serving.md`](docs/production-serving.md) for the web
+process contract and the additional decisions required before public deployment.
 
 ### Prerequisites
 
@@ -96,7 +101,10 @@ See:
 
 ## Security notice
 
-This repository is currently a development project. Do not deploy it publicly until configuration secrets, upload validation, dependency security, database migrations, tests, and production serving have been addressed.
+This repository is currently a development project. Gunicorn serving is now
+defined, but a production database, durable media storage, health checks,
+backups, and rollback procedures still need to be completed before public
+deployment.
 
 ## License
 

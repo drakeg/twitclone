@@ -8,4 +8,4 @@ RUN pip install --no-cache-dir -r requirements.txt -r requirements-dev.txt
 COPY . .
 
 EXPOSE 8000
-CMD ["sh", "-c", "flask --app application db upgrade && flask --app application run --host=0.0.0.0 --port=8000"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--threads", "4", "--timeout", "30", "application:application"]
