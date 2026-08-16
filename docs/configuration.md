@@ -10,7 +10,9 @@ Run the application through `application.py` so the centralized configuration is
 python application.py
 ```
 
-For a WSGI server, use `application:application`.
+For Gunicorn, use `application:application`. See
+[`production-serving.md`](production-serving.md) for the supported command and
+process boundaries.
 
 The original `app.py` remains the legacy monolith during the stabilization sprints. New operational instructions should use the configured entry point above.
 
