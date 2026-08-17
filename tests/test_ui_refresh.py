@@ -15,6 +15,8 @@ def test_home_uses_package_owned_styles_and_semantic_shell(client):
     assert b'class="discovery-rail"' in response.data
     assert b'class="mobile-nav"' in response.data
     assert b'Skip to content' in response.data
+    assert b'Ripple' in response.data
+    assert b'TwitClone' not in response.data
 
 
 def test_timeline_preserves_composer_and_action_contract(client):
@@ -44,3 +46,5 @@ def test_authentication_pages_use_focused_layout(client):
         assert response.status_code == 200
         assert b'<body class="auth-page">' in response.data
         assert b'class="surface-card auth-card"' in response.data
+        assert b'Ripple' in response.data
+        assert b'TwitClone' not in response.data

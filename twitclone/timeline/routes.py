@@ -1,6 +1,6 @@
 """Timeline and post routes."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from flask import (
     current_app,
@@ -29,7 +29,7 @@ from twitclone.utils import get_newest_users, get_trending_hashtags
 
 
 def index():
-    now = datetime.utcnow()
+    now = datetime.now(UTC).replace(tzinfo=None)
     current_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
     posts = build_timeline_posts(now=now, viewer=current_user)

@@ -91,7 +91,7 @@ This roadmap is intentionally incremental. Sprint scope may be refined as the re
 
 ## Priority design sprint — UI cleanup and visual refresh
 
-**Goal:** Make TwitClone feel polished, welcoming, and easy to navigate before
+**Goal:** Make Ripple feel polished, welcoming, and easy to navigate before
 additional deployment work consumes the available delivery budget.
 
 **Planned outcomes:**

@@ -1,8 +1,10 @@
-# TwitClone
+# Ripple
 
-TwitClone is a Flask-based social networking application inspired by early microblogging platforms. The current application includes user accounts, timelines, follows, posts, reposts, quotes, bookmarks, direct messages, notifications, hashtags, image uploads, scheduled posts, and polls.
+Ripple is a Flask-based social networking application inspired by early microblogging platforms. The current application includes user accounts, timelines, follows, posts, reposts, quotes, bookmarks, direct messages, notifications, hashtags, image uploads, scheduled posts, and polls.
 
 > **Project status:** Active redevelopment. The immediate focus is stabilizing the existing application, documenting its architecture, improving security and test coverage, and then delivering features in small Agile sprints.
+>
+> **Naming note:** The product is branded as **Ripple**. The repository and internal Python package remain `twitclone` for now to avoid an unnecessary import and deployment refactor during the branding change.
 
 ## Current technology
 
@@ -118,9 +120,8 @@ See:
 ## Security notice
 
 This repository is currently a development project. Gunicorn serving is now
-defined, but a production database, durable media storage, health checks,
-backups, and rollback procedures still need to be completed before public
-deployment.
+defined, but durable media storage, backups, and rollback procedures still need
+to be completed before public deployment.
 
 ## License
 

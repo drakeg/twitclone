@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#635bff">
-    <title>{% block title %}TwitClone{% endblock %}</title>
+    <title>{% block title %}Ripple{% endblock %}</title>
     <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,9 +17,9 @@
     <a class="skip-link" href="#main-content">Skip to content</a>
     <div class="app-shell">
         <aside class="primary-nav" aria-label="Primary navigation">
-            <a class="brand" href="{{ url_for('index') }}" aria-label="TwitClone home">
+            <a class="brand" href="{{ url_for('index') }}" aria-label="Ripple home">
                 <span class="brand-mark" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span>
-                <span class="brand-name">TwitClone</span>
+                <span class="brand-name">Ripple</span>
             </a>
             <nav class="nav-stack">
                 <a class="nav-pill" href="{{ url_for('index') }}"><i class="fa-solid fa-house"></i><span>Home</span></a>
@@ -32,7 +32,7 @@
                 <a class="compose-link" href="{{ url_for('index') }}#composer">New post</a>
                 {% else %}
                 <a class="nav-pill" href="{{ url_for('login') }}"><i class="fa-solid fa-arrow-right-to-bracket"></i><span>Log in</span></a>
-                <a class="compose-link" href="{{ url_for('register') }}">Join TwitClone</a>
+                <a class="compose-link" href="{{ url_for('register') }}">Join Ripple</a>
                 {% endif %}
             </nav>
             {% if current_user.is_authenticated %}
@@ -63,13 +63,13 @@
             <form class="search-box" method="POST" action="{{ url_for('search') }}" role="search">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                <input type="search" placeholder="Search TwitClone" aria-label="Search TwitClone" name="search_query">
+                <input type="search" placeholder="Search Ripple" aria-label="Search Ripple" name="search_query">
             </form>
             <section class="rail-card">
                 <div class="rail-heading"><span>Trending now</span><i class="fa-solid fa-arrow-trend-up"></i></div>
                 {% for hashtag in trending_hashtags %}
                 <a class="trend-item" href="{{ url_for('hashtag', hashtag=hashtag) }}">
-                    <small>Trending in TwitClone</small><strong>#{{ hashtag }}</strong>
+                    <small>Trending in Ripple</small><strong>#{{ hashtag }}</strong>
                 </a>
                 {% else %}
                 <p class="rail-empty">Conversations are just getting started.</p>

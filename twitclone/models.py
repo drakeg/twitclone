@@ -1,15 +1,20 @@
-"""Database models for TwitClone.
+"""Database models for Ripple.
 
 This module owns the application's SQLAlchemy model definitions. All models use
 the shared database extension from :mod:`twitclone.extensions` so migrations,
 routes, tests, and future blueprints operate on one metadata registry.
 """
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from flask_login import UserMixin
 
 from twitclone.extensions import db
+
+
+def _utcnow():
+    """Return naive UTC for the existing database DateTime contract."""
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 class Follows(db.Model):
@@ -38,7 +43,7 @@ class User(db.Model, UserMixin):
 class Tweet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.String(144), nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=_utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     image = db.Column(db.String(100), nullable=True)
     original_image = db.Column(db.String(100), nullable=True)
@@ -54,7 +59,7 @@ class Retweet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     tweet_id = db.Column(db.Integer, db.ForeignKey('tweet.id'), nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=_utcnow)
     user = db.relationship('User', backref=db.backref('retweets', lazy=True))
     tweet = db.relationship('Tweet', backref=db.backref('retweets', lazy=True))
 
@@ -64,7 +69,7 @@ class Quote(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     tweet_id = db.Column(db.Integer, db.ForeignKey('tweet.id'), nullable=False)
     content = db.Column(db.String(144), nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=_utcnow)
     user = db.relationship('User', backref=db.backref('quotes', lazy=True))
     tweet = db.relationship('Tweet', backref=db.backref('quotes', lazy=True))
 
@@ -74,7 +79,7 @@ class DirectMessage(db.Model):
     content = db.Column(db.String(500), nullable=False)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=_utcnow)
     sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')
     receiver = db.relationship('User', foreign_keys=[receiver_id], backref='received_messages')
 
@@ -83,7 +88,7 @@ class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     message = db.Column(db.String(200), nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=_utcnow)
     read = db.Column(
         db.Boolean, default=False, server_default=db.false(), nullable=False
     )
@@ -97,7 +102,7 @@ class Bookmark(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     tweet_id = db.Column(db.Integer, db.ForeignKey('tweet.id'), nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=_utcnow)
     user = db.relationship('User', back_populates='bookmarks')
     tweet = db.relationship('Tweet', backref='bookmarked_tweets')
 
@@ -105,7 +110,7 @@ class Bookmark(db.Model):
 class Poll(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     question = db.Column(db.String(255), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=_utcnow)
     duration_days = db.Column(db.Integer, nullable=False)
     duration_hours = db.Column(db.Integer, nullable=False)
     duration_minutes = db.Column(db.Integer, nullable=False)
@@ -126,7 +131,7 @@ class Poll(db.Model):
 
     @property
     def is_active(self):
-        return self.is_active_at(datetime.utcnow())
+        return self.is_active_at(_utcnow())
 
 
 class PollOption(db.Model):

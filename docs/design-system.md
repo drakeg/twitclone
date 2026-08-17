@@ -1,6 +1,6 @@
-# TwitClone visual system
+# Ripple visual system
 
-TwitClone uses familiar microblogging interaction patterns without reproducing
+Ripple uses familiar microblogging interaction patterns without reproducing
 another product's brand or exact interface. The design favors readable content,
 clear navigation, comfortable spacing, and obvious actions.
 
@@ -11,7 +11,7 @@ clear navigation, comfortable spacing, and obvious actions.
 - Violet primary actions with a coral supporting accent
 - `Manrope` for display text and `DM Sans` for interface and body copy
 - Rounded, softly elevated discovery and form surfaces
-- A lightning-bolt conversation mark unique to TwitClone
+- A lightning-bolt conversation mark used by Ripple
 
 Design tokens live as CSS custom properties at the top of
 `static/css/styles.css`. New templates should use the existing variables and

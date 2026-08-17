@@ -2,7 +2,7 @@
 
 ## Vision
 
-TwitClone will be a small, maintainable social networking platform that demonstrates sound Flask engineering while remaining understandable and inexpensive to operate.
+Ripple will be a small, maintainable social networking platform that demonstrates sound Flask engineering while remaining understandable and inexpensive to operate.
 
 ## Product goals
 

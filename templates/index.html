@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Home · TwitClone{% endblock %}
+{% block title %}Home · Ripple{% endblock %}
 {% block content %}
 <header class="page-header">
     <div><h1>Home</h1><small>Your corner of the conversation</small></div>
@@ -31,7 +31,7 @@
 </form>
 {% if not current_user.is_authenticated %}
 <section class="surface-card">
-    <span class="auth-kicker">Welcome to TwitClone</span>
+    <span class="auth-kicker">Welcome to Ripple</span>
     <h2>Find your people. Share your perspective.</h2>
     <p class="text-muted">A friendly, focused space for the conversations you care about.</p>
     <a class="btn btn-primary" href="{{ url_for('register') }}">Create an account</a>
