@@ -1,16 +1,6 @@
 {% extends "base.html" %}
-{% block content %}
-<h2>Login</h2>
-<form method="POST" action="{{ url_for('login') }}">
-    <div class="mb-3">
-        <label for="email" class="form-label">Email address</label>
-        <input type="email" class="form-control" id="email" name="email" required>
-    </div>
-    <div class="mb-3">
-        <label for="password" class="form-label">Password</label>
-        <input type="password" class="form-control" id="password" name="password" required>
-    </div>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button type="submit" class="btn btn-primary">Login</button>
-</form>
-{% endblock %}
+{% block title %}Log in · TwitClone{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block content %}<section class="surface-card auth-card"><span class="auth-kicker">Welcome back</span><h1>Join the conversation.</h1><p>Log in to see what your community is talking about.</p>
+<form method="POST" action="{{ url_for('login') }}"><div class="mb-3"><label for="email" class="form-label">Email address</label><input type="email" class="form-control" id="email" name="email" autocomplete="email" required></div><div class="mb-4"><label for="password" class="form-label">Password</label><input type="password" class="form-control" id="password" name="password" autocomplete="current-password" required></div><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn btn-primary w-100">Log in</button></form>
+<p class="mt-4 mb-0 text-center">New here? <a href="{{ url_for('register') }}">Create an account</a></p></section>{% endblock %}

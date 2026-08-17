@@ -89,6 +89,22 @@ This roadmap is intentionally incremental. Sprint scope may be refined as the re
 - Add containerization only when it simplifies operations without creating unnecessary cost
 - Publish a deployment cost estimate before infrastructure is implemented
 
+## Priority design sprint — UI cleanup and visual refresh
+
+**Goal:** Make TwitClone feel polished, welcoming, and easy to navigate before
+additional deployment work consumes the available delivery budget.
+
+**Planned outcomes:**
+
+- Establish a distinctive color, typography, spacing, surface, and control system
+- Introduce responsive desktop, tablet, and mobile navigation
+- Improve timeline, composer, profile, authentication, discovery, and empty-state hierarchy
+- Preserve existing URLs, forms, actions, templates, and Docker Compose workflow
+- Add focused markup and design-system regression coverage
+
+This sprint is intentionally prioritized after Sprint 6 Story 6.2. The remaining
+deployment-readiness stories resume after the refreshed interface is reviewed.
+
 ## Future backlog
 
 Potential work after stabilization:
