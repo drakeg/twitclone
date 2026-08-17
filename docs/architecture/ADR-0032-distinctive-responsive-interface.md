@@ -6,7 +6,7 @@
 
 ## Context
 
-TwitClone used an almost unmodified Bootstrap navbar, generic cards, and a
+Ripple used an almost unmodified Bootstrap navbar, generic cards, and a
 two-column grid. The custom stylesheet was stored under `static/css` while the
 base template requested it from the static root, so its limited rules were not
 reliably loaded. The interface did not establish a recognizable identity or
@@ -14,7 +14,7 @@ adapt its navigation meaningfully for small screens.
 
 ## Decision
 
-- Introduce a TwitClone-owned design system with reusable CSS tokens.
+- Introduce a Ripple-owned design system with reusable CSS tokens.
 - Use a three-column desktop shell, compact tablet navigation, and bottom mobile
   navigation around a consistent centered conversation column.
 - Refresh the timeline, composer, profile, authentication, discovery, forms,
