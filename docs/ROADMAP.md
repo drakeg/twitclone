@@ -102,8 +102,9 @@ additional deployment work consumes the available delivery budget.
 - Preserve existing URLs, forms, actions, templates, and Docker Compose workflow
 - Add focused markup and design-system regression coverage
 
-This sprint is intentionally prioritized after Sprint 6 Story 6.2. The remaining
-deployment-readiness stories resume after the refreshed interface is reviewed.
+This sprint was intentionally prioritized after Sprint 6 Story 6.2. The
+refreshed interface has been reviewed, and deployment-readiness work resumes
+with the production database story.
 
 ## Future backlog
 

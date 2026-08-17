@@ -11,7 +11,7 @@ TwitClone is a Flask-based social networking application inspired by early micro
 - Flask-Login and Flask-Bcrypt
 - Flask-WTF/CSRF protection
 - Gunicorn for WSGI serving
-- SQLite for local development
+- SQLite for local development and PostgreSQL for production
 - APScheduler for scheduled posts
 - Pillow for uploaded-image processing
 
@@ -83,7 +83,9 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-The current application still requires configuration cleanup. Until Sprint 1 replaces hard-coded development settings, do not use the application in a public or production environment.
+Public deployment still requires the remaining Sprint 6 storage, backup,
+rollback, and cost decisions. See [`docs/database.md`](docs/database.md) for the
+selected production database and release procedure.
 
 ## Agile delivery model
 

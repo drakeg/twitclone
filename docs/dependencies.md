@@ -10,6 +10,9 @@ TwitClone currently targets **Python 3.12**. The repository-level `.python-versi
 - `requirements-dev.txt` adds development and test tooling on top of the runtime set.
 - `scripts/verify_dependencies.py` verifies the supported Python version and imports the packages used directly by the application.
 
+Psycopg 3 with its binary extra is pinned as the production PostgreSQL driver.
+SQLite remains part of Python's standard library and needs no package entry.
+
 Install and verify with:
 
 ```bash

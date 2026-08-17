@@ -18,6 +18,11 @@ def _as_bool(value: str | None, *, default: bool = False) -> bool:
 def _database_uri() -> str:
     configured = os.getenv("DATABASE_URL")
     if configured:
+        configured = configured.strip()
+        if configured.startswith("postgres://"):
+            return configured.replace("postgres://", "postgresql+psycopg://", 1)
+        if configured.startswith("postgresql://"):
+            return configured.replace("postgresql://", "postgresql+psycopg://", 1)
         return configured
     return f"sqlite:///{BASE_DIR / 'twitter_clone.db'}"
 
@@ -46,6 +51,14 @@ class Config:
 
         if cls.SCHEDULER_INTERVAL_SECONDS < 1:
             raise RuntimeError("SCHEDULER_INTERVAL_SECONDS must be at least 1")
+
+        if cls.ENVIRONMENT == "production" and cls.SQLALCHEMY_DATABASE_URI.startswith(
+            "sqlite:"
+        ):
+            raise RuntimeError(
+                "Production requires PostgreSQL. Set DATABASE_URL to a "
+                "PostgreSQL connection URL before starting TwitClone."
+            )
 
 
 Config.validate()

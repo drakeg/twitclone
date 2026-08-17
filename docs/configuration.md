@@ -40,7 +40,7 @@ The project does not automatically parse `.env` yet. Export the variables or use
 | --- | --- | --- | --- |
 | `TWITCLONE_ENV` | No | `development` | Selects development, testing, or production behavior. |
 | `SECRET_KEY` | Production only | Development-only fallback | Signs sessions and CSRF tokens. Production startup fails when absent. |
-| `DATABASE_URL` | No | Local SQLite database | SQLAlchemy database connection URL. |
+| `DATABASE_URL` | Production | Local SQLite database | SQLAlchemy database connection URL. Production requires PostgreSQL. |
 | `UPLOAD_FOLDER` | No | `static/uploads` | Location for uploaded post images. |
 | `SCHEDULER_ENABLED` | No | `true` | Enables or disables scheduled-post processing. |
 | `SCHEDULER_INTERVAL_SECONDS` | No | `60` | Scheduler polling interval; must be at least one second. |
@@ -60,7 +60,11 @@ Set `TWITCLONE_ENV=testing`, use an isolated database such as `sqlite:///:memory
 
 Set `TWITCLONE_ENV=production` and provide a strong `SECRET_KEY`. The application raises a clear startup error if the production secret is missing.
 
-Production processes should also supply an explicit database URL and upload location appropriate to the deployment platform.
+Production processes must supply a PostgreSQL URL and an upload location
+appropriate to the deployment platform. `postgres://` and `postgresql://` URLs
+are normalized to the supported Psycopg 3 SQLAlchemy driver. SQLite production
+startup is rejected. See [`database.md`](database.md) for the migration and
+release procedure.
 
 ## Security notes
 
