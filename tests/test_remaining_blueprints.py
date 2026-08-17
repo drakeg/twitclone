@@ -1,6 +1,6 @@
 """Focused tests for the final Sprint 2 Blueprint boundaries."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from flask import url_for
@@ -114,7 +114,7 @@ def test_profile_edit_preserves_fields_and_redirect(client, app):
 
 def test_search_and_hashtag_preserve_results_and_order(client, app):
     alice_id, _ = create_users(client, app)
-    now = datetime.utcnow()
+    now = datetime.now(UTC).replace(tzinfo=None)
     with app.app_context():
         db.session.add_all(
             [
