@@ -85,7 +85,7 @@ def following(username):
 
 @login_required
 def unfollow_from_list(user_id):
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     if user in current_user.followed:
         current_user.followed.remove(user)
         db.session.commit()
