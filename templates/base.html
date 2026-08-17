@@ -3,181 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Twitter Clone</title>
+    <meta name="theme-color" content="#635bff">
+    <title>{% block title %}TwitClone{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.3.1/css/all.min.css">
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
 </head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('index') }}">Twitter Clone</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <form class="d-flex" method="POST" action="{{ url_for('search') }}">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" name="search_query">
-                        <button class="btn btn-outline-success" type="submit">Search</button>
-                    </form>
-                    {% if current_user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <img src="{{ gravatar(current_user.email) }}" alt="avatar" class="rounded-circle" width="30" height="30"> {{ current_user.username }}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('profile', username=current_user.username) }}"><i class="fas fa-user"></i> Profile</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('messages') }}"><i class="fas fa-envelope"></i> Messages</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('notifications') }}"><i class="fas fa-bell"></i> Notifications</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('bookmarks') }}"><i class="fas fa-bookmark"></i> Bookmarks</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                        </ul>
-                    </li>
-                    {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt"></i> Login</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('register') }}"><i class="fas fa-user-plus"></i> Register</a>
-                    </li>
+<body class="{% block body_class %}{% endblock %}">
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <div class="app-shell">
+        <aside class="primary-nav" aria-label="Primary navigation">
+            <a class="brand" href="{{ url_for('index') }}" aria-label="TwitClone home">
+                <span class="brand-mark" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span>
+                <span class="brand-name">TwitClone</span>
+            </a>
+            <nav class="nav-stack">
+                <a class="nav-pill" href="{{ url_for('index') }}"><i class="fa-solid fa-house"></i><span>Home</span></a>
+                {% if current_user.is_authenticated %}
+                <a class="nav-pill" href="{{ url_for('notifications') }}"><i class="fa-regular fa-bell"></i><span>Notifications</span></a>
+                <a class="nav-pill" href="{{ url_for('messages') }}"><i class="fa-regular fa-envelope"></i><span>Messages</span></a>
+                <a class="nav-pill" href="{{ url_for('bookmarks') }}"><i class="fa-regular fa-bookmark"></i><span>Bookmarks</span></a>
+                <a class="nav-pill" href="{{ url_for('profile', username=current_user.username) }}"><i class="fa-regular fa-user"></i><span>Profile</span></a>
+                <a class="nav-pill" href="{{ url_for('logout') }}"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Log out</span></a>
+                <a class="compose-link" href="{{ url_for('index') }}#composer">New post</a>
+                {% else %}
+                <a class="nav-pill" href="{{ url_for('login') }}"><i class="fa-solid fa-arrow-right-to-bracket"></i><span>Log in</span></a>
+                <a class="compose-link" href="{{ url_for('register') }}">Join TwitClone</a>
+                {% endif %}
+            </nav>
+            {% if current_user.is_authenticated %}
+            <a class="nav-account" href="{{ url_for('profile', username=current_user.username) }}">
+                <img src="{{ gravatar(current_user.email) }}" alt="" width="42" height="42">
+                <span><strong>{{ current_user.username }}</strong><small>@{{ current_user.username }}</small></span>
+            </a>
+            {% endif %}
+        </aside>
+
+        <main class="content-column" id="main-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-stack" aria-live="polite">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+        </main>
+
+        <aside class="discovery-rail" aria-label="Discover">
+            <form class="search-box" method="POST" action="{{ url_for('search') }}" role="search">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <input type="search" placeholder="Search TwitClone" aria-label="Search TwitClone" name="search_query">
+            </form>
+            <section class="rail-card">
+                <div class="rail-heading"><span>Trending now</span><i class="fa-solid fa-arrow-trend-up"></i></div>
+                {% for hashtag in trending_hashtags %}
+                <a class="trend-item" href="{{ url_for('hashtag', hashtag=hashtag) }}">
+                    <small>Trending in TwitClone</small><strong>#{{ hashtag }}</strong>
+                </a>
+                {% else %}
+                <p class="rail-empty">Conversations are just getting started.</p>
+                {% endfor %}
+            </section>
+            <section class="rail-card">
+                <div class="rail-heading"><span>People to meet</span><i class="fa-solid fa-user-group"></i></div>
+                {% for user in newest_users %}
+                <div class="person-row" id="user-{{ user.id }}">
+                    <img src="{{ gravatar(user.email, size=44) }}" alt="" width="44" height="44">
+                    <div class="person-copy">
+                        <a href="{{ url_for('profile', username=user.username) }}">{{ user.username }}</a>
+                        <small>@{{ user.username }}</small>
+                    </div>
+                    {% if current_user.is_authenticated and user != current_user %}
+                    <button class="btn btn-sm follow-btn {% if user in current_user.followed %}is-following{% endif %}" data-username="{{ user.username }}" data-action="{% if user in current_user.followed %}unfollow{% else %}follow{% endif %}">{% if user in current_user.followed %}Following{% else %}Follow{% endif %}</button>
                     {% endif %}
-                    <li class="nav-item text-center">
-                        <div class="small">Current Time</div>
-                        <div class="small" id="currentTime"></div>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col-md-8">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
-                {% block content %}{% endblock %}
-            </div>
-            <div class="col-md-4">
-                <div class="sidebar">
-                    <h5>Trending Hashtags</h5>
-                    <ul class="list-group">
-                        {% for hashtag in trending_hashtags %}
-                        <li class="list-group-item">
-                            <a href="{{ url_for('hashtag', hashtag=hashtag) }}">#{{ hashtag }}</a>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    <h5 class="mt-4">Newest Users</h5>
-                    <ul class="list-group">
-                        {% for user in newest_users %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center" id="user-{{ user.id }}">
-                            <div>
-                                <a href="{{ url_for('profile', username=user.username) }}">{{ user.username }}</a>
-                                <p class="bio">{{ user.bio }}</p>
-                            </div>
-                            {% if user != current_user %}
-                                {% if user not in current_user.followed %}
-                                <button class="btn btn-success btn-sm follow-btn" data-username="{{ user.username }}" data-action="follow">Follow</button>
-                                {% else %}
-                                <button class="btn btn-danger btn-sm follow-btn" data-username="{{ user.username }}" data-action="unfollow">Unfollow</button>
-                                {% endif %}
-                            {% endif %}
-                        </li>
-                        {% endfor %}
-                    </ul>
                 </div>
-            </div>
-        </div>
+                {% endfor %}
+            </section>
+            <p class="rail-footer">A small place for big conversations.</p>
+        </aside>
     </div>
+
+    <nav class="mobile-nav" aria-label="Mobile navigation">
+        <a href="{{ url_for('index') }}" aria-label="Home"><i class="fa-solid fa-house"></i></a>
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('notifications') }}" aria-label="Notifications"><i class="fa-regular fa-bell"></i></a>
+        <a class="mobile-compose" href="{{ url_for('index') }}#composer" aria-label="New post"><i class="fa-solid fa-plus"></i></a>
+        <a href="{{ url_for('messages') }}" aria-label="Messages"><i class="fa-regular fa-envelope"></i></a>
+        <a href="{{ url_for('profile', username=current_user.username) }}" aria-label="Profile"><i class="fa-regular fa-user"></i></a>
+        {% else %}
+        <a href="{{ url_for('login') }}" aria-label="Log in"><i class="fa-regular fa-user"></i></a>
+        {% endif %}
+    </nav>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const followButtons = document.querySelectorAll('.follow-btn');
-
-        followButtons.forEach(button => {
+        document.querySelectorAll('.follow-btn').forEach(button => {
             button.addEventListener('click', function() {
-                const username = this.getAttribute('data-username');
-                const action = this.getAttribute('data-action');
-                const url = `/${action}/${username}`;
-                const method = 'POST';
-
-                fetch(url, {
-                    method: method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token() }}'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        if (action === 'follow') {
-                            this.textContent = 'Unfollow';
-                            this.classList.remove('btn-success');
-                            this.classList.add('btn-danger');
-                            this.setAttribute('data-action', 'unfollow');
-                        } else {
-                            this.textContent = 'Follow';
-                            this.classList.remove('btn-danger');
-                            this.classList.add('btn-success');
-                            this.setAttribute('data-action', 'follow');
-                        }
-                    }
-                })
-                .catch(error => console.error('Error:', error));
+                const action = this.dataset.action;
+                fetch(`/${action}/${this.dataset.username}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'}
+                }).then(response => response.json()).then(data => {
+                    if (data.status !== 'success') return;
+                    const nowFollowing = action === 'follow';
+                    this.textContent = nowFollowing ? 'Following' : 'Follow';
+                    this.dataset.action = nowFollowing ? 'unfollow' : 'follow';
+                    this.classList.toggle('is-following', nowFollowing);
+                });
             });
         });
 
-        // File upload logic
         const uploadIcon = document.getElementById('uploadIcon');
         const imageInput = document.getElementById('image');
         const imagePreview = document.getElementById('imagePreview');
-
-        uploadIcon.addEventListener('click', function() {
-            imageInput.click();
-        });
-
-        imageInput.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
+        if (uploadIcon && imageInput && imagePreview) {
+            uploadIcon.addEventListener('click', () => imageInput.click());
+            imageInput.addEventListener('change', function() {
+                const file = this.files[0];
+                if (!file) return;
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    imagePreview.innerHTML = `<img src="${e.target.result}" class="img-fluid mt-2 tweet-image" alt="Image Preview" style="max-height: 200px; max-width: 100%;">`;
+                reader.onload = event => {
+                    imagePreview.innerHTML = `<img src="${event.target.result}" class="tweet-image preview-image" alt="Selected image preview">`;
                 };
                 reader.readAsDataURL(file);
-            }
-        });
-
-        // Schedule options toggle
-        document.getElementById('scheduleIcon').addEventListener('click', function() {
-            var scheduleOptions = document.getElementById('scheduleOptions');
-            if (scheduleOptions.classList.contains('d-none')) {
-                scheduleOptions.classList.remove('d-none');
-            } else {
-                scheduleOptions.classList.add('d-none');
-            }
-        });
-
-        // Update current time every second
-        function updateTime() {
-            const currentTimeElement = document.getElementById('currentTime');
-            const now = new Date();
-            const formattedTime = now.toLocaleTimeString();
-            currentTimeElement.textContent = formattedTime;
+            });
         }
-        setInterval(updateTime, 1000);
-        updateTime();  // Initial call to set the time immediately
+
+        const scheduleIcon = document.getElementById('scheduleIcon');
+        const scheduleOptions = document.getElementById('scheduleOptions');
+        if (scheduleIcon && scheduleOptions) {
+            scheduleIcon.addEventListener('click', () => scheduleOptions.classList.toggle('d-none'));
+        }
     });
     </script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>

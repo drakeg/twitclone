@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="TwitClone">
+  <defs>
+    <linearGradient id="a" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8178ff"/>
+      <stop offset="1" stop-color="#4b43d8"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#a)" d="M14 4h36c5.5 0 10 4.5 10 10v27c0 5.5-4.5 10-10 10H31L17 61v-10h-3C8.5 51 4 46.5 4 41V14C4 8.5 8.5 4 14 4Z"/>
+  <path fill="#fff" d="M36.5 10 18 35h11l-2 19 19-26H35l1.5-18Z"/>
+</svg>

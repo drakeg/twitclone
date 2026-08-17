@@ -1,20 +1,6 @@
 {% extends "base.html" %}
-{% block content %}
-<h2>Register</h2>
-<form method="POST" action="{{ url_for('register') }}">
-    <div class="mb-3">
-        <label for="username" class="form-label">Username</label>
-        <input type="text" class="form-control" id="username" name="username" required>
-    </div>
-    <div class="mb-3">
-        <label for="email" class="form-label">Email address</label>
-        <input type="email" class="form-control" id="email" name="email" required>
-    </div>
-    <div class="mb-3">
-        <label for="password" class="form-label">Password</label>
-        <input type="password" class="form-control" id="password" name="password" required>
-    </div>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <button type="submit" class="btn btn-primary">Register</button>
-</form>
-{% endblock %}
+{% block title %}Join · TwitClone{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block content %}<section class="surface-card auth-card"><span class="auth-kicker">Your voice belongs here</span><h1>Create your account.</h1><p>Meet interesting people and share what matters to you.</p>
+<form method="POST" action="{{ url_for('register') }}"><div class="mb-3"><label for="username" class="form-label">Username</label><input type="text" class="form-control" id="username" name="username" autocomplete="username" required></div><div class="mb-3"><label for="email" class="form-label">Email address</label><input type="email" class="form-control" id="email" name="email" autocomplete="email" required></div><div class="mb-4"><label for="password" class="form-label">Password</label><input type="password" class="form-control" id="password" name="password" autocomplete="new-password" required></div><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn btn-primary w-100">Create account</button></form>
+<p class="mt-4 mb-0 text-center">Already a member? <a href="{{ url_for('login') }}">Log in</a></p></section>{% endblock %}

@@ -1,52 +1,27 @@
 {% extends "base.html" %}
+{% block title %}{{ user.username }} · TwitClone{% endblock %}
 {% block content %}
-<h2>{{ user.username }}'s Profile</h2>
-<img src="{{ gravatar(user.email, size=200) }}" alt="avatar" class="rounded-circle mb-3">
-<p>Email: {{ user.email }}</p>
-<p>Bio: {{ user.bio }}</p>
-{% if current_user.id != user.id %}
-<button id="follow-btn" class="btn {% if is_following %}btn-danger{% else %}btn-success{% endif %}" data-username="{{ user.username }}">
-    {% if is_following %}Unfollow{% else %}Follow{% endif %}
-</button>
-{% endif %}
-<a href="{{ url_for('followers', username=user.username) }}" class="btn btn-secondary">View Followers</a>
-<a href="{{ url_for('following', username=user.username) }}" class="btn btn-secondary">View Following</a>
-{% if current_user.id == user.id %}
-<a href="{{ url_for('edit_profile') }}" class="btn btn-primary">Edit Profile</a>
-{% endif %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const followBtn = document.getElementById('follow-btn');
-
-    followBtn.addEventListener('click', function() {
-        const username = this.getAttribute('data-username');
-        const action = this.textContent.trim().toLowerCase();
-        const url = `/${action}/${username}`;
-        const method = 'POST';
-
-        fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token() }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                if (action === 'follow') {
-                    this.textContent = 'Unfollow';
-                    this.classList.remove('btn-success');
-                    this.classList.add('btn-danger');
-                } else {
-                    this.textContent = 'Follow';
-                    this.classList.remove('btn-danger');
-                    this.classList.add('btn-success');
-                }
-            }
-        })
-        .catch(error => console.error('Error:', error));
-    });
+<header class="page-header"><div><h1>{{ user.username }}</h1><small>Profile</small></div></header>
+<section class="profile-hero">
+    <div class="profile-cover"></div>
+    <div class="profile-details">
+        <img src="{{ gravatar(user.email, size=200) }}" alt="{{ user.username }}'s avatar" class="profile-avatar">
+        <div class="profile-actions">
+            {% if current_user.id != user.id %}<button id="follow-btn" class="btn {% if is_following %}btn-secondary{% else %}btn-primary{% endif %}" data-username="{{ user.username }}">{% if is_following %}Following{% else %}Follow{% endif %}</button>{% endif %}
+            {% if current_user.id == user.id %}<a href="{{ url_for('edit_profile') }}" class="btn btn-secondary">Edit profile</a>{% endif %}
+        </div>
+        <h2 class="profile-name">{{ user.username }}</h2><div class="profile-handle">@{{ user.username }}</div>
+        <p class="profile-bio">{{ user.bio or 'No bio yet — the story is still being written.' }}</p>
+        <div class="profile-links"><a href="{{ url_for('following', username=user.username) }}"><strong>View</strong> Following</a><a href="{{ url_for('followers', username=user.username) }}"><strong>View</strong> Followers</a></div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{% if current_user.id != user.id %}<script>
+document.getElementById('follow-btn')?.addEventListener('click', function() {
+    const following = this.textContent.trim() === 'Following';
+    fetch(`/${following ? 'unfollow' : 'follow'}/${this.dataset.username}`, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'}})
+        .then(response => response.json()).then(data => { if (data.status === 'success') { this.textContent = following ? 'Follow' : 'Following'; this.classList.toggle('btn-primary', following); this.classList.toggle('btn-secondary', !following); }});
 });
-</script>
+</script>{% endif %}
 {% endblock %}
