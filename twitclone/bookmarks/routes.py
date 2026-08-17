@@ -10,7 +10,7 @@ from twitclone.models import Bookmark, Tweet
 
 @login_required
 def bookmark(tweet_id):
-    tweet = Tweet.query.get_or_404(tweet_id)
+    tweet = db.get_or_404(Tweet, tweet_id)
     existing = Bookmark.query.filter_by(
         user_id=current_user.id, tweet_id=tweet.id
     ).first()

@@ -1,6 +1,6 @@
 """Focused tests for the notifications Blueprint."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from flask import url_for
 
@@ -33,7 +33,7 @@ def test_notifications_blueprint_owns_existing_route(app):
 
 def test_notifications_render_for_current_user_in_newest_first_order(client, app):
     user_id, other_id = create_logged_in_user(client, app)
-    now = datetime.utcnow()
+    now = datetime.now(UTC).replace(tzinfo=None)
     with app.app_context():
         db.session.add_all(
             [
