@@ -37,3 +37,14 @@ def test_compose_keeps_migration_web_and_worker_processes_separate():
     assert "http://127.0.0.1:8000/health/ready" in compose
     assert "flask --app application run" not in compose
     assert compose.count("condition: service_completed_successfully") == 2
+
+
+def test_compose_test_service_is_isolated_from_local_application_data():
+    compose = read_project_file("compose.yaml")
+
+    assert 'profiles: ["tools"]' in compose
+    assert "command: python -m pytest --strict-markers --maxfail=1" in compose
+    assert "TWITCLONE_ENV: testing" in compose
+    assert 'DATABASE_URL: "sqlite:///:memory:"' in compose
+    test_service = compose.split("  test:\n", maxsplit=1)[1].split("\nvolumes:", maxsplit=1)[0]
+    assert "twitclone_data" not in test_service
