@@ -120,7 +120,7 @@ def uploaded_file(filename):
 
 @login_required
 def retweet(tweet_id):
-    original_tweet = Tweet.query.get_or_404(tweet_id)
+    original_tweet = db.get_or_404(Tweet, tweet_id)
     existing = Retweet.query.filter_by(
         user_id=current_user.id, tweet_id=original_tweet.id
     ).first()
@@ -134,7 +134,7 @@ def retweet(tweet_id):
 
 @login_required
 def quote(tweet_id):
-    original_tweet = Tweet.query.get_or_404(tweet_id)
+    original_tweet = db.get_or_404(Tweet, tweet_id)
     if request.method == "POST":
         content = request.form.get("content")
         validation_error = validate_post_content(content, post_type="Quote")
