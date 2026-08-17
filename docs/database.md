@@ -1,109 +1,130 @@
-# Database and Migration Workflow
+# Database and migration workflow
 
-TwitClone currently uses SQLite and Flask-Migrate/Alembic. The migration history under `migrations/` is part of the application source and must be committed with every schema change.
+TwitClone uses Flask-SQLAlchemy and Alembic/Flask-Migrate. SQLite remains the
+zero-configuration database for local development and automated tests.
+PostgreSQL 18 is the selected production database, connected through Psycopg 3.
+The migration history under `migrations/` is authoritative and must ship with
+every schema change.
 
-## Important data warning
+## Environment policy
 
-The initial migration represents the schema currently declared by the application models. It does not import, transform, or preserve an untracked local database automatically. Before applying migrations to an existing database, make a copy of the database file and verify its schema and data.
+| Environment | Database | Purpose |
+| --- | --- | --- |
+| Development | SQLite | Simple local setup and `docker compose up --build` |
+| Testing | In-memory SQLite | Fast, isolated test execution |
+| Production | Managed PostgreSQL 18 | Durable data, concurrency, backups, and operational tooling |
 
-## Configure the database
+Production startup rejects SQLite. TwitClone accepts provider URLs beginning
+with `postgres://`, `postgresql://`, or `postgresql+psycopg://` and selects the
+Psycopg 3 driver explicitly.
 
-The default development database remains:
+## Local workflow
 
-```text
-sqlite:///twitter_clone.db
-```
-
-A different location can be supplied without editing source code:
+The default database is `sqlite:///twitter_clone.db`. A different local file can
+be selected without editing source:
 
 ```bash
 export DATABASE_URL="sqlite:////absolute/path/to/twitter_clone.db"
 export SCHEDULER_ENABLED=false
-```
-
-## Create a clean database
-
-From a clean checkout and activated virtual environment:
-
-```bash
-python -m pip install -r requirements.txt
 flask --app application db upgrade
 ```
 
-Do not use `db.create_all()` as the normal initialization workflow. Migration upgrades are the authoritative schema path.
-
-## Verify migrations safely
-
-The verifier creates a temporary SQLite database, applies every migration, and checks the expected table inventory:
+Do not use `db.create_all()` as the normal initialization path. To verify the
+complete migration chain against a disposable SQLite database, run:
 
 ```bash
 python scripts/verify_migrations.py
 ```
 
-It does not touch the configured development database.
+## Production connection
 
-## Create a schema change
+Use a managed PostgreSQL 18 service on a currently supported minor release.
+Supply its connection URL through the hosting platform's secret manager:
+
+```text
+TWITCLONE_ENV=production
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE
+```
+
+Do not commit credentials, place them in Docker images, print them in logs, or
+pass them through Terraform outputs. Require encrypted transport using the
+database provider's connection settings. Network access should be limited to
+the application and migration processes.
+
+## Production release procedure
+
+Use a release command or one-shot migration task. Never run migrations as a side
+effect of starting every web replica.
+
+1. Confirm a recent provider backup or snapshot exists and record its identifier.
+2. Test the release and migration against a staging database restored from a
+   representative backup.
+3. Review every pending Alembic revision, including its locking, runtime, data
+   conversion, and downgrade behavior.
+4. Stop the scheduled-post worker and prevent new web writes. For an initial
+   deployment, keep web and worker processes scaled to zero.
+5. Run the new release image with the production secrets and execute:
+
+   ```bash
+   flask --app application db current
+   flask --app application db upgrade
+   flask --app application db current
+   ```
+
+6. Confirm the final revision matches the repository migration head.
+7. Start one web process and verify `/health/live`, `/health/ready`, login, and a
+   read-only timeline request.
+8. Start exactly one scheduled-post worker, then scale web processes only within
+   the tested database connection budget.
+9. Record the release SHA, migration revision, backup identifier, operator, and
+   completion time.
+
+For migrations that rewrite large tables or cannot remain compatible with the
+previous application version, schedule a maintenance window and document a
+forward-fix and restore plan before approval.
+
+## Moving existing SQLite data
+
+Alembic creates and upgrades schemas; it does not copy existing SQLite rows into
+PostgreSQL. The safest initial production launch uses a new PostgreSQL database.
+If local data must be retained, treat the move as a separate, rehearsed data
+migration:
+
+1. Stop all writers and make a verified copy of the SQLite file.
+2. Create the PostgreSQL schema by applying Alembic migrations.
+3. Use a reviewed migration tool or purpose-built import script in staging.
+4. Validate row counts, foreign keys, unique constraints, timestamps, and a
+   representative sample of user-visible records.
+5. Repeat from a fresh backup during the production maintenance window.
+
+Do not point application processes at SQLite and PostgreSQL simultaneously.
+
+## Schema changes
 
 1. Update the SQLAlchemy model.
 2. Generate a candidate revision:
 
-```bash
-flask --app application db migrate -m "describe the schema change"
-```
+   ```bash
+   flask --app application db migrate -m "describe the schema change"
+   ```
 
 3. Review the generated upgrade and downgrade operations manually.
-4. Apply and verify:
-
-```bash
-flask --app application db upgrade
-python scripts/verify_migrations.py
-```
-
-5. Commit the model change and migration revision together.
+4. Apply locally and run both `python scripts/verify_migrations.py` and the full
+   test suite.
+5. Rehearse against PostgreSQL in staging before production approval.
+6. Commit the model and migration revision together.
 
 Autogenerated migrations are proposals, not proof that a migration is safe.
 
-## Check current migration state
+## Rollback boundary
 
-```bash
-flask --app application db current
-flask --app application db history
-```
+Do not automatically downgrade a production database. If a release fails after
+the schema upgrade:
 
-## Upgrade an existing database
+- roll back only the application image when the new schema is backward compatible;
+- prefer a forward fix for additive or safely repairable schema changes;
+- restore the recorded backup when a destructive migration corrupted or removed
+  data, accepting that writes after the backup will need reconciliation.
 
-1. Stop the application.
-2. Copy the database file to a timestamped backup.
-3. Confirm `DATABASE_URL` points to the intended database.
-4. Run:
-
-```bash
-flask --app application db upgrade
-```
-
-5. Start the application and perform a smoke test.
-
-## Local reset
-
-A reset deletes all local data. Stop the application first.
-
-```bash
-rm -f twitter_clone.db
-flask --app application db upgrade
-```
-
-For an absolute SQLite path, delete the file at that path instead.
-
-## Downgrades
-
-Downgrades can be destructive. They are intended primarily for development and controlled rollback testing:
-
-```bash
-flask --app application db downgrade -1
-```
-
-For production recovery, restoring a verified backup may be safer than relying on a destructive downgrade.
-
-## AWS deployment implications
-
-The lowest-cost AWS plan initially retains SQLite. The database file must live outside the replaced application release directory and must be included in backup, restore, deployment, and rollback procedures. Terraform will provision infrastructure but will not place database secrets or state files in source control.
+The next operations story defines the complete backup, restore, media-storage,
+and rollback runbook.

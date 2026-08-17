@@ -8,11 +8,11 @@ development server:
 gunicorn --bind 0.0.0.0:8000 --workers 1 --threads 4 --timeout 30 application:application
 ```
 
-The single worker is intentional for the current SQLite-based Compose setup.
+The single worker is intentional for the current SQLite-based local Compose setup.
 Threads allow concurrent request handling without creating multiple application
-processes that contend for the local database. Do not increase the worker count
-while using SQLite. A later Sprint 6 story will select a production database and
-document safe production concurrency.
+processes that contend for the local database. Do not increase the local worker
+count while using SQLite. Production uses PostgreSQL, but concurrency must still
+be sized and load-tested for the selected hosting plan.
 
 ## Process boundaries
 
@@ -37,7 +37,8 @@ Before exposing TwitClone publicly, the hosting environment must also provide:
 
 - TLS termination and trusted proxy configuration.
 - A strong `SECRET_KEY` supplied by a secret manager.
-- A production database and durable uploaded-media storage.
+- PostgreSQL configured and migrated using [`database.md`](database.md), plus
+  durable uploaded-media storage.
 - External monitoring, backups, and rollback procedures. The application health
   and structured-log contracts are documented in
   [`observability.md`](observability.md).

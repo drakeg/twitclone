@@ -66,3 +66,46 @@ def test_scheduler_interval_must_be_positive(monkeypatch):
             SECRET_KEY="test-only-secret-not-for-production",
             SCHEDULER_INTERVAL_SECONDS="0",
         )
+
+
+@pytest.mark.parametrize(
+    ("configured", "expected"),
+    [
+        (
+            "postgres://user:password@database.example/twitclone",
+            "postgresql+psycopg://user:password@database.example/twitclone",
+        ),
+        (
+            "postgresql://user:password@database.example/twitclone",
+            "postgresql+psycopg://user:password@database.example/twitclone",
+        ),
+        (
+            "postgresql+psycopg://user:password@database.example/twitclone",
+            "postgresql+psycopg://user:password@database.example/twitclone",
+        ),
+    ],
+)
+def test_postgresql_urls_use_the_supported_psycopg_driver(
+    monkeypatch, configured, expected
+):
+    config = load_config(
+        monkeypatch,
+        TWITCLONE_ENV="production",
+        SECRET_KEY="test-only-secret-not-for-production",
+        DATABASE_URL=configured,
+    )
+
+    assert config.Config.SQLALCHEMY_DATABASE_URI == expected
+
+
+@pytest.mark.parametrize("database_url", [None, "sqlite:////data/twitclone.db"])
+def test_sqlite_is_rejected_in_production(monkeypatch, database_url):
+    environment = {
+        "TWITCLONE_ENV": "production",
+        "SECRET_KEY": "test-only-secret-not-for-production",
+    }
+    if database_url:
+        environment["DATABASE_URL"] = database_url
+
+    with pytest.raises(RuntimeError, match="Production requires PostgreSQL"):
+        load_config(monkeypatch, **environment)

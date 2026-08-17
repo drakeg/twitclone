@@ -2,12 +2,14 @@
 
 ## Current state
 
-TwitClone is currently a Flask monolith backed by SQLite. Most application configuration, database models, scheduling, utility functions, and routes are held in a single application module. HTML templates and static assets provide the browser interface.
+TwitClone is a Flask application backed by SQLite for local development and
+PostgreSQL for production. HTML templates and static assets provide the browser
+interface.
 
 ## Current components
 
 - **Web framework:** Flask
-- **Persistence:** Flask-SQLAlchemy with SQLite
+- **Persistence:** Flask-SQLAlchemy with local SQLite and production PostgreSQL
 - **Migrations:** Flask-Migrate/Alembic
 - **Authentication:** Flask-Login and Flask-Bcrypt
 - **Forms and CSRF:** Flask-WTF
@@ -67,7 +69,7 @@ The near-term target remains a modular Flask monolith:
 - Separate models, services, and blueprints
 - Automated tests and CI
 - Controlled background-worker entry point
-- SQLite for local development and a production-capable relational database only when deployment begins
+- SQLite for local development and PostgreSQL 18 for production
 
 This approach improves maintainability without introducing distributed-system cost or complexity prematurely.
 

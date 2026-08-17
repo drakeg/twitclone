@@ -22,6 +22,7 @@ REQUIRED_IMPORTS = {
     "flask_sqlalchemy": "Flask-SQLAlchemy",
     "flask_wtf": "Flask-WTF",
     "PIL": "Pillow",
+    "psycopg": "psycopg",
     "sqlalchemy": "SQLAlchemy",
     "wtforms": "WTForms",
 }

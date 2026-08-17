@@ -12,6 +12,7 @@ def test_gunicorn_is_an_exact_runtime_dependency():
     requirements = read_project_file("requirements.txt").splitlines()
 
     assert "gunicorn==26.0.0" in requirements
+    assert "psycopg[binary]==3.3.4" in requirements
 
 
 def test_image_defaults_to_the_supported_wsgi_entry_point():

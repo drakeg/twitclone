@@ -12,6 +12,7 @@ Pillow==12.3.0
 bcrypt==5.0.0
 gravatar==0.1
 gunicorn==26.0.0
+psycopg[binary]==3.3.4
 pytz==2026.3.post1
 SQLAlchemy==2.0.52
 tzlocal==5.4.4
