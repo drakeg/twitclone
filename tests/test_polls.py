@@ -1,6 +1,6 @@
 """Focused tests for the polls Blueprint."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from flask import url_for
 import pytest
@@ -9,6 +9,10 @@ from sqlalchemy.exc import IntegrityError
 from twitclone.extensions import db
 from twitclone.models import Poll, PollOption, PollVote, User
 from twitclone.polls.routes import create_poll, vote_poll
+
+
+def _utcnow_naive():
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def create_logged_in_user(client, app):
@@ -157,7 +161,7 @@ def test_poll_is_inactive_at_exact_expiration(app):
 def test_expired_poll_rejects_vote_without_writes(client, app):
     user_id = create_logged_in_user(client, app)
     with app.app_context():
-        poll = Poll(question="Expired", created_at=datetime.utcnow() - timedelta(days=2),
+        poll = Poll(question="Expired", created_at=_utcnow_naive() - timedelta(days=2),
                     duration_days=1, duration_hours=0, duration_minutes=0,
                     user_id=user_id)
         db.session.add(poll)
@@ -179,7 +183,7 @@ def test_expired_poll_rejects_vote_without_writes(client, app):
 def test_expired_poll_renders_results_without_vote_form(client, app):
     user_id = create_logged_in_user(client, app)
     with app.app_context():
-        poll = Poll(question="Closed poll", created_at=datetime.utcnow() - timedelta(days=2),
+        poll = Poll(question="Closed poll", created_at=_utcnow_naive() - timedelta(days=2),
                     duration_days=1, duration_hours=0, duration_minutes=0,
                     user_id=user_id)
         db.session.add(poll)
