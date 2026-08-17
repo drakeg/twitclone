@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}About · Ripple{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div>
+        <small>About Ripple</small>
+        <h1>Small moments can travel far.</h1>
+    </div>
+</header>
+
+<section class="surface-card about-hero">
+    <span class="auth-kicker">Why Ripple?</span>
+    <h2>Every conversation starts somewhere.</h2>
+    <p class="about-lead">A ripple begins with a single point of motion. It moves outward, reaches something new, and can become part of something much larger than where it started.</p>
+    <p>That is the idea behind Ripple. A thought shared with one person can spark a conversation. A question can find someone with an answer. A story can reach someone who needed to hear it. A new connection can lead to another, and then another.</p>
+</section>
+
+<section class="about-grid" aria-label="What Ripple stands for">
+    <article class="surface-card about-card">
+        <span class="about-icon" aria-hidden="true"><i class="fa-regular fa-comment-dots"></i></span>
+        <h2>Share something</h2>
+        <p>Post an idea, a moment, a question, or something worth talking about. Every ripple has a beginning.</p>
+    </article>
+    <article class="surface-card about-card">
+        <span class="about-icon" aria-hidden="true"><i class="fa-solid fa-water"></i></span>
+        <h2>Let it travel</h2>
+        <p>People respond, share, and add their own perspective. Conversation carries an idea beyond its starting point.</p>
+    </article>
+    <article class="surface-card about-card">
+        <span class="about-icon" aria-hidden="true"><i class="fa-solid fa-people-group"></i></span>
+        <h2>Make a connection</h2>
+        <p>The goal is not simply to broadcast. It is to discover people, exchange ideas, and build conversations that matter.</p>
+    </article>
+</section>
+
+<section class="surface-card about-statement">
+    <span class="auth-kicker">The idea</span>
+    <h2>Your voice does not have to be the loudest to make an impact.</h2>
+    <p>Ripple is built around a simple belief: meaningful communities grow from individual voices interacting with one another. Sometimes the smallest post starts the best conversation.</p>
+    {% if not current_user.is_authenticated %}
+    <a class="btn btn-primary" href="{{ url_for('register') }}">Join Ripple</a>
+    {% else %}
+    <a class="btn btn-primary" href="{{ url_for('index') }}#composer">Start a ripple</a>
+    {% endif %}
+</section>
+{% endblock %}
