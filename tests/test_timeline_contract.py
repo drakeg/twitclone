@@ -1,6 +1,6 @@
 """Normalized timeline data-contract tests."""
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from twitclone.extensions import db
 from twitclone.models import Poll, PollOption, PollVote, Quote, Retweet, Tweet, User
@@ -8,7 +8,7 @@ from twitclone.timeline.service import build_timeline_posts
 
 
 def seed_timeline(app):
-    now = datetime.utcnow()
+    now = datetime.now(UTC).replace(tzinfo=None)
     with app.app_context():
         author = User(username="author", email="author@example.com", password="hash")
         actor = User(username="actor", email="actor@example.com", password="hash")
