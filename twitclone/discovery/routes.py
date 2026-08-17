@@ -1,10 +1,15 @@
-"""Search and hashtag discovery routes."""
+"""Search, hashtag, and public discovery routes."""
 
 from flask import redirect, render_template, request, url_for
 from flask_login import login_required
 
 from twitclone.discovery import discovery_blueprint
 from twitclone.models import Tweet, User
+
+
+def about():
+    """Explain Ripple's identity and community purpose."""
+    return render_template("about.html")
 
 
 @login_required
@@ -40,6 +45,7 @@ def hashtag(hashtag):
 @discovery_blueprint.record_once
 def register_discovery_routes(state):
     """Register routes while retaining existing endpoint names."""
+    state.app.add_url_rule("/about", endpoint="about", view_func=about)
     state.app.add_url_rule(
         "/search", endpoint="search", view_func=search, methods=["GET", "POST"]
     )
