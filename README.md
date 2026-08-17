@@ -35,6 +35,11 @@ Stop it with `Ctrl+C`; use `docker compose down` to stop and
 `docker compose down -v` only when you intentionally want to erase local data.
 
 Use `docker compose logs -f worker` to observe scheduled-post processing.
+Use `docker compose logs -f web worker` to follow structured application logs.
+
+Compose monitors database readiness at `/health/ready`; `/health/live` provides
+a dependency-free liveness signal. See
+[`docs/observability.md`](docs/observability.md) for their operational contract.
 
 See [`docs/production-serving.md`](docs/production-serving.md) for the web
 process contract and the additional decisions required before public deployment.

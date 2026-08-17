@@ -32,6 +32,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     from twitclone.discovery import discovery_blueprint
     from twitclone.messaging import messaging_blueprint
     from twitclone.notifications import notifications_blueprint
+    from twitclone.observability import configure_observability
     from twitclone.polls import polls_blueprint
     from twitclone.profiles import profiles_blueprint
     from twitclone.timeline import timeline_blueprint
@@ -44,6 +45,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
 
     flask_app.config.from_object(config_object)
     Path(flask_app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
+    configure_observability(flask_app)
 
     if auth_blueprint.name not in flask_app.blueprints:
         flask_app.register_blueprint(auth_blueprint)
