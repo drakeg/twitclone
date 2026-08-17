@@ -1,0 +1,58 @@
+.about-hero {
+    padding: 34px;
+    background: linear-gradient(145deg, #ffffff 30%, var(--surface-soft) 100%);
+}
+.about-hero h2, .about-statement h2 {
+    margin: 6px 0 14px;
+    font: 800 clamp(1.55rem, 4vw, 2.25rem) "Manrope", sans-serif;
+    letter-spacing: -.05em;
+}
+.about-lead {
+    font-size: 1.12rem;
+    line-height: 1.65;
+    color: var(--ink);
+}
+.about-hero p:not(.about-lead), .about-card p, .about-statement p {
+    color: var(--muted);
+    line-height: 1.65;
+}
+.about-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 0 20px 20px;
+}
+.about-grid .surface-card {
+    margin: 0;
+}
+.about-card {
+    padding: 22px;
+}
+.about-card h2 {
+    margin: 14px 0 8px;
+    font-size: 1.05rem;
+}
+.about-icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: var(--surface-soft);
+    color: var(--accent);
+    font-size: 1.15rem;
+}
+.about-statement {
+    margin-top: 0;
+}
+.about-statement .btn {
+    margin-top: 6px;
+}
+@media (max-width: 680px) {
+    .about-grid {
+        grid-template-columns: 1fr;
+    }
+    .about-hero {
+        padding: 26px;
+    }
+}

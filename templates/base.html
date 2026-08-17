@@ -23,6 +23,7 @@
             </a>
             <nav class="nav-stack">
                 <a class="nav-pill" href="{{ url_for('index') }}"><i class="fa-solid fa-house"></i><span>Home</span></a>
+                <a class="nav-pill" href="{{ url_for('about') }}"><i class="fa-regular fa-circle-question"></i><span>About</span></a>
                 {% if current_user.is_authenticated %}
                 <a class="nav-pill" href="{{ url_for('notifications') }}"><i class="fa-regular fa-bell"></i><span>Notifications</span></a>
                 <a class="nav-pill" href="{{ url_for('messages') }}"><i class="fa-regular fa-envelope"></i><span>Messages</span></a>
@@ -90,12 +91,13 @@
                 </div>
                 {% endfor %}
             </section>
-            <p class="rail-footer">A small place for big conversations.</p>
+            <p class="rail-footer"><a href="{{ url_for('about') }}">About Ripple</a> · A small place for big conversations.</p>
         </aside>
     </div>
 
     <nav class="mobile-nav" aria-label="Mobile navigation">
         <a href="{{ url_for('index') }}" aria-label="Home"><i class="fa-solid fa-house"></i></a>
+        <a href="{{ url_for('about') }}" aria-label="About Ripple"><i class="fa-regular fa-circle-question"></i></a>
         {% if current_user.is_authenticated %}
         <a href="{{ url_for('notifications') }}" aria-label="Notifications"><i class="fa-regular fa-bell"></i></a>
         <a class="mobile-compose" href="{{ url_for('index') }}#composer" aria-label="New post"><i class="fa-solid fa-plus"></i></a>
