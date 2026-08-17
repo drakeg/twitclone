@@ -37,5 +37,17 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  test:
+    build: .
+    profiles: ["tools"]
+    command: python -m pytest --strict-markers --maxfail=1
+    environment:
+      TWITCLONE_ENV: testing
+      SECRET_KEY: compose-test-only-secret
+      DATABASE_URL: "sqlite:///:memory:"
+      UPLOAD_FOLDER: /tmp/twitclone-test-uploads
+      SCHEDULER_ENABLED: "false"
+      SCHEDULER_INTERVAL_SECONDS: "60"
+
 volumes:
   twitclone_data:

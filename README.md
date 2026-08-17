@@ -44,6 +44,15 @@ a dependency-free liveness signal. See
 See [`docs/production-serving.md`](docs/production-serving.md) for the web
 process contract and the additional decisions required before public deployment.
 
+Run the complete automated test suite in an isolated one-off container with:
+
+```bash
+docker compose run --rm test
+```
+
+The test service uses an in-memory database and temporary upload directory. It
+does not read, migrate, or erase the named volume used by the local application.
+
 ### Prerequisites
 
 - Python 3.11 or newer
