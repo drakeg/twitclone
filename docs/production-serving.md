@@ -38,7 +38,9 @@ Before exposing TwitClone publicly, the hosting environment must also provide:
 - TLS termination and trusted proxy configuration.
 - A strong `SECRET_KEY` supplied by a secret manager.
 - A production database and durable uploaded-media storage.
-- Health checks, structured logs, monitoring, backups, and rollback procedures.
+- External monitoring, backups, and rollback procedures. The application health
+  and structured-log contracts are documented in
+  [`observability.md`](observability.md).
 - Exactly one scheduled-post worker until database-level job claiming exists.
 
 Gunicorn handles termination signals and allows in-flight requests up to the

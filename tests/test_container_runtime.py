@@ -34,5 +34,6 @@ def test_compose_keeps_migration_web_and_worker_processes_separate():
         "--timeout 30 application:application"
     ) in compose
     assert "command: python -m twitclone.scheduled_worker" in compose
+    assert "http://127.0.0.1:8000/health/ready" in compose
     assert "flask --app application run" not in compose
     assert compose.count("condition: service_completed_successfully") == 2
