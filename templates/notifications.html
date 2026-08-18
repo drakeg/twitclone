@@ -9,12 +9,18 @@
     <div class="list-group">
         {% for notification in notifications %}
         <div class="list-group-item">
-            <div class="d-flex gap-3 align-items-start">
-                <span class="badge rounded-pill text-bg-light p-2" aria-hidden="true"><i class="fa-regular fa-bell"></i></span>
-                <div>
-                    <p class="mb-1">{{ notification.message }}</p>
-                    <small class="text-muted">{{ notification.timestamp.strftime('%Y-%m-%d %H:%M:%S') if notification.timestamp else 'unknown date' }}</small>
+            <div class="d-flex justify-content-between gap-3 align-items-start">
+                <div class="d-flex gap-3 align-items-start">
+                    <span class="badge rounded-pill text-bg-light p-2" aria-hidden="true"><i class="fa-regular fa-bell"></i></span>
+                    <div>
+                        <p class="mb-1">{{ notification.message }}</p>
+                        <small class="text-muted">{{ notification.timestamp.strftime('%Y-%m-%d %H:%M:%S') if notification.timestamp else 'unknown date' }}</small>
+                    </div>
                 </div>
+                <form method="POST" action="{{ url_for('delete_notification', notification_id=notification.id) }}" onsubmit="return confirm('Delete this notification?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Delete notification"><i class="fa-regular fa-trash-can"></i></button>
+                </form>
             </div>
         </div>
         {% endfor %}

@@ -1,6 +1,6 @@
-"""Direct-message inbox, compose, and reply routes."""
+"""Direct-message inbox, compose, reply, and deletion routes."""
 
-from flask import flash, redirect, render_template, request, url_for
+from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from twitclone.extensions import db
@@ -12,18 +12,26 @@ from twitclone.models import DirectMessage, Notification, User
 @login_required
 def messages():
     unread_messages = DirectMessage.query.filter_by(
-        receiver_id=current_user.id, read=False
+        receiver_id=current_user.id,
+        read=False,
+        deleted_by_receiver=False,
     )
     if unread_messages.update({"read": True}, synchronize_session=False):
         db.session.commit()
 
     received_messages = (
-        DirectMessage.query.filter_by(receiver_id=current_user.id)
+        DirectMessage.query.filter_by(
+            receiver_id=current_user.id,
+            deleted_by_receiver=False,
+        )
         .order_by(DirectMessage.timestamp.desc())
         .all()
     )
     sent_messages = (
-        DirectMessage.query.filter_by(sender_id=current_user.id)
+        DirectMessage.query.filter_by(
+            sender_id=current_user.id,
+            deleted_by_sender=False,
+        )
         .order_by(DirectMessage.timestamp.desc())
         .all()
     )
@@ -36,7 +44,9 @@ def messages():
 
 @login_required
 def new_message():
-    recipient_username = (request.form.get("recipient") or request.args.get("to") or "").strip()
+    recipient_username = (
+        request.form.get("recipient") or request.args.get("to") or ""
+    ).strip()
 
     if request.method == "POST":
         content = request.form.get("content")
@@ -63,7 +73,10 @@ def new_message():
                 )
                 db.session.add_all([message, notification])
                 db.session.commit()
-                flash(f"Your message to {recipient.username} has been sent.", "success")
+                flash(
+                    f"Your message to {recipient.username} has been sent.",
+                    "success",
+                )
                 return redirect(url_for("messages"))
 
     return render_template("new_message.html", recipient_username=recipient_username)
@@ -72,7 +85,9 @@ def new_message():
 @login_required
 def reply_message(message_id):
     message = DirectMessage.query.filter_by(
-        id=message_id, receiver_id=current_user.id
+        id=message_id,
+        receiver_id=current_user.id,
+        deleted_by_receiver=False,
     ).first_or_404()
     if request.method == "POST":
         content = request.form.get("content")
@@ -98,6 +113,28 @@ def reply_message(message_id):
     return render_template("reply.html", message=message)
 
 
+@login_required
+def delete_message(message_id):
+    message = db.session.get(DirectMessage, message_id)
+    if message is None:
+        abort(404)
+
+    if message.sender_id == current_user.id:
+        message.deleted_by_sender = True
+    elif message.receiver_id == current_user.id:
+        message.deleted_by_receiver = True
+        message.read = True
+    else:
+        abort(404)
+
+    if message.deleted_by_sender and message.deleted_by_receiver:
+        db.session.delete(message)
+
+    db.session.commit()
+    flash("Message deleted from your view.", "success")
+    return redirect(url_for("messages"))
+
+
 @messaging_blueprint.record_once
 def register_messaging_routes(state):
     """Register routes while retaining existing endpoint names."""
@@ -113,4 +150,10 @@ def register_messaging_routes(state):
         endpoint="reply_message",
         view_func=reply_message,
         methods=["GET", "POST"],
+    )
+    state.app.add_url_rule(
+        "/messages/<int:message_id>/delete",
+        endpoint="delete_message",
+        view_func=delete_message,
+        methods=["POST"],
     )
