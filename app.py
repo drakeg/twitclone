@@ -4,7 +4,6 @@ import os
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask
-from flask_login import current_user
 
 from config import Config
 from twitclone.extensions import bcrypt, csrf, db, init_extensions, login_manager, migrate
@@ -48,17 +47,10 @@ scheduler = BackgroundScheduler()
 
 @app.context_processor
 def utility_processor():
-    unread_notification_count = 0
-    if current_user.is_authenticated:
-        unread_notification_count = Notification.query.filter_by(
-            user_id=current_user.id, read=False
-        ).count()
-
     return {
         "gravatar": gravatar,
         "trending_hashtags": get_trending_hashtags(),
         "newest_users": get_newest_users(),
-        "unread_notification_count": unread_notification_count,
     }
 
 
