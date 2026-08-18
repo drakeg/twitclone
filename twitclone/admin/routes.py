@@ -69,13 +69,21 @@ def apply_verification():
 @admin_required
 def admin_dashboard():
     pending = VerificationRequest.query.filter_by(status='pending').order_by(VerificationRequest.submitted_at.asc()).all()
-    moderation_count = PostReport.query.filter_by(status='pending').count()
+    pending_reports = PostReport.query.filter_by(status='pending').order_by(
+        PostReport.created_at.desc()
+    ).all()
+    moderation_rows = []
+    for report in pending_reports:
+        content = _reported_content(report)
+        moderation_rows.append((report, _content_preview(report, content)))
+
     return render_template(
         'admin_dashboard.html', pending_requests=pending,
+        moderation_reports=moderation_rows,
         total_users=User.query.count(),
         verified_users=User.query.filter_by(identity_verified=True).count(),
         admin_users=User.query.filter(db.or_(User.is_admin.is_(True), User.is_super_admin.is_(True))).count(),
-        moderation_count=moderation_count,
+        moderation_count=len(pending_reports),
     )
 
 

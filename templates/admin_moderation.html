@@ -7,7 +7,7 @@
 </header>
 
 {% for report, content, preview in reports %}
-<section class="surface-card {% if report.status == 'pending' %}border border-warning{% endif %}">
+<section id="report-{{ report.id }}" class="surface-card {% if report.status == 'pending' %}border border-warning{% endif %}">
     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
         <div>
             <span class="badge {% if report.status == 'pending' %}text-bg-warning{% elif report.status == 'removed' %}text-bg-danger{% else %}text-bg-secondary{% endif %}">{{ report.status|title }}</span>

@@ -6,22 +6,65 @@
         <h1>Ripple Admin</h1>
         <small>{% if current_user.is_super_admin %}Super Admin control center{% else %}Platform administration{% endif %}</small>
     </div>
-    <div class="d-flex gap-2"><a class="btn btn-outline-danger btn-sm" href="{{ url_for('admin.moderation_queue') }}">Moderation{% if moderation_count %} <span class="badge text-bg-danger">{{ moderation_count }}</span>{% endif %}</a><a class="btn btn-secondary btn-sm" href="{{ url_for('admin.admin_users') }}">Manage users</a></div>
+    <a class="btn btn-secondary btn-sm" href="{{ url_for('admin.admin_users') }}">Manage users</a>
 </header>
+
 <section class="surface-card">
     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-        <div><span class="auth-kicker">Admin access</span><h2 class="mb-2">Welcome, @{{ current_user.username }}</h2><p class="text-muted mb-0">Review verification requests, community reports, and Ripple accounts.</p></div>
-        <span class="badge rounded-pill {% if current_user.is_super_admin %}text-bg-dark{% else %}text-bg-primary{% endif %} p-2">{% if current_user.is_super_admin %}Super Admin{% else %}Admin{% endif %}</span>
+        <div>
+            <span class="auth-kicker">Admin access</span>
+            <h2 class="mb-2">Welcome, @{{ current_user.username }}</h2>
+            <p class="text-muted mb-0">Review verification requests, community reports, and Ripple accounts.</p>
+        </div>
+        <span class="badge rounded-pill {% if current_user.is_super_admin %}text-bg-dark{% else %}text-bg-primary{% endif %} p-2">
+            {% if current_user.is_super_admin %}Super Admin{% else %}Admin{% endif %}
+        </span>
     </div>
 </section>
+
 <section class="row g-3 px-3 mb-3" aria-label="Platform summary">
-    <div class="col-6 col-md-3"><div class="surface-card m-0 h-100"><small class="text-muted">Users</small><h2 class="mb-0">{{ total_users }}</h2></div></div>
-    <div class="col-6 col-md-3"><div class="surface-card m-0 h-100"><small class="text-muted">Verified</small><h2 class="mb-0">{{ verified_users }}</h2></div></div>
-    <div class="col-6 col-md-3"><div class="surface-card m-0 h-100"><small class="text-muted">Admins</small><h2 class="mb-0">{{ admin_users }}</h2></div></div>
-    <div class="col-6 col-md-3"><a class="surface-card m-0 h-100 d-block text-decoration-none {% if moderation_count %}border border-danger{% endif %}" href="{{ url_for('admin.moderation_queue') }}"><small class="text-muted">Reports awaiting review</small><h2 class="mb-0 {% if moderation_count %}text-danger{% endif %}">{{ moderation_count }}</h2></a></div>
+    <div class="col-6 col-md-4"><div class="surface-card m-0 h-100"><small class="text-muted">Users</small><h2 class="mb-0">{{ total_users }}</h2></div></div>
+    <div class="col-6 col-md-4"><div class="surface-card m-0 h-100"><small class="text-muted">Verified</small><h2 class="mb-0">{{ verified_users }}</h2></div></div>
+    <div class="col-6 col-md-4"><div class="surface-card m-0 h-100"><small class="text-muted">Admins</small><h2 class="mb-0">{{ admin_users }}</h2></div></div>
 </section>
+
 <section class="surface-card">
-    <div class="d-flex justify-content-between align-items-center gap-3 mb-3"><div><span class="auth-kicker">Verification</span><h2 class="mb-0">Pending requests</h2></div><span class="badge rounded-pill text-bg-secondary">{{ pending_requests|length }}</span></div>
-    {% if pending_requests %}<div class="list-group">{% for item in pending_requests %}<a class="list-group-item list-group-item-action" href="{{ url_for('admin.review_verification', request_id=item.id) }}"><strong>@{{ item.user.username }}</strong> · {{ item.display_name }}<br><small>{{ item.verification_type|title }} · submitted {{ item.submitted_at.strftime('%Y-%m-%d %H:%M') }}</small></a>{% endfor %}</div>{% else %}<p class="text-muted mb-0">No verification requests are waiting for review.</p>{% endif %}
+    <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+        <div><span class="auth-kicker">Verification</span><h2 class="mb-0">Pending requests</h2></div>
+        <span class="badge rounded-pill text-bg-secondary">{{ pending_requests|length }}</span>
+    </div>
+    {% if pending_requests %}
+    <div class="list-group">
+        {% for item in pending_requests %}
+        <a class="list-group-item list-group-item-action" href="{{ url_for('admin.review_verification', request_id=item.id) }}">
+            <strong>@{{ item.user.username }}</strong> · {{ item.display_name }}<br>
+            <small>{{ item.verification_type|title }} · submitted {{ item.submitted_at.strftime('%Y-%m-%d %H:%M') }}</small>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">No verification requests are waiting for review.</p>
+    {% endif %}
+</section>
+
+<section class="surface-card">
+    <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+        <div><span class="auth-kicker">Moderation</span><h2 class="mb-0">Pending reports</h2></div>
+        <span class="badge rounded-pill {% if moderation_count %}text-bg-danger{% else %}text-bg-secondary{% endif %}">{{ moderation_count }}</span>
+    </div>
+    {% if moderation_reports %}
+    <div class="list-group">
+        {% for report, preview in moderation_reports %}
+        <a class="list-group-item list-group-item-action" href="{{ url_for('admin.moderation_queue') }}#report-{{ report.id }}">
+            <strong>@{{ report.author.username }}</strong> · {{ report.category|replace('_', ' ')|title }}<br>
+            <small class="d-block text-muted">Reported by @{{ report.reporter.username }} · {{ report.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+            <span class="d-block mt-1 text-truncate">{{ preview }}</span>
+        </a>
+        {% endfor %}
+    </div>
+    <div class="mt-3"><a class="btn btn-outline-secondary btn-sm" href="{{ url_for('admin.moderation_queue') }}">Review all moderation reports</a></div>
+    {% else %}
+    <p class="text-muted mb-0">No community reports are waiting for review.</p>
+    {% endif %}
 </section>
 {% endblock %}
