@@ -74,11 +74,16 @@ def test_user_can_report_another_users_post_once(client, app):
         assert report.reporter_id == reporter_id
         assert report.category == "bullying"
         assert report.status == "pending"
+        reporter_notifications = Notification.query.filter_by(user_id=reporter_id).all()
+        assert len(reporter_notifications) == 1
+        assert "awaiting Ripple admin review" in reporter_notifications[0].message
+        assert Notification.query.filter_by(user_id=author_id).count() == 0
 
     duplicate = client.post(f"/report/tweet/{tweet_id}", data={"category": "bullying"})
     assert duplicate.status_code == 302
     with app.app_context():
         assert PostReport.query.count() == 1
+        assert Notification.query.filter_by(user_id=reporter_id).count() == 1
 
 
 def test_pending_report_is_obvious_to_admin_and_removal_hides_content(client, app):
@@ -123,8 +128,47 @@ def test_pending_report_is_obvious_to_admin_and_removal_hides_content(client, ap
         report = db.session.get(PostReport, report_id)
         assert tweet.is_removed is True
         assert report.status == "removed"
-        assert Notification.query.filter_by(user_id=author_id).count() == 1
+        author_notifications = Notification.query.filter_by(user_id=author_id).all()
+        assert len(author_notifications) == 1
+        assert "removed content from your account" in author_notifications[0].message
+        reporter_notifications = Notification.query.filter_by(user_id=reporter_id).all()
+        assert len(reporter_notifications) == 1
+        assert "reported content was removed" in reporter_notifications[0].message
 
     timeline = client.get("/")
     assert b"Content under review" not in timeline.data
     assert client.get(f"/post/{tweet_id}").status_code == 404
+
+
+def test_dismissed_report_notifies_reporter_but_not_author(client, app):
+    author_id = _user(app, "author")
+    reporter_id = _user(app, "reporter")
+    admin_id = _user(app, "moderator", admin=True)
+    with app.app_context():
+        tweet = Tweet(content="Disputed but allowed", user_id=author_id)
+        db.session.add(tweet)
+        db.session.flush()
+        report = PostReport(
+            reporter_id=reporter_id,
+            author_id=author_id,
+            content_type="tweet",
+            content_id=tweet.id,
+            category="abuse",
+        )
+        db.session.add(report)
+        db.session.commit()
+        report_id = report.id
+
+    _login(client, admin_id)
+    result = client.post(
+        f"/admin/moderation/{report_id}",
+        data={"action": "dismiss", "resolution_notes": "Disagreement, not abuse."},
+    )
+    assert result.status_code == 302
+    with app.app_context():
+        report = db.session.get(PostReport, report_id)
+        assert report.status == "dismissed"
+        assert Notification.query.filter_by(user_id=author_id).count() == 0
+        reporter_notifications = Notification.query.filter_by(user_id=reporter_id).all()
+        assert len(reporter_notifications) == 1
+        assert "will remain on Ripple" in reporter_notifications[0].message
