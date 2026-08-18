@@ -14,7 +14,11 @@
                     <span class="badge rounded-pill text-bg-light p-2" aria-hidden="true"><i class="fa-regular fa-bell"></i></span>
                     <div>
                         <p class="mb-1">{{ notification.message }}</p>
-                        <small class="text-muted">{{ notification.timestamp.strftime('%Y-%m-%d %H:%M:%S') if notification.timestamp else 'unknown date' }}</small>
+                        {% if notification.tweet %}
+                        <p class="mb-2 text-muted">“{{ notification.tweet.content }}”</p>
+                        <a href="{{ url_for('post_detail', tweet_id=notification.tweet_id) }}" class="btn btn-sm btn-outline-primary">View post</a>
+                        {% endif %}
+                        <small class="text-muted d-block mt-2">{{ notification.timestamp.strftime('%Y-%m-%d %H:%M:%S') if notification.timestamp else 'unknown date' }}</small>
                     </div>
                 </div>
                 <form method="POST" action="{{ url_for('delete_notification', notification_id=notification.id) }}" onsubmit="return confirm('Delete this notification?');">
