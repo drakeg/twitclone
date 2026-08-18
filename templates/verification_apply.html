@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Verification · Ripple{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Identity verification</h1><small>Request a verified identity badge</small></div></header>
+<section class="surface-card">
+    <h2>Apply for verification</h2>
+    <p class="text-muted">Verification means Ripple has reviewed evidence that this account represents the person or organization it claims to represent. Payment alone never grants a badge.</p>
+    {% if current_user.identity_verified %}
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> Your identity is verified.</div>
+    {% elif active_request %}
+    <div class="alert alert-info">Your verification request is currently <strong>{{ active_request.status }}</strong>.</div>
+    {% else %}
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3"><label class="form-label" for="verification_type">Account type</label><select class="form-select" id="verification_type" name="verification_type" required><option value="person">Person / public figure</option><option value="organization">Business / organization</option></select></div>
+        <div class="mb-3"><label class="form-label" for="display_name">Legal or public name</label><input class="form-control" id="display_name" name="display_name" maxlength="200" required></div>
+        <div class="mb-3"><label class="form-label" for="official_website">Official website</label><input class="form-control" type="url" id="official_website" name="official_website" maxlength="500" placeholder="https://..."></div>
+        <div class="mb-3"><label class="form-label" for="supporting_information">Supporting information</label><textarea class="form-control" id="supporting_information" name="supporting_information" rows="6" required placeholder="Provide links or other public evidence that helps Ripple verify this identity. Do not submit government ID numbers or sensitive documents."></textarea></div>
+        <button class="btn btn-primary" type="submit">Submit for review</button>
+    </form>
+    {% endif %}
+</section>
+{% if requests %}<section class="surface-card"><h2>Request history</h2>{% for item in requests %}<div class="border-top py-3"><strong>{{ item.display_name }}</strong> · {{ item.status|title }}<br><small class="text-muted">Submitted {{ item.submitted_at.strftime('%Y-%m-%d %H:%M') }}</small>{% if item.review_notes %}<p class="mb-0 mt-2">{{ item.review_notes }}</p>{% endif %}</div>{% endfor %}</section>{% endif %}
+{% endblock %}
