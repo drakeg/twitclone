@@ -2,7 +2,7 @@
 
 from twitclone.auth.recovery import generate_reset_token
 from twitclone.extensions import bcrypt, db
-from twitclone.models import Notification, User
+from twitclone.models import DirectMessage, Notification, User
 
 
 def _create_user(app, username="alice", email="alice@example.com", password="old-password"):
@@ -55,11 +55,17 @@ def test_valid_reset_token_changes_password(client, app):
         assert bcrypt.check_password_hash(user.password, "new-password")
 
 
-def test_nav_shows_unread_counts_and_messages_clear_only_message_alerts(client, app):
+def test_notification_inbox_does_not_clear_unread_message_badge(client, app):
     user_id = _create_user(app)
+    sender_id = _create_user(app, username="bob", email="bob@example.com")
     with app.app_context():
         db.session.add_all(
             [
+                DirectMessage(
+                    sender_id=sender_id,
+                    receiver_id=user_id,
+                    content="hello alice",
+                ),
                 Notification(user_id=user_id, message="bob sent you a message"),
                 Notification(user_id=user_id, message="carol followed you"),
             ]
@@ -71,14 +77,50 @@ def test_nav_shows_unread_counts_and_messages_clear_only_message_alerts(client, 
     assert b"2 unread notifications" in home.data
     assert b"1 unread messages" in home.data
 
+    notifications = client.get("/notifications")
+    assert notifications.status_code == 200
+
+    home_after_notifications = client.get("/")
+    assert b"unread notifications" not in home_after_notifications.data
+    assert b"1 unread messages" in home_after_notifications.data
+    with app.app_context():
+        message = DirectMessage.query.filter_by(receiver_id=user_id).one()
+        assert message.read is False
+
     messages = client.get("/messages")
     assert messages.status_code == 200
     with app.app_context():
-        message_notice = Notification.query.filter_by(message="bob sent you a message").one()
-        follow_notice = Notification.query.filter_by(message="carol followed you").one()
-        assert message_notice.read is True
-        assert follow_notice.read is False
+        message = DirectMessage.query.filter_by(receiver_id=user_id).one()
+        assert message.read is True
 
-    home_after = client.get("/")
-    assert b"1 unread notifications" in home_after.data
-    assert b"unread messages" not in home_after.data
+    home_after_messages = client.get("/")
+    assert b"unread messages" not in home_after_messages.data
+
+
+def test_opening_messages_does_not_clear_other_notifications(client, app):
+    user_id = _create_user(app)
+    sender_id = _create_user(app, username="bob", email="bob@example.com")
+    with app.app_context():
+        db.session.add_all(
+            [
+                DirectMessage(
+                    sender_id=sender_id,
+                    receiver_id=user_id,
+                    content="hello alice",
+                ),
+                Notification(user_id=user_id, message="bob sent you a message"),
+                Notification(user_id=user_id, message="carol followed you"),
+            ]
+        )
+        db.session.commit()
+    _login(client, user_id)
+
+    response = client.get("/messages")
+    assert response.status_code == 200
+
+    home = client.get("/")
+    assert b"2 unread notifications" in home.data
+    assert b"unread messages" not in home.data
+    with app.app_context():
+        assert DirectMessage.query.filter_by(receiver_id=user_id, read=False).count() == 0
+        assert Notification.query.filter_by(user_id=user_id, read=False).count() == 2
