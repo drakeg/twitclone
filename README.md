@@ -31,6 +31,24 @@ Open <http://localhost:8000>. Compose applies database migrations before its
 Gunicorn web service starts, runs scheduled-post processing in a separate
 worker, and uses a named volume to preserve the SQLite database and uploaded
 media.
+
+If port 8000 is already in use by another local application, set a different
+host port while leaving Ripple's internal container port unchanged:
+
+```bash
+RIPPLE_PORT=8001 docker compose up --build
+```
+
+Ripple will then be available at <http://localhost:8001>. You can also set
+`RIPPLE_PORT` in a local `.env` file, for example:
+
+```text
+RIPPLE_PORT=8010
+```
+
+This makes it easy to run multiple local applications at the same time without
+changing Ripple's Gunicorn or health-check ports.
+
 After pulling new changes, run the same command; startup applies any new
 database migrations before serving requests.
 Stop it with `Ctrl+C`; use `docker compose down` to stop and
