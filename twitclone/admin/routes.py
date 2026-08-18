@@ -7,6 +7,7 @@ from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from twitclone.admin import admin_blueprint
+from twitclone.community.routes import REPORT_CATEGORIES
 from twitclone.extensions import db
 from twitclone.models import Notification, Poll, PostReport, Quote, Tweet, User, VerificationRequest
 
@@ -85,8 +86,11 @@ def moderation_queue():
         db.case((PostReport.status == 'pending', 0), else_=1),
         PostReport.created_at.desc(),
     ).all()
-    rows = [(report, _reported_content(report), _content_preview(report, _reported_content(report))) for report in reports]
-    return render_template('admin_moderation.html', reports=rows)
+    rows = []
+    for report in reports:
+        content = _reported_content(report)
+        rows.append((report, content, _content_preview(report, content)))
+    return render_template('admin_moderation.html', reports=rows, categories=REPORT_CATEGORIES)
 
 
 @admin_blueprint.route('/admin/moderation/<int:report_id>', methods=['POST'])
@@ -100,22 +104,32 @@ def review_report(report_id):
     notes = (request.form.get('resolution_notes') or '').strip() or None
     if action not in {'dismiss', 'remove'}:
         abort(400)
-    report.reviewed_at = _utcnow()
-    report.reviewed_by_id = current_user.id
-    report.resolution_notes = notes
-    content = _reported_content(report)
+    reviewed_at = _utcnow()
     if action == 'dismiss':
         report.status = 'dismissed'
+        report.reviewed_at = reviewed_at
+        report.reviewed_by_id = current_user.id
+        report.resolution_notes = notes
         flash('Report dismissed. No content was removed.', 'success')
     else:
-        report.status = 'removed'
+        content = _reported_content(report)
         if content is not None:
             content.is_removed = True
-            content.removed_at = report.reviewed_at
+            content.removed_at = reviewed_at
             content.removed_by_id = current_user.id
             content.removal_reason = notes or 'Removed for violating Ripple Community Standards.'
             db.session.add(Notification(user_id=report.author_id, message='A Ripple admin removed content from your account for violating the Community Standards.'))
-        flash('Content removed and moderation decision recorded.', 'success')
+        related_reports = PostReport.query.filter_by(
+            content_type=report.content_type,
+            content_id=report.content_id,
+            status='pending',
+        ).all()
+        for related in related_reports:
+            related.status = 'removed'
+            related.reviewed_at = reviewed_at
+            related.reviewed_by_id = current_user.id
+            related.resolution_notes = notes
+        flash(f'Content removed and {len(related_reports)} related report(s) resolved.', 'success')
     db.session.commit()
     return redirect(url_for('admin.moderation_queue'))
 
