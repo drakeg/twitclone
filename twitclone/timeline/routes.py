@@ -13,6 +13,7 @@ from flask import (
 )
 from flask_login import current_user, login_required
 from twitclone.extensions import db
+from twitclone.mentions import add_mention_notifications
 from twitclone.models import (
     DirectMessage,
     Notification,
@@ -104,6 +105,8 @@ def tweet():
             scheduled_at=scheduled_at,
         )
         db.session.add(new_tweet)
+        if scheduled_at is None:
+            add_mention_notifications(content=content, author=current_user)
         db.session.commit()
         if scheduled_at:
             flash("Your tweet has been scheduled!", "success")

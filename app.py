@@ -12,6 +12,7 @@ from twitclone.models import (
     Bookmark,
     DirectMessage,
     Follows,
+    HashtagFollow,
     Notification,
     Poll,
     PollOption,
@@ -50,6 +51,7 @@ scheduler = BackgroundScheduler()
 def utility_processor():
     unread_notification_count = 0
     unread_message_count = 0
+    followed_hashtags = []
     if current_user.is_authenticated:
         unread_notification_count = Notification.query.filter_by(
             user_id=current_user.id, read=False
@@ -59,6 +61,11 @@ def utility_processor():
             read=False,
             deleted_by_receiver=False,
         ).count()
+        followed_hashtags = (
+            HashtagFollow.query.filter_by(user_id=current_user.id)
+            .order_by(HashtagFollow.hashtag.asc())
+            .all()
+        )
 
     return {
         "gravatar": gravatar,
@@ -66,6 +73,7 @@ def utility_processor():
         "newest_users": get_newest_users(),
         "unread_notification_count": unread_notification_count,
         "unread_message_count": unread_message_count,
+        "followed_hashtags": followed_hashtags,
     }
 
 

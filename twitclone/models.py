@@ -22,6 +22,18 @@ class Follows(db.Model):
     followed_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
 
 
+class HashtagFollow(db.Model):
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'hashtag', name='uq_hashtag_follow_user_hashtag'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    hashtag = db.Column(db.String(100), nullable=False)
+    timestamp = db.Column(db.DateTime, default=_utcnow)
+    user = db.relationship('User', back_populates='followed_hashtags')
+
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), nullable=False, unique=True)
@@ -35,6 +47,9 @@ class User(db.Model, UserMixin):
         secondaryjoin=(id == Follows.followed_id),
         backref=db.backref('followers', lazy='dynamic'),
         lazy='dynamic',
+    )
+    followed_hashtags = db.relationship(
+        'HashtagFollow', back_populates='user', lazy=True, cascade='all, delete-orphan'
     )
     notifications = db.relationship('Notification', backref='user', lazy=True)
     bookmarks = db.relationship('Bookmark', back_populates='user', lazy=True)
@@ -163,6 +178,7 @@ __all__ = [
     'Bookmark',
     'DirectMessage',
     'Follows',
+    'HashtagFollow',
     'Notification',
     'Poll',
     'PollOption',
