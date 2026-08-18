@@ -7,6 +7,7 @@ import random
 
 from flask import current_app
 
+from twitclone.community.routes import COMMUNITY_GUIDELINES_VERSION
 from twitclone.extensions import bcrypt, db
 from twitclone.models import Follows, Quote, Retweet, Tweet, User
 
@@ -21,7 +22,6 @@ DEMO_USERS = (
     ("campfirecode", "campfirecode@example.test", "Remote work, RV life, and code written near a campfire."),
     ("historywalks", "historywalks@example.test", "Old places, local stories, museums, and roadside history."),
 )
-
 POST_IDEAS = (
     ("trailbound", "Found a quiet trail this morning and had the whole overlook to myself. #hiking #weekend"),
     ("bytebloom", "Finally automated the thing I kept saying only takes five minutes. It took three hours. #python #automation"),
@@ -47,96 +47,43 @@ def _naive_utcnow() -> datetime:
 
 
 def seed_demo_content(*, seed: int = 2026) -> dict[str, int]:
-    """Create idempotent development/test demo accounts and social activity."""
     if current_app.config.get("ENVIRONMENT") == "production":
         raise RuntimeError("Demo content cannot be seeded in production.")
-
     rng = random.Random(seed)
     password_hash = bcrypt.generate_password_hash(DEMO_PASSWORD).decode("utf-8")
-    users: dict[str, User] = {}
-    created_users = 0
-    created_posts = 0
-    created_follows = 0
-    created_reposts = 0
-    created_quotes = 0
-
+    users = {}; created_users = created_posts = created_follows = created_reposts = created_quotes = 0
+    now = _naive_utcnow()
     for username, email, bio in DEMO_USERS:
         user = User.query.filter_by(username=username).first()
         if user is None:
             user = User(username=username, email=email, password=password_hash, bio=bio)
-            db.session.add(user)
-            db.session.flush()
-            created_users += 1
+            db.session.add(user); db.session.flush(); created_users += 1
+        if user.community_guidelines_version != COMMUNITY_GUIDELINES_VERSION:
+            user.community_guidelines_version = COMMUNITY_GUIDELINES_VERSION
+            user.community_guidelines_accepted_at = now
         users[username] = user
-
-    now = _naive_utcnow()
-    posts: list[Tweet] = []
-    shuffled = list(POST_IDEAS)
-    rng.shuffle(shuffled)
+    posts = []; shuffled = list(POST_IDEAS); rng.shuffle(shuffled)
     for index, (username, content) in enumerate(shuffled):
-        author = users[username]
-        tweet = Tweet.query.filter_by(user_id=author.id, content=content).first()
+        author = users[username]; tweet = Tweet.query.filter_by(user_id=author.id, content=content).first()
         if tweet is None:
-            tweet = Tweet(
-                content=content,
-                user_id=author.id,
-                timestamp=now - timedelta(minutes=(len(shuffled) - index) * 19),
-            )
-            db.session.add(tweet)
-            db.session.flush()
-            created_posts += 1
+            tweet = Tweet(content=content, user_id=author.id, timestamp=now - timedelta(minutes=(len(shuffled)-index)*19)); db.session.add(tweet); db.session.flush(); created_posts += 1
         posts.append(tweet)
-
     user_list = list(users.values())
     for follower in user_list:
-        candidates = [user for user in user_list if user.id != follower.id]
-        for followed in rng.sample(candidates, k=2):
-            existing = db.session.get(Follows, (follower.id, followed.id))
-            if existing is None:
-                db.session.add(Follows(follower_id=follower.id, followed_id=followed.id))
-                created_follows += 1
-
+        for followed in rng.sample([u for u in user_list if u.id != follower.id], k=2):
+            if db.session.get(Follows, (follower.id, followed.id)) is None:
+                db.session.add(Follows(follower_id=follower.id, followed_id=followed.id)); created_follows += 1
     for user in rng.sample(user_list, k=min(4, len(user_list))):
-        candidates = [tweet for tweet in posts if tweet.user_id != user.id]
-        target = rng.choice(candidates)
+        target = rng.choice([tweet for tweet in posts if tweet.user_id != user.id])
         if Retweet.query.filter_by(user_id=user.id, tweet_id=target.id).first() is None:
-            db.session.add(
-                Retweet(
-                    user_id=user.id,
-                    tweet_id=target.id,
-                    timestamp=now - timedelta(minutes=rng.randint(3, 90)),
-                )
-            )
-            created_reposts += 1
-
-    quote_texts = (
-        "This is exactly the kind of thing I come here for.",
-        "Adding this to the weekend list.",
-        "Strong agreement from me.",
-    )
+            db.session.add(Retweet(user_id=user.id, tweet_id=target.id, timestamp=now-timedelta(minutes=rng.randint(3,90)))); created_reposts += 1
+    quote_texts = ("This is exactly the kind of thing I come here for.", "Adding this to the weekend list.", "Strong agreement from me.")
     for user in rng.sample(user_list, k=min(3, len(user_list))):
-        candidates = [tweet for tweet in posts if tweet.user_id != user.id]
-        target = rng.choice(candidates)
-        content = rng.choice(quote_texts)
+        target = rng.choice([tweet for tweet in posts if tweet.user_id != user.id]); content = rng.choice(quote_texts)
         if Quote.query.filter_by(user_id=user.id, tweet_id=target.id, content=content).first() is None:
-            db.session.add(
-                Quote(
-                    user_id=user.id,
-                    tweet_id=target.id,
-                    content=content,
-                    timestamp=now - timedelta(minutes=rng.randint(2, 75)),
-                )
-            )
-            created_quotes += 1
-
+            db.session.add(Quote(user_id=user.id, tweet_id=target.id, content=content, timestamp=now-timedelta(minutes=rng.randint(2,75)))); created_quotes += 1
     db.session.commit()
-    return {
-        "users": created_users,
-        "posts": created_posts,
-        "follows": created_follows,
-        "reposts": created_reposts,
-        "quotes": created_quotes,
-    }
+    return {"users": created_users, "posts": created_posts, "follows": created_follows, "reposts": created_reposts, "quotes": created_quotes}
 
 
 __all__ = ["DEMO_PASSWORD", "DEMO_USERS", "seed_demo_content"]
