@@ -17,6 +17,7 @@ from twitclone.models import (
     Poll,
     PollOption,
     PollVote,
+    PostReport,
     Quote,
     Retweet,
     Tweet,
@@ -40,7 +41,6 @@ init_extensions(app)
 
 
 def post_scheduled_tweets():
-    """Compatibility wrapper for the package-owned worker operation."""
     return publish_due_tweets()
 
 
@@ -51,21 +51,14 @@ scheduler = BackgroundScheduler()
 def utility_processor():
     unread_notification_count = 0
     unread_message_count = 0
+    pending_moderation_count = 0
     followed_hashtags = []
     if current_user.is_authenticated:
-        unread_notification_count = Notification.query.filter_by(
-            user_id=current_user.id, read=False
-        ).count()
-        unread_message_count = DirectMessage.query.filter_by(
-            receiver_id=current_user.id,
-            read=False,
-            deleted_by_receiver=False,
-        ).count()
-        followed_hashtags = (
-            HashtagFollow.query.filter_by(user_id=current_user.id)
-            .order_by(HashtagFollow.hashtag.asc())
-            .all()
-        )
+        unread_notification_count = Notification.query.filter_by(user_id=current_user.id, read=False).count()
+        unread_message_count = DirectMessage.query.filter_by(receiver_id=current_user.id, read=False, deleted_by_receiver=False).count()
+        followed_hashtags = HashtagFollow.query.filter_by(user_id=current_user.id).order_by(HashtagFollow.hashtag.asc()).all()
+        if current_user.is_admin or current_user.is_super_admin:
+            pending_moderation_count = PostReport.query.filter_by(status='pending').count()
 
     return {
         "gravatar": gravatar,
@@ -73,6 +66,7 @@ def utility_processor():
         "newest_users": get_newest_users(),
         "unread_notification_count": unread_notification_count,
         "unread_message_count": unread_message_count,
+        "pending_moderation_count": pending_moderation_count,
         "followed_hashtags": followed_hashtags,
     }
 
@@ -90,7 +84,4 @@ def make_clickable_filter(value):
 if __name__ == "__main__":
     from twitclone import create_app
 
-    create_app().run(
-        debug=Config.ENVIRONMENT == "development",
-        port=int(os.getenv("PORT", "8000")),
-    )
+    create_app().run(debug=Config.ENVIRONMENT == "development", port=int(os.getenv("PORT", "8000")))
