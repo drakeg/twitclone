@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}New Message · Ripple{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div><h1>New message</h1><small>Send a private message</small></div>
+</header>
+<section class="surface-card">
+    <form method="POST" action="{{ url_for('new_message') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3">
+            <label class="form-label" for="recipient">To</label>
+            <input class="form-control" id="recipient" name="recipient" value="{{ recipient_username }}" placeholder="username" required maxlength="150" autocomplete="off">
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="content">Message</label>
+            <textarea class="form-control" id="content" name="content" rows="6" maxlength="500" required placeholder="Write a private message..."></textarea>
+            <div class="form-text">Up to 500 characters.</div>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary" type="submit">Send message</button>
+            <a class="btn btn-secondary" href="{{ url_for('messages') }}">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

@@ -1,12 +1,26 @@
 {% extends "base.html" %}
+{% block title %}Notifications · Ripple{% endblock %}
 {% block content %}
-<h2>Notifications</h2>
-<ul class="list-group">
-    {% for notification in notifications %}
-    <li class="list-group-item">
-        <p>{{ notification.message }}</p>
-        <p class="text-muted"><small>{{ notification.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
-    </li>
-    {% endfor %}
-</ul>
+<header class="page-header">
+    <div><h1>Notifications</h1><small>What has happened since you were away</small></div>
+</header>
+<section class="surface-card">
+    {% if notifications %}
+    <div class="list-group">
+        {% for notification in notifications %}
+        <div class="list-group-item">
+            <div class="d-flex gap-3 align-items-start">
+                <span class="badge rounded-pill text-bg-light p-2" aria-hidden="true"><i class="fa-regular fa-bell"></i></span>
+                <div>
+                    <p class="mb-1">{{ notification.message }}</p>
+                    <small class="text-muted">{{ notification.timestamp.strftime('%Y-%m-%d %H:%M:%S') if notification.timestamp else 'unknown date' }}</small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">Nothing new yet. Notifications from follows and private messages will appear here.</p>
+    {% endif %}
+</section>
 {% endblock %}

@@ -5,7 +5,7 @@ import pytest
 from flask import url_for
 
 from twitclone.extensions import db
-from twitclone.messaging.routes import messages, reply_message
+from twitclone.messaging.routes import messages, new_message, reply_message
 from twitclone.models import DirectMessage, Notification, User
 
 
@@ -32,21 +32,97 @@ def log_in(client, user_id):
 def test_messaging_blueprint_owns_existing_routes(app):
     assert "messaging" in app.blueprints
     assert app.view_functions["messages"] is messages
+    assert app.view_functions["new_message"] is new_message
     assert app.view_functions["reply_message"] is reply_message
 
     with app.test_request_context():
         assert url_for("messages") == "/messages"
+        assert url_for("new_message") == "/messages/new"
         assert url_for("reply_message", message_id=1) == "/reply/1"
 
 
-def test_inbox_renders_received_messages(client, app):
-    _, receiver_id, _ = create_message_users(app)
+def test_inbox_renders_received_and_sent_messages(client, app):
+    sender_id, receiver_id, _ = create_message_users(app)
     log_in(client, receiver_id)
 
     response = client.get("/messages")
 
     assert response.status_code == 200
     assert b"hello bob" in response.data
+    assert b"New message" in response.data
+
+    log_in(client, sender_id)
+    response = client.get("/messages")
+    assert response.status_code == 200
+    assert b"hello bob" in response.data
+    assert b"To" in response.data
+
+
+def test_new_message_creates_direct_message_and_notification(client, app):
+    sender_id, receiver_id, _ = create_message_users(app)
+    log_in(client, sender_id)
+
+    response = client.post(
+        "/messages/new",
+        data={"recipient": "bob", "content": "private hello"},
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/messages"
+    with app.app_context():
+        message = DirectMessage.query.filter_by(
+            content="private hello", sender_id=sender_id, receiver_id=receiver_id
+        ).one()
+        assert message
+        notification = Notification.query.filter_by(user_id=receiver_id).one()
+        assert notification.message == "alice sent you a message"
+        assert notification.read is False
+
+
+def test_new_message_prefills_recipient_from_profile_link(client, app):
+    sender_id, _, _ = create_message_users(app)
+    log_in(client, sender_id)
+
+    response = client.get("/messages/new?to=bob")
+
+    assert response.status_code == 200
+    assert b'value="bob"' in response.data
+    assert b'maxlength="500"' in response.data
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        {"recipient": "missing", "content": "hello"},
+        {"recipient": "", "content": "hello"},
+        {"recipient": "bob", "content": ""},
+        {"recipient": "bob", "content": "x" * 501},
+    ],
+)
+def test_invalid_new_message_does_not_write(client, app, data):
+    sender_id, _, _ = create_message_users(app)
+    log_in(client, sender_id)
+
+    response = client.post("/messages/new", data=data)
+
+    assert response.status_code == 200
+    with app.app_context():
+        assert DirectMessage.query.count() == 1
+        assert Notification.query.count() == 0
+
+
+def test_cannot_send_message_to_self(client, app):
+    sender_id, _, _ = create_message_users(app)
+    log_in(client, sender_id)
+
+    response = client.post(
+        "/messages/new", data={"recipient": "alice", "content": "hello me"}
+    )
+
+    assert response.status_code == 200
+    with app.app_context():
+        assert DirectMessage.query.count() == 1
+        assert Notification.query.count() == 0
 
 
 def test_reply_creates_message_and_notification(client, app):
@@ -135,4 +211,5 @@ def test_reply_form_exposes_matching_browser_constraints(client, app):
 
 def test_messaging_routes_still_require_login(client):
     assert client.get("/messages").headers["Location"].startswith("/login?")
+    assert client.get("/messages/new").headers["Location"].startswith("/login?")
     assert client.get("/reply/1").headers["Location"].startswith("/login?")

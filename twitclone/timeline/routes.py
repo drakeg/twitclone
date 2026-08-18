@@ -86,13 +86,11 @@ def tweet():
                     sender_id=current_user.id,
                     receiver_id=user.id,
                 )
-                db.session.add(dm)
-                db.session.commit()
                 notification = Notification(
                     user_id=user.id,
                     message=f"{current_user.username} sent you a message",
                 )
-                db.session.add(notification)
+                db.session.add_all([dm, notification])
                 db.session.commit()
                 flash("Your direct message has been sent!", "success")
             else:
@@ -127,6 +125,13 @@ def retweet(tweet_id):
     if existing is None:
         new_retweet = Retweet(user_id=current_user.id, tweet_id=original_tweet.id)
         db.session.add(new_retweet)
+        if original_tweet.user_id != current_user.id:
+            db.session.add(
+                Notification(
+                    user_id=original_tweet.user_id,
+                    message=f"{current_user.username} reposted your post",
+                )
+            )
         db.session.commit()
     flash("You have retweeted this tweet!", "success")
     return redirect(url_for("index"))
@@ -147,6 +152,13 @@ def quote(tweet_id):
             content=content,
         )
         db.session.add(new_quote)
+        if original_tweet.user_id != current_user.id:
+            db.session.add(
+                Notification(
+                    user_id=original_tweet.user_id,
+                    message=f"{current_user.username} quoted your post",
+                )
+            )
         db.session.commit()
         flash("You have quoted this tweet!", "success")
         return redirect(url_for("index"))
