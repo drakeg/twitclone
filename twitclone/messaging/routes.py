@@ -11,6 +11,15 @@ from twitclone.models import DirectMessage, Notification, User
 
 @login_required
 def messages():
+    message_notifications = Notification.query.filter_by(
+        user_id=current_user.id, read=False
+    ).filter(
+        Notification.message.like("% sent you a message")
+        | Notification.message.like("% replied to your message")
+    )
+    if message_notifications.update({"read": True}, synchronize_session=False):
+        db.session.commit()
+
     received_messages = (
         DirectMessage.query.filter_by(receiver_id=current_user.id)
         .order_by(DirectMessage.timestamp.desc())

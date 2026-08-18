@@ -25,8 +25,8 @@
                 <a class="nav-pill" href="{{ url_for('index') }}"><i class="fa-solid fa-house"></i><span>Home</span></a>
                 <a class="nav-pill" href="{{ url_for('about') }}"><i class="fa-regular fa-circle-question"></i><span>About</span></a>
                 {% if current_user.is_authenticated %}
-                <a class="nav-pill" href="{{ url_for('notifications') }}"><i class="fa-regular fa-bell"></i><span>Notifications</span></a>
-                <a class="nav-pill" href="{{ url_for('messages') }}"><i class="fa-regular fa-envelope"></i><span>Messages</span></a>
+                <a class="nav-pill" href="{{ url_for('notifications') }}"><i class="fa-regular fa-bell"></i><span>Notifications</span>{% if unread_notification_count %}<span class="badge rounded-pill text-bg-danger ms-auto" aria-label="{{ unread_notification_count }} unread notifications">{{ unread_notification_count if unread_notification_count < 100 else '99+' }}</span>{% endif %}</a>
+                <a class="nav-pill" href="{{ url_for('messages') }}"><i class="fa-regular fa-envelope"></i><span>Messages</span>{% if unread_message_count %}<span class="badge rounded-pill text-bg-danger ms-auto" aria-label="{{ unread_message_count }} unread messages">{{ unread_message_count if unread_message_count < 100 else '99+' }}</span>{% endif %}</a>
                 <a class="nav-pill" href="{{ url_for('bookmarks') }}"><i class="fa-regular fa-bookmark"></i><span>Bookmarks</span></a>
                 <a class="nav-pill" href="{{ url_for('profile', username=current_user.username) }}"><i class="fa-regular fa-user"></i><span>Profile</span></a>
                 <a class="nav-pill" href="{{ url_for('logout') }}"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Log out</span></a>
@@ -99,9 +99,9 @@
         <a href="{{ url_for('index') }}" aria-label="Home"><i class="fa-solid fa-house"></i></a>
         <a href="{{ url_for('about') }}" aria-label="About Ripple"><i class="fa-regular fa-circle-question"></i></a>
         {% if current_user.is_authenticated %}
-        <a href="{{ url_for('notifications') }}" aria-label="Notifications"><i class="fa-regular fa-bell"></i></a>
+        <a href="{{ url_for('notifications') }}" aria-label="Notifications{% if unread_notification_count %}, {{ unread_notification_count }} unread{% endif %}"><span class="position-relative"><i class="fa-regular fa-bell"></i>{% if unread_notification_count %}<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill text-bg-danger">{{ unread_notification_count if unread_notification_count < 100 else '99+' }}</span>{% endif %}</span></a>
         <a class="mobile-compose" href="{{ url_for('index') }}#composer" aria-label="New post"><i class="fa-solid fa-plus"></i></a>
-        <a href="{{ url_for('messages') }}" aria-label="Messages"><i class="fa-regular fa-envelope"></i></a>
+        <a href="{{ url_for('messages') }}" aria-label="Messages{% if unread_message_count %}, {{ unread_message_count }} unread{% endif %}"><span class="position-relative"><i class="fa-regular fa-envelope"></i>{% if unread_message_count %}<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill text-bg-danger">{{ unread_message_count if unread_message_count < 100 else '99+' }}</span>{% endif %}</span></a>
         <a href="{{ url_for('profile', username=current_user.username) }}" aria-label="Profile"><i class="fa-regular fa-user"></i></a>
         {% else %}
         <a href="{{ url_for('login') }}" aria-label="Log in"><i class="fa-regular fa-user"></i></a>

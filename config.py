@@ -39,6 +39,19 @@ class Config:
     SCHEDULER_INTERVAL_SECONDS = int(os.getenv("SCHEDULER_INTERVAL_SECONDS", "60"))
     TESTING = ENVIRONMENT == "testing"
 
+    PASSWORD_RESET_MAX_AGE_SECONDS = int(os.getenv("PASSWORD_RESET_MAX_AGE_SECONDS", "3600"))
+    MAIL_SERVER = os.getenv("MAIL_SERVER", "localhost")
+    MAIL_PORT = int(os.getenv("MAIL_PORT", "1025"))
+    MAIL_USERNAME = os.getenv("MAIL_USERNAME")
+    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD")
+    MAIL_USE_TLS = _as_bool(os.getenv("MAIL_USE_TLS"), default=False)
+    MAIL_USE_SSL = _as_bool(os.getenv("MAIL_USE_SSL"), default=False)
+    MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "no-reply@ripple.local")
+    MAIL_TIMEOUT_SECONDS = int(os.getenv("MAIL_TIMEOUT_SECONDS", "10"))
+    MAIL_SUPPRESS_SEND = _as_bool(
+        os.getenv("MAIL_SUPPRESS_SEND"), default=ENVIRONMENT != "production"
+    )
+
     @classmethod
     def validate(cls) -> None:
         """Fail clearly when required configuration is unsafe or incomplete."""
@@ -51,6 +64,10 @@ class Config:
 
         if cls.SCHEDULER_INTERVAL_SECONDS < 1:
             raise RuntimeError("SCHEDULER_INTERVAL_SECONDS must be at least 1")
+        if cls.PASSWORD_RESET_MAX_AGE_SECONDS < 60:
+            raise RuntimeError("PASSWORD_RESET_MAX_AGE_SECONDS must be at least 60")
+        if cls.MAIL_USE_TLS and cls.MAIL_USE_SSL:
+            raise RuntimeError("MAIL_USE_TLS and MAIL_USE_SSL cannot both be enabled")
 
         if cls.ENVIRONMENT == "production" and cls.SQLALCHEMY_DATABASE_URI.startswith(
             "sqlite:"
@@ -59,6 +76,8 @@ class Config:
                 "Production requires PostgreSQL. Set DATABASE_URL to a "
                 "PostgreSQL connection URL before starting TwitClone."
             )
+        if cls.ENVIRONMENT == "production" and cls.MAIL_SUPPRESS_SEND:
+            raise RuntimeError("Production account recovery requires MAIL_SUPPRESS_SEND=false")
 
 
 Config.validate()

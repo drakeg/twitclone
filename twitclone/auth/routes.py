@@ -4,6 +4,7 @@ from flask import flash, redirect, render_template, request, url_for
 from flask_login import login_required, login_user, logout_user
 
 from twitclone.auth import auth_blueprint
+from twitclone.auth.recovery import generate_reset_token, send_recovery_email, verify_reset_token
 from twitclone.extensions import bcrypt, db
 from twitclone.models import User
 
@@ -34,6 +35,53 @@ def login():
     return render_template("login.html")
 
 
+def forgot_account():
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        user = User.query.filter(db.func.lower(User.email) == email).first() if email else None
+        if user:
+            token = generate_reset_token(user.email)
+            reset_url = url_for("reset_password", token=token, _external=True)
+            send_recovery_email(
+                recipient=user.email,
+                username=user.username,
+                reset_url=reset_url,
+            )
+        flash(
+            "If that email belongs to a Ripple account, recovery instructions have been sent.",
+            "info",
+        )
+        return redirect(url_for("login"))
+    return render_template("forgot_account.html")
+
+
+def reset_password(token):
+    email = verify_reset_token(token)
+    if email is None:
+        flash("That password reset link is invalid or has expired.", "danger")
+        return redirect(url_for("forgot_account"))
+
+    user = User.query.filter_by(email=email).first()
+    if user is None:
+        flash("That password reset link is invalid or has expired.", "danger")
+        return redirect(url_for("forgot_account"))
+
+    if request.method == "POST":
+        password = request.form.get("password") or ""
+        confirmation = request.form.get("password_confirm") or ""
+        if len(password) < 8:
+            flash("Password must be at least 8 characters.", "danger")
+        elif password != confirmation:
+            flash("Passwords do not match.", "danger")
+        else:
+            user.password = bcrypt.generate_password_hash(password).decode("utf-8")
+            db.session.commit()
+            flash("Your password has been reset. You can log in now.", "success")
+            return redirect(url_for("login"))
+
+    return render_template("reset_password.html", username=user.username)
+
+
 @login_required
 def logout():
     logout_user()
@@ -48,5 +96,17 @@ def register_authentication_routes(state):
     )
     state.app.add_url_rule(
         "/login", endpoint="login", view_func=login, methods=["GET", "POST"]
+    )
+    state.app.add_url_rule(
+        "/forgot-account",
+        endpoint="forgot_account",
+        view_func=forgot_account,
+        methods=["GET", "POST"],
+    )
+    state.app.add_url_rule(
+        "/reset-password/<token>",
+        endpoint="reset_password",
+        view_func=reset_password,
+        methods=["GET", "POST"],
     )
     state.app.add_url_rule("/logout", endpoint="logout", view_func=logout)

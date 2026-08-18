@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Recover account · Ripple{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block content %}
+<section class="surface-card auth-card">
+    <span class="auth-kicker">Account recovery</span>
+    <h1>Find your way back in.</h1>
+    <p>Enter the email address on your Ripple account. If it matches an account, we’ll send your username and a time-limited password reset link.</p>
+    <form method="POST" action="{{ url_for('forgot_account') }}">
+        <div class="mb-4">
+            <label for="email" class="form-label">Email address</label>
+            <input type="email" class="form-control" id="email" name="email" autocomplete="email" required>
+        </div>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-primary w-100">Send recovery instructions</button>
+    </form>
+    <p class="mt-4 mb-0 text-center"><a href="{{ url_for('login') }}">Back to log in</a></p>
+</section>
+{% endblock %}
