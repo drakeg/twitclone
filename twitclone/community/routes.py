@@ -7,7 +7,7 @@ from flask_login import current_user, login_required
 
 from twitclone.community import community_blueprint
 from twitclone.extensions import db
-from twitclone.models import Poll, PostReport, Quote, Tweet
+from twitclone.models import Notification, Poll, PostReport, Quote, Tweet
 
 COMMUNITY_GUIDELINES_VERSION = "2026-08-18"
 REPORT_CATEGORIES = {
@@ -121,6 +121,12 @@ def report_content(content_type, content_id):
                     content_id=content_id,
                     category=category,
                     details=details,
+                )
+            )
+            db.session.add(
+                Notification(
+                    user_id=current_user.id,
+                    message="Your report was received and is awaiting Ripple admin review.",
                 )
             )
             db.session.commit()
