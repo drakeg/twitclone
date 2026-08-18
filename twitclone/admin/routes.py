@@ -72,7 +72,15 @@ def admin_dashboard():
     pending = VerificationRequest.query.filter_by(status='pending').order_by(
         VerificationRequest.submitted_at.asc()
     ).all()
-    return render_template('admin_dashboard.html', pending_requests=pending)
+    return render_template(
+        'admin_dashboard.html',
+        pending_requests=pending,
+        total_users=User.query.count(),
+        verified_users=User.query.filter_by(identity_verified=True).count(),
+        admin_users=User.query.filter(
+            db.or_(User.is_admin.is_(True), User.is_super_admin.is_(True))
+        ).count(),
+    )
 
 
 @admin_blueprint.route('/admin/verification/<int:request_id>', methods=['GET', 'POST'])
