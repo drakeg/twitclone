@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ user.username }} · Ripple{% endblock %}
 {% block content %}
-<header class="page-header"><div><h1>{{ user.username }}</h1><small>Profile</small></div></header>
+<header class="page-header"><div><h1>{{ user.username }}{% if user.identity_verified %} <span title="Verified identity" aria-label="Verified identity"><i class="fa-solid fa-circle-check text-primary"></i></span>{% endif %}</h1><small>Profile</small></div></header>
 <section class="profile-hero">
     <div class="profile-cover"></div>
     <div class="profile-details">
@@ -11,9 +11,14 @@
             <a href="{{ url_for('new_message', to=user.username) }}" class="btn btn-secondary">Message</a>
             <button id="follow-btn" class="btn {% if is_following %}btn-secondary{% else %}btn-primary{% endif %}" data-username="{{ user.username }}">{% if is_following %}Following{% else %}Follow{% endif %}</button>
             {% endif %}
-            {% if current_user.id == user.id %}<a href="{{ url_for('edit_profile') }}" class="btn btn-secondary">Edit profile</a>{% endif %}
+            {% if current_user.id == user.id %}
+            <a href="{{ url_for('edit_profile') }}" class="btn btn-secondary">Edit profile</a>
+            <a href="{{ url_for('admin.apply_verification') }}" class="btn btn-secondary">{% if user.identity_verified %}Verification status{% else %}Get verified{% endif %}</a>
+            {% if current_user.is_admin or current_user.is_super_admin %}<a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-dark">Admin</a>{% endif %}
+            {% endif %}
         </div>
-        <h2 class="profile-name">{{ user.username }}</h2><div class="profile-handle">@{{ user.username }}</div>
+        <h2 class="profile-name">{{ user.username }}{% if user.identity_verified %} <span title="Verified identity" aria-label="Verified identity"><i class="fa-solid fa-circle-check text-primary"></i></span>{% endif %}</h2><div class="profile-handle">@{{ user.username }}</div>
+        {% if user.identity_verified %}<div class="mb-2"><span class="badge text-bg-light"><i class="fa-solid fa-circle-check text-primary"></i> Verified identity{% if user.verification_type %} · {{ user.verification_type|title }}{% endif %}</span></div>{% endif %}
         <p class="profile-bio">{{ user.bio or 'No bio yet — the story is still being written.' }}</p>
         <div class="profile-links"><a href="{{ url_for('following', username=user.username) }}"><strong>View</strong> Following</a><a href="{{ url_for('followers', username=user.username) }}"><strong>View</strong> Followers</a></div>
     </div>

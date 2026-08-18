@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Admin · Ripple{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Ripple Admin</h1><small>Platform administration</small></div><a class="btn btn-secondary btn-sm" href="{{ url_for('admin.admin_users') }}">Users</a></header>
+<section class="surface-card"><h2>Pending verification requests</h2>{% if pending_requests %}<div class="list-group">{% for item in pending_requests %}<a class="list-group-item list-group-item-action" href="{{ url_for('admin.review_verification', request_id=item.id) }}"><strong>@{{ item.user.username }}</strong> · {{ item.display_name }}<br><small>{{ item.verification_type|title }} · submitted {{ item.submitted_at.strftime('%Y-%m-%d %H:%M') }}</small></a>{% endfor %}</div>{% else %}<p class="text-muted mb-0">No verification requests are waiting for review.</p>{% endif %}</section>
+{% endblock %}

@@ -8,29 +8,26 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import click
 from flask import Flask
 
 from config import Config
 
 
 def create_app(config_object: type[Config] = Config) -> Flask:
-    """Create and configure the TwitClone Flask application.
-
-    The legacy module still owns route registration. Importing it only after
-    configuration validation ensures the supported startup path fails before
-    serving requests when required environment values are missing.
-    """
+    """Create and configure the TwitClone Flask application."""
 
     config_object.validate()
 
-    # Imported lazily so callers can establish environment variables before the
-    # legacy module and its Flask extensions are loaded.
     import app as legacy_app
 
+    from twitclone.admin import admin_blueprint
     from twitclone.auth import auth_blueprint
     from twitclone.bookmarks import bookmarks_blueprint
     from twitclone.discovery import discovery_blueprint
+    from twitclone.extensions import db
     from twitclone.messaging import messaging_blueprint
+    from twitclone.models import User
     from twitclone.notifications import notifications_blueprint
     from twitclone.observability import configure_observability
     from twitclone.polls import polls_blueprint
@@ -47,22 +44,32 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     Path(flask_app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
     configure_observability(flask_app)
 
-    if auth_blueprint.name not in flask_app.blueprints:
-        flask_app.register_blueprint(auth_blueprint)
-    if timeline_blueprint.name not in flask_app.blueprints:
-        flask_app.register_blueprint(timeline_blueprint)
-    if messaging_blueprint.name not in flask_app.blueprints:
-        flask_app.register_blueprint(messaging_blueprint)
-    if polls_blueprint.name not in flask_app.blueprints:
-        flask_app.register_blueprint(polls_blueprint)
-    if notifications_blueprint.name not in flask_app.blueprints:
-        flask_app.register_blueprint(notifications_blueprint)
-    if profiles_blueprint.name not in flask_app.blueprints:
-        flask_app.register_blueprint(profiles_blueprint)
-    if discovery_blueprint.name not in flask_app.blueprints:
-        flask_app.register_blueprint(discovery_blueprint)
-    if bookmarks_blueprint.name not in flask_app.blueprints:
-        flask_app.register_blueprint(bookmarks_blueprint)
+    for blueprint in (
+        auth_blueprint,
+        timeline_blueprint,
+        messaging_blueprint,
+        polls_blueprint,
+        notifications_blueprint,
+        profiles_blueprint,
+        discovery_blueprint,
+        bookmarks_blueprint,
+        admin_blueprint,
+    ):
+        if blueprint.name not in flask_app.blueprints:
+            flask_app.register_blueprint(blueprint)
+
+    if "make-super-admin" not in flask_app.cli.commands:
+        @flask_app.cli.command("make-super-admin")
+        @click.argument("email")
+        def make_super_admin(email):
+            """Promote an existing account to Ripple super-admin by email."""
+            user = User.query.filter(db.func.lower(User.email) == email.lower()).first()
+            if user is None:
+                raise click.ClickException("No Ripple user exists with that email address.")
+            user.is_admin = True
+            user.is_super_admin = True
+            db.session.commit()
+            click.echo(f"@{user.username} is now a Ripple super-admin.")
 
     if not flask_app.config["SCHEDULER_ENABLED"] and scheduler.running:
         scheduler.shutdown(wait=False)
