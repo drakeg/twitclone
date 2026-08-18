@@ -44,6 +44,7 @@ def test_social_interactions_preserve_ownership_and_notification_lifecycle(clien
         notifications = Notification.query.filter_by(user_id=bob_id).all()
         assert {item.message for item in notifications} == {
             "alice followed you",
+            "alice reposted your post",
             "alice replied to your message",
         }
         assert all(item.read is False for item in notifications)
@@ -54,6 +55,7 @@ def test_social_interactions_preserve_ownership_and_notification_lifecycle(clien
 
     assert b"hello bob" in inbox_response.data
     assert b"alice followed you" in notification_response.data
+    assert b"alice reposted your post" in notification_response.data
     assert b"alice replied to your message" in notification_response.data
     with app.app_context():
         assert all(
