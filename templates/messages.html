@@ -18,7 +18,13 @@
                     <p class="mb-1 mt-1">{{ message.content }}</p>
                     <small class="text-muted">{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') if message.timestamp else 'unknown date' }}</small>
                 </div>
-                <a href="{{ url_for('reply_message', message_id=message.id) }}" class="btn btn-sm btn-secondary">Reply</a>
+                <div class="d-flex gap-2 flex-shrink-0">
+                    <a href="{{ url_for('reply_message', message_id=message.id) }}" class="btn btn-sm btn-secondary">Reply</a>
+                    <form method="POST" action="{{ url_for('delete_message', message_id=message.id) }}" onsubmit="return confirm('Delete this message from your inbox?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Delete message"><i class="fa-regular fa-trash-can"></i></button>
+                    </form>
+                </div>
             </div>
         </div>
         {% endfor %}
@@ -29,19 +35,32 @@
 </section>
 
 <section class="surface-card">
-    <h2>Sent</h2>
-    {% if sent_messages %}
-    <div class="list-group">
-        {% for message in sent_messages %}
-        <div class="list-group-item">
-            <strong>To <a href="{{ url_for('profile', username=message.receiver.username) }}">@{{ message.receiver.username }}</a></strong>
-            <p class="mb-1 mt-1">{{ message.content }}</p>
-            <small class="text-muted">{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') if message.timestamp else 'unknown date' }}</small>
+    <button class="btn btn-link p-0 text-decoration-none w-100 d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#sentMessages" aria-expanded="false" aria-controls="sentMessages">
+        <span class="h2 mb-0">Sent <small class="text-muted">({{ sent_messages|length }})</small></span>
+        <span class="text-muted"><i class="fa-solid fa-chevron-down"></i></span>
+    </button>
+    <div class="collapse mt-3" id="sentMessages">
+        {% if sent_messages %}
+        <div class="list-group">
+            {% for message in sent_messages %}
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between gap-3 align-items-start">
+                    <div>
+                        <strong>To <a href="{{ url_for('profile', username=message.receiver.username) }}">@{{ message.receiver.username }}</a></strong>
+                        <p class="mb-1 mt-1">{{ message.content }}</p>
+                        <small class="text-muted">{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') if message.timestamp else 'unknown date' }}</small>
+                    </div>
+                    <form method="POST" action="{{ url_for('delete_message', message_id=message.id) }}" onsubmit="return confirm('Delete this message from Sent?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Delete sent message"><i class="fa-regular fa-trash-can"></i></button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
+        {% else %}
+        <p class="text-muted mb-0">You have not sent any messages yet.</p>
+        {% endif %}
     </div>
-    {% else %}
-    <p class="text-muted mb-0">You have not sent any messages yet.</p>
-    {% endif %}
 </section>
 {% endblock %}
