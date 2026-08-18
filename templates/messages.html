@@ -1,13 +1,47 @@
 {% extends "base.html" %}
+{% block title %}Messages · Ripple{% endblock %}
 {% block content %}
-<h2>Your Messages</h2>
-<div class="list-group">
-    {% for message in messages %}
-    <div class="list-group-item">
-        <p>{{ message.content }}</p>
-        <small>by <strong>{{ message.sender.username }}</strong> on {{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') if message.timestamp else 'unknown date' }}</small>
-        <a href="{{ url_for('reply_message', message_id=message.id) }}" class="btn btn-sm btn-primary mt-2">Reply</a>
+<header class="page-header">
+    <div><h1>Messages</h1><small>Private conversations</small></div>
+    <a href="{{ url_for('new_message') }}" class="btn btn-primary btn-sm">New message</a>
+</header>
+
+<section class="surface-card">
+    <h2>Inbox</h2>
+    {% if messages %}
+    <div class="list-group">
+        {% for message in messages %}
+        <div class="list-group-item">
+            <div class="d-flex justify-content-between gap-3 align-items-start">
+                <div>
+                    <strong><a href="{{ url_for('profile', username=message.sender.username) }}">@{{ message.sender.username }}</a></strong>
+                    <p class="mb-1 mt-1">{{ message.content }}</p>
+                    <small class="text-muted">{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') if message.timestamp else 'unknown date' }}</small>
+                </div>
+                <a href="{{ url_for('reply_message', message_id=message.id) }}" class="btn btn-sm btn-secondary">Reply</a>
+            </div>
+        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
-</div>
+    {% else %}
+    <p class="text-muted mb-0">No messages yet. Start a private conversation with another Ripple user.</p>
+    {% endif %}
+</section>
+
+<section class="surface-card">
+    <h2>Sent</h2>
+    {% if sent_messages %}
+    <div class="list-group">
+        {% for message in sent_messages %}
+        <div class="list-group-item">
+            <strong>To <a href="{{ url_for('profile', username=message.receiver.username) }}">@{{ message.receiver.username }}</a></strong>
+            <p class="mb-1 mt-1">{{ message.content }}</p>
+            <small class="text-muted">{{ message.timestamp.strftime('%Y-%m-%d %H:%M:%S') if message.timestamp else 'unknown date' }}</small>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">You have not sent any messages yet.</p>
+    {% endif %}
+</section>
 {% endblock %}
