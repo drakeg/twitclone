@@ -11,7 +11,7 @@
     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
         <div>
             <span class="badge {% if report.status == 'pending' %}text-bg-warning{% elif report.status == 'removed' %}text-bg-danger{% else %}text-bg-secondary{% endif %}">{{ report.status|title }}</span>
-            <h2 class="h5 mt-2 mb-1">{{ report.category|replace('_', ' ')|title }} · @{{ report.author.username }}</h2>
+            <h2 class="h5 mt-2 mb-1">{{ categories.get(report.category, report.category|replace('_', ' ')|title) }} · @{{ report.author.username }}</h2>
             <small class="text-muted">Reported by @{{ report.reporter.username }} on {{ report.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
         </div>
         <span class="badge text-bg-light">{{ report.content_type|title }}</span>
