@@ -76,6 +76,16 @@
                 <p class="rail-empty">Conversations are just getting started.</p>
                 {% endfor %}
             </section>
+            {% if current_user.is_authenticated and followed_hashtags %}
+            <section class="rail-card">
+                <div class="rail-heading"><span>Your topics</span><i class="fa-solid fa-hashtag"></i></div>
+                {% for followed in followed_hashtags %}
+                <a class="trend-item" href="{{ url_for('hashtag', hashtag=followed.hashtag) }}">
+                    <small>Following</small><strong>#{{ followed.hashtag }}</strong>
+                </a>
+                {% endfor %}
+            </section>
+            {% endif %}
             <section class="rail-card">
                 <div class="rail-heading"><span>People to meet</span><i class="fa-solid fa-user-group"></i></div>
                 {% for user in newest_users %}
