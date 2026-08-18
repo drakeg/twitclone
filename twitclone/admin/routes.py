@@ -1,4 +1,4 @@
-"""Verification application and admin review routes."""
+"""Verification application, administration, and moderation routes."""
 
 from datetime import UTC, datetime
 from functools import wraps
@@ -8,7 +8,7 @@ from flask_login import current_user, login_required
 
 from twitclone.admin import admin_blueprint
 from twitclone.extensions import db
-from twitclone.models import User, VerificationRequest
+from twitclone.models import Notification, Poll, PostReport, Quote, Tweet, User, VerificationRequest
 
 
 def _utcnow():
@@ -22,8 +22,18 @@ def admin_required(view):
         if not (current_user.is_admin or current_user.is_super_admin):
             abort(403)
         return view(*args, **kwargs)
-
     return wrapped
+
+
+def _reported_content(report):
+    model = {"tweet": Tweet, "quote": Quote, "poll": Poll}.get(report.content_type)
+    return db.session.get(model, report.content_id) if model else None
+
+
+def _content_preview(report, content):
+    if content is None:
+        return "Content no longer exists."
+    return content.question if report.content_type == "poll" else content.content
 
 
 @admin_blueprint.route('/verification/apply', methods=['GET', 'POST'])
@@ -33,12 +43,10 @@ def apply_verification():
         VerificationRequest.user_id == current_user.id,
         VerificationRequest.status.in_(['pending', 'approved']),
     ).order_by(VerificationRequest.submitted_at.desc()).first()
-
     if request.method == 'POST':
         if active:
             flash('You already have an active verification request.', 'warning')
             return redirect(url_for('admin.apply_verification'))
-
         verification_type = (request.form.get('verification_type') or '').strip()
         display_name = (request.form.get('display_name') or '').strip()
         official_website = (request.form.get('official_website') or '').strip() or None
@@ -48,39 +56,68 @@ def apply_verification():
         elif not display_name or not supporting_information:
             flash('Name and supporting information are required.', 'danger')
         else:
-            verification = VerificationRequest(
-                user_id=current_user.id,
-                verification_type=verification_type,
-                display_name=display_name,
-                official_website=official_website,
-                supporting_information=supporting_information,
-            )
-            db.session.add(verification)
+            db.session.add(VerificationRequest(user_id=current_user.id, verification_type=verification_type, display_name=display_name, official_website=official_website, supporting_information=supporting_information))
             db.session.commit()
             flash('Your verification request has been submitted for review.', 'success')
             return redirect(url_for('admin.apply_verification'))
-
-    requests = VerificationRequest.query.filter_by(user_id=current_user.id).order_by(
-        VerificationRequest.submitted_at.desc()
-    ).all()
+    requests = VerificationRequest.query.filter_by(user_id=current_user.id).order_by(VerificationRequest.submitted_at.desc()).all()
     return render_template('verification_apply.html', requests=requests, active_request=active)
 
 
 @admin_blueprint.route('/admin')
 @admin_required
 def admin_dashboard():
-    pending = VerificationRequest.query.filter_by(status='pending').order_by(
-        VerificationRequest.submitted_at.asc()
-    ).all()
+    pending = VerificationRequest.query.filter_by(status='pending').order_by(VerificationRequest.submitted_at.asc()).all()
+    moderation_count = PostReport.query.filter_by(status='pending').count()
     return render_template(
-        'admin_dashboard.html',
-        pending_requests=pending,
+        'admin_dashboard.html', pending_requests=pending,
         total_users=User.query.count(),
         verified_users=User.query.filter_by(identity_verified=True).count(),
-        admin_users=User.query.filter(
-            db.or_(User.is_admin.is_(True), User.is_super_admin.is_(True))
-        ).count(),
+        admin_users=User.query.filter(db.or_(User.is_admin.is_(True), User.is_super_admin.is_(True))).count(),
+        moderation_count=moderation_count,
     )
+
+
+@admin_blueprint.route('/admin/moderation')
+@admin_required
+def moderation_queue():
+    reports = PostReport.query.order_by(
+        db.case((PostReport.status == 'pending', 0), else_=1),
+        PostReport.created_at.desc(),
+    ).all()
+    rows = [(report, _reported_content(report), _content_preview(report, _reported_content(report))) for report in reports]
+    return render_template('admin_moderation.html', reports=rows)
+
+
+@admin_blueprint.route('/admin/moderation/<int:report_id>', methods=['POST'])
+@admin_required
+def review_report(report_id):
+    report = db.get_or_404(PostReport, report_id)
+    if report.status != 'pending':
+        flash('That report has already been reviewed.', 'info')
+        return redirect(url_for('admin.moderation_queue'))
+    action = request.form.get('action')
+    notes = (request.form.get('resolution_notes') or '').strip() or None
+    if action not in {'dismiss', 'remove'}:
+        abort(400)
+    report.reviewed_at = _utcnow()
+    report.reviewed_by_id = current_user.id
+    report.resolution_notes = notes
+    content = _reported_content(report)
+    if action == 'dismiss':
+        report.status = 'dismissed'
+        flash('Report dismissed. No content was removed.', 'success')
+    else:
+        report.status = 'removed'
+        if content is not None:
+            content.is_removed = True
+            content.removed_at = report.reviewed_at
+            content.removed_by_id = current_user.id
+            content.removal_reason = notes or 'Removed for violating Ripple Community Standards.'
+            db.session.add(Notification(user_id=report.author_id, message='A Ripple admin removed content from your account for violating the Community Standards.'))
+        flash('Content removed and moderation decision recorded.', 'success')
+    db.session.commit()
+    return redirect(url_for('admin.moderation_queue'))
 
 
 @admin_blueprint.route('/admin/verification/<int:request_id>', methods=['GET', 'POST'])
@@ -92,29 +129,20 @@ def review_verification(request_id):
         notes = (request.form.get('review_notes') or '').strip() or None
         if action not in {'approve', 'reject', 'revoke'}:
             abort(400)
-
         verification.reviewed_at = _utcnow()
         verification.reviewed_by_id = current_user.id
         verification.review_notes = notes
         user = verification.user
         if action == 'approve':
-            verification.status = 'approved'
-            user.identity_verified = True
-            user.verification_type = verification.verification_type
-            user.verified_at = verification.reviewed_at
+            verification.status = 'approved'; user.identity_verified = True; user.verification_type = verification.verification_type; user.verified_at = verification.reviewed_at
             flash(f'@{user.username} is now verified.', 'success')
         elif action == 'reject':
-            verification.status = 'rejected'
-            flash('Verification request rejected.', 'success')
+            verification.status = 'rejected'; flash('Verification request rejected.', 'success')
         else:
-            verification.status = 'revoked'
-            user.identity_verified = False
-            user.verification_type = None
-            user.verified_at = None
+            verification.status = 'revoked'; user.identity_verified = False; user.verification_type = None; user.verified_at = None
             flash(f'Verification revoked for @{user.username}.', 'success')
         db.session.commit()
         return redirect(url_for('admin.admin_dashboard'))
-
     return render_template('admin_verification_review.html', verification=verification)
 
 
