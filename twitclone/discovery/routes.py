@@ -1,10 +1,15 @@
 """Search, hashtag, and public discovery routes."""
 
 from flask import redirect, render_template, request, url_for
-from flask_login import login_required
+from flask_login import current_user, login_required
 
 from twitclone.discovery import discovery_blueprint
-from twitclone.models import Tweet, User
+from twitclone.extensions import db
+from twitclone.models import HashtagFollow, Tweet, User
+
+
+def _normalize_hashtag(value: str) -> str:
+    return value.strip().lstrip("#").lower()
 
 
 def about():
@@ -33,13 +38,47 @@ def search():
 
 @login_required
 def hashtag(hashtag):
-    tagged_hashtag = f"#{hashtag}"
+    normalized = _normalize_hashtag(hashtag)
+    tagged_hashtag = f"#{normalized}"
     tweets = (
-        Tweet.query.filter(Tweet.content.like(f"%{tagged_hashtag}%"))
+        Tweet.query.filter(Tweet.content.ilike(f"%{tagged_hashtag}%"))
         .order_by(Tweet.timestamp.desc())
         .all()
     )
-    return render_template("hashtag.html", hashtag=tagged_hashtag, tweets=tweets)
+    is_following = (
+        HashtagFollow.query.filter_by(user_id=current_user.id, hashtag=normalized).first()
+        is not None
+    )
+    return render_template(
+        "hashtag.html",
+        hashtag=tagged_hashtag,
+        hashtag_name=normalized,
+        tweets=tweets,
+        is_following=is_following,
+    )
+
+
+@login_required
+def follow_hashtag(hashtag):
+    normalized = _normalize_hashtag(hashtag)
+    if normalized and not HashtagFollow.query.filter_by(
+        user_id=current_user.id, hashtag=normalized
+    ).first():
+        db.session.add(HashtagFollow(user_id=current_user.id, hashtag=normalized))
+        db.session.commit()
+    return redirect(url_for("hashtag", hashtag=normalized))
+
+
+@login_required
+def unfollow_hashtag(hashtag):
+    normalized = _normalize_hashtag(hashtag)
+    followed = HashtagFollow.query.filter_by(
+        user_id=current_user.id, hashtag=normalized
+    ).first()
+    if followed:
+        db.session.delete(followed)
+        db.session.commit()
+    return redirect(url_for("hashtag", hashtag=normalized))
 
 
 @discovery_blueprint.record_once
@@ -51,4 +90,16 @@ def register_discovery_routes(state):
     )
     state.app.add_url_rule(
         "/hashtag/<hashtag>", endpoint="hashtag", view_func=hashtag
+    )
+    state.app.add_url_rule(
+        "/hashtag/<hashtag>/follow",
+        endpoint="follow_hashtag",
+        view_func=follow_hashtag,
+        methods=["POST"],
+    )
+    state.app.add_url_rule(
+        "/hashtag/<hashtag>/unfollow",
+        endpoint="unfollow_hashtag",
+        view_func=unfollow_hashtag,
+        methods=["POST"],
     )
