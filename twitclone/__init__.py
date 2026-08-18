@@ -24,6 +24,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     from twitclone.admin import admin_blueprint
     from twitclone.auth import auth_blueprint
     from twitclone.bookmarks import bookmarks_blueprint
+    from twitclone.demo import DEMO_PASSWORD, seed_demo_content
     from twitclone.discovery import discovery_blueprint
     from twitclone.extensions import db
     from twitclone.messaging import messaging_blueprint
@@ -70,6 +71,22 @@ def create_app(config_object: type[Config] = Config) -> Flask:
             user.is_super_admin = True
             db.session.commit()
             click.echo(f"@{user.username} is now a Ripple super-admin.")
+
+    if "seed-demo-content" not in flask_app.cli.commands:
+        @flask_app.cli.command("seed-demo-content")
+        @click.option("--seed", type=int, default=2026, show_default=True)
+        def seed_demo_content_command(seed):
+            """Create sample users and activity for local development/demo use."""
+            if flask_app.config.get("ENVIRONMENT") == "production":
+                raise click.ClickException("Demo content cannot be seeded in production.")
+            result = seed_demo_content(seed=seed)
+            click.echo(
+                "Demo content ready: "
+                f"{result['users']} users, {result['posts']} posts, "
+                f"{result['follows']} follows, {result['reposts']} reposts, "
+                f"{result['quotes']} quotes created."
+            )
+            click.echo(f"Demo account password: {DEMO_PASSWORD}")
 
     if not flask_app.config["SCHEDULER_ENABLED"] and scheduler.running:
         scheduler.shutdown(wait=False)

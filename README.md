@@ -49,10 +49,28 @@ RIPPLE_PORT=8010
 This makes it easy to run multiple local applications at the same time without
 changing Ripple's Gunicorn or health-check ports.
 
-After pulling new changes, run the same command; startup applies any new
-database migrations before serving requests.
-Stop it with `Ctrl+C`; use `docker compose down` to stop and
-`docker compose down -v` only when you intentionally want to erase local data.
+### Demo users and public sample content
+
+For a fresh local installation, populate Ripple with sample accounts and public
+activity so anonymous visitors can immediately see what the network looks like:
+
+```bash
+docker compose exec web flask --app application seed-demo-content
+```
+
+The command creates eight demo users, sample posts, hashtags, `@mentions`,
+follows, reposts, and quotes. It is idempotent, so running it again does not
+recreate the same base content. All generated demo accounts use the local-test
+password `Passw0rd!`; their email addresses use the reserved `example.test`
+domain.
+
+The demo seeder is intentionally blocked when `TWITCLONE_ENV=production`. Never
+use the shared demo password for real accounts.
+
+After pulling new changes, run the same Compose startup command; startup applies
+any new database migrations before serving requests. Stop it with `Ctrl+C`; use
+`docker compose down` to stop and `docker compose down -v` only when you
+intentionally want to erase local data.
 
 Use `docker compose logs -f worker` to observe scheduled-post processing.
 Use `docker compose logs -f web worker` to follow structured application logs.
