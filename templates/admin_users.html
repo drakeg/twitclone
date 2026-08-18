@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Users · Ripple Admin{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Users</h1><small>Administrative overview</small></div></header>
+<section class="surface-card"><div class="list-group">{% for user in users %}<a class="list-group-item list-group-item-action" href="{{ url_for('profile', username=user.username) }}"><strong>@{{ user.username }}</strong>{% if user.identity_verified %} <span title="Verified identity" aria-label="Verified identity"><i class="fa-solid fa-circle-check text-primary"></i></span>{% endif %}<br><small>{{ user.email }}{% if user.is_super_admin %} · Super Admin{% elif user.is_admin %} · Admin{% endif %}</small></a>{% endfor %}</div></section>
+{% endblock %}
