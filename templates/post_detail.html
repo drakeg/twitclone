@@ -1,36 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Post · Ripple{% endblock %}
 {% block content %}
-<header class="page-header">
-    <div><h1>Post</h1><small>Conversation detail</small></div>
-    <a href="{{ url_for('index') }}" class="btn btn-sm btn-secondary">Back to Home</a>
-</header>
-
+<header class="page-header"><div><h1>Post</h1><small>Conversation detail</small></div><a href="{{ url_for('index') }}" class="btn btn-sm btn-secondary">Back to Home</a></header>
 <article class="post-card">
-    <a href="{{ url_for('profile', username=tweet.user.username) }}" aria-label="View {{ tweet.user.username }}'s profile">
-        <img class="post-avatar" src="{{ gravatar(tweet.user.email, size=48) }}" alt="" width="48" height="48">
-    </a>
+    <a href="{{ url_for('profile', username=tweet.user.username) }}" aria-label="View {{ tweet.user.username }}'s profile"><img class="post-avatar" src="{{ gravatar(tweet.user.email, size=48) }}" alt="" width="48" height="48"></a>
     <div class="post-body">
-        <div class="post-meta">
-            <a class="post-author" href="{{ url_for('profile', username=tweet.user.username) }}">{{ tweet.user.username }}</a>
-            <span class="post-handle">@{{ tweet.user.username }}</span>
-            <span class="post-time">· {{ tweet.timestamp.strftime('%b %d, %Y %H:%M') if tweet.timestamp else '' }}</span>
-        </div>
+        <div class="post-meta"><a class="post-author" href="{{ url_for('profile', username=tweet.user.username) }}">{{ tweet.user.username }}</a><span class="post-handle">@{{ tweet.user.username }}</span><span class="post-time">· {{ tweet.timestamp.strftime('%b %d, %Y %H:%M') if tweet.timestamp else '' }}</span></div>
         <p class="post-text">{{ tweet.content | make_clickable | safe }}</p>
         {% if tweet.image %}<img src="{{ url_for('uploaded_file', filename=tweet.image) }}" class="tweet-image" alt="Image attached to post">{% endif %}
-        {% if current_user.is_authenticated %}
-        <div class="post-actions">
-            <form method="POST" action="{{ url_for('retweet', tweet_id=tweet.id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="action-button" aria-label="Repost"><i class="fa-solid fa-retweet"></i></button>
-            </form>
-            <a href="{{ url_for('quote', tweet_id=tweet.id) }}" class="action-button" aria-label="Quote"><i class="fa-solid fa-quote-right"></i></a>
-            <form method="POST" action="{{ url_for('bookmark', tweet_id=tweet.id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="action-button" aria-label="Bookmark"><i class="fa-regular fa-bookmark"></i></button>
-            </form>
-        </div>
-        {% endif %}
+        {% if current_user.is_authenticated %}<div class="post-actions"><form method="POST" action="{{ url_for('retweet', tweet_id=tweet.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="action-button" aria-label="Repost"><i class="fa-solid fa-retweet"></i></button></form><a href="{{ url_for('quote', tweet_id=tweet.id) }}" class="action-button" aria-label="Quote"><i class="fa-solid fa-quote-right"></i></a><form method="POST" action="{{ url_for('bookmark', tweet_id=tweet.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="action-button" aria-label="Bookmark"><i class="fa-regular fa-bookmark"></i></button></form>{% if current_user.id != tweet.user_id %}<a href="{{ url_for('community.report_content', content_type='tweet', content_id=tweet.id) }}" class="action-button" aria-label="Report content" title="Report"><i class="fa-regular fa-flag"></i></a>{% endif %}</div>{% endif %}
     </div>
 </article>
 {% endblock %}

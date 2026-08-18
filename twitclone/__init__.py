@@ -24,6 +24,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     from twitclone.admin import admin_blueprint
     from twitclone.auth import auth_blueprint
     from twitclone.bookmarks import bookmarks_blueprint
+    from twitclone.community import community_blueprint
     from twitclone.demo import DEMO_PASSWORD, seed_demo_content
     from twitclone.discovery import discovery_blueprint
     from twitclone.extensions import db
@@ -55,6 +56,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
         discovery_blueprint,
         bookmarks_blueprint,
         admin_blueprint,
+        community_blueprint,
     ):
         if blueprint.name not in flask_app.blueprints:
             flask_app.register_blueprint(blueprint)

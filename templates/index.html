@@ -6,86 +6,35 @@
     <i class="fa-solid fa-sparkles" aria-hidden="true"></i>
 </header>
 <form class="composer" id="composer" method="POST" action="{{ url_for('tweet') }}" enctype="multipart/form-data">
-    {% if current_user.is_authenticated %}
-    <img class="composer-avatar" src="{{ gravatar(current_user.email, size=48) }}" alt="" width="48" height="48">
-    {% else %}
-    <span class="brand-mark composer-avatar" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span>
-    {% endif %}
+    {% if current_user.is_authenticated %}<img class="composer-avatar" src="{{ gravatar(current_user.email, size=48) }}" alt="" width="48" height="48">{% else %}<span class="brand-mark composer-avatar" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span>{% endif %}
     <div class="composer-main">
-        <label class="visually-hidden" for="content">Write a post</label>
-        <textarea id="content" name="content" rows="3" maxlength="144" required placeholder="Share something worth talking about…"></textarea>
-        <input class="d-none" type="file" id="image" name="image" accept="image/*">
-        <div id="imagePreview"></div>
-        <div id="scheduleOptions" class="schedule-panel d-none">
-            <div><label for="scheduled_date" class="form-label">Date</label><input type="date" class="form-control" id="scheduled_date" name="scheduled_date"></div>
-            <div><label for="scheduled_time" class="form-label">Time</label><input type="time" class="form-control" id="scheduled_time" name="scheduled_time"></div>
-        </div>
+        <label class="visually-hidden" for="content">Write a post</label><textarea id="content" name="content" rows="3" maxlength="144" required placeholder="Share something worth talking about…"></textarea>
+        <input class="d-none" type="file" id="image" name="image" accept="image/*"><div id="imagePreview"></div>
+        <div id="scheduleOptions" class="schedule-panel d-none"><div><label for="scheduled_date" class="form-label">Date</label><input type="date" class="form-control" id="scheduled_date" name="scheduled_date"></div><div><label for="scheduled_time" class="form-label">Time</label><input type="time" class="form-control" id="scheduled_time" name="scheduled_time"></div></div>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="composer-tools">
-            <button class="tool-button" type="button" id="uploadIcon" aria-label="Add an image"><i class="fa-regular fa-image"></i></button>
-            <a href="{{ url_for('create_poll') }}" class="tool-button" aria-label="Create a poll"><i class="fa-solid fa-chart-simple"></i></a>
-            <button class="tool-button" type="button" id="scheduleIcon" aria-label="Schedule this post"><i class="fa-regular fa-clock"></i></button>
-            <button type="submit" class="post-submit">Post</button>
-        </div>
+        <div class="composer-tools"><button class="tool-button" type="button" id="uploadIcon" aria-label="Add an image"><i class="fa-regular fa-image"></i></button><a href="{{ url_for('create_poll') }}" class="tool-button" aria-label="Create a poll"><i class="fa-solid fa-chart-simple"></i></a><button class="tool-button" type="button" id="scheduleIcon" aria-label="Schedule this post"><i class="fa-regular fa-clock"></i></button><button type="submit" class="post-submit">Post</button></div>
     </div>
 </form>
-{% if not current_user.is_authenticated %}
-<section class="surface-card">
-    <span class="auth-kicker">Welcome to Ripple</span>
-    <h2>Find your people. Share your perspective.</h2>
-    <p class="text-muted">A friendly, focused space for the conversations you care about.</p>
-    <a class="btn btn-primary" href="{{ url_for('register') }}">Create an account</a>
-    <a class="btn btn-secondary" href="{{ url_for('login') }}">Log in</a>
-</section>
-{% endif %}
+{% if not current_user.is_authenticated %}<section class="surface-card"><span class="auth-kicker">Welcome to Ripple</span><h2>Find your people. Share your perspective.</h2><p class="text-muted">A friendly, focused space for the conversations you care about—and a community built around treating people with respect.</p><a class="btn btn-primary" href="{{ url_for('register') }}">Create an account</a> <a class="btn btn-secondary" href="{{ url_for('login') }}">Log in</a> <a class="btn btn-link" href="{{ url_for('community.guidelines') }}">Community Standards</a></section>{% endif %}
 
 <section aria-label="Timeline">
 {% for post in posts %}
 <article class="post-card">
-    <a href="{{ url_for('profile', username=post['user'].username) }}" aria-label="View {{ post['user'].username }}'s profile">
-        <img class="post-avatar" src="{{ gravatar(post['user'].email, size=48) }}" alt="" width="48" height="48">
-    </a>
+    <a href="{{ url_for('profile', username=post['user'].username) }}" aria-label="View {{ post['user'].username }}'s profile"><img class="post-avatar" src="{{ gravatar(post['user'].email, size=48) }}" alt="" width="48" height="48"></a>
     <div class="post-body">
-        {% if post.type == 'retweet' %}<div class="post-context"><i class="fa-solid fa-retweet"></i> Retweeted from @{{ post.original_user.username }}</div>
-        {% elif post.type == 'quote' %}<div class="post-context"><i class="fa-solid fa-quote-left"></i> Quoted @{{ post.original_user.username }}</div>{% endif %}
-        <div class="post-meta">
-            <a class="post-author" href="{{ url_for('profile', username=post['user'].username) }}">{{ post['user'].username }}</a>
-            <span class="post-handle">@{{ post['user'].username }}</span><span class="post-time">· {{ post.timestamp.strftime('%b %d') }}</span>
-        </div>
+        {% if post.type == 'retweet' %}<div class="post-context"><i class="fa-solid fa-retweet"></i> Retweeted from @{{ post.original_user.username }}</div>{% elif post.type == 'quote' %}<div class="post-context"><i class="fa-solid fa-quote-left"></i> Quoted @{{ post.original_user.username }}</div>{% endif %}
+        <div class="post-meta"><a class="post-author" href="{{ url_for('profile', username=post['user'].username) }}">{{ post['user'].username }}</a><span class="post-handle">@{{ post['user'].username }}</span><span class="post-time">· {{ post.timestamp.strftime('%b %d') }}</span></div>
         <p class="post-text">{{ post.content | make_clickable | safe }}</p>
-        {% if post.type == 'quote' %}
-        <div class="quote-context"><strong>@{{ post.original_user.username }}</strong><p class="mb-0 mt-1">{{ post.original_tweet.content | make_clickable | safe }}</p></div>
-        {% endif %}
+        {% if post.type == 'quote' %}<div class="quote-context"><strong>@{{ post.original_user.username }}</strong><p class="mb-0 mt-1">{{ post.original_tweet.content | make_clickable | safe }}</p></div>{% endif %}
         {% if post.type in ['tweet', 'retweet'] and post.image %}<img src="{{ url_for('uploaded_file', filename=post.image) }}" class="tweet-image" alt="Image attached to post">{% endif %}
-        {% if post.type == 'poll' %}
-            {% if post.poll_is_active and not post.has_voted %}
-            <form method="POST" action="{{ url_for('vote_poll', poll_id=post.poll_id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="poll-options">
-                {% for option in post.poll.options %}<div class="form-check"><input class="form-check-input" type="radio" name="option_id" value="{{ option.id }}" id="option{{ option.id }}"><label class="form-check-label" for="option{{ option.id }}">{{ option.option_text }}</label></div>{% endfor %}
-                </div><button type="submit" class="btn btn-primary btn-sm">Vote</button>
-            </form>
-            {% else %}
-            <strong>Poll Results:</strong><ul class="poll-results">{% for option in post.poll.options %}<li>{{ option.option_text }} - {{ option.votes }} votes</li>{% endfor %}</ul>
-            {% endif %}
-        {% endif %}
-        {% if post.type != 'poll' %}
+        {% if post.type == 'poll' %}{% if post.poll_is_active and not post.has_voted %}<form method="POST" action="{{ url_for('vote_poll', poll_id=post.poll_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><div class="poll-options">{% for option in post.poll.options %}<div class="form-check"><input class="form-check-input" type="radio" name="option_id" value="{{ option.id }}" id="option{{ option.id }}"><label class="form-check-label" for="option{{ option.id }}">{{ option.option_text }}</label></div>{% endfor %}</div><button type="submit" class="btn btn-primary btn-sm">Vote</button></form>{% else %}<strong>Poll Results:</strong><ul class="poll-results">{% for option in post.poll.options %}<li>{{ option.option_text }} - {{ option.votes }} votes</li>{% endfor %}</ul>{% endif %}{% endif %}
         <div class="post-actions">
-            <form method="POST" action="{{ url_for('retweet', tweet_id=post.action_tweet_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="action-button" aria-label="Repost"><i class="fa-solid fa-retweet"></i></button></form>
-            <a href="{{ url_for('quote', tweet_id=post.action_tweet_id) }}" class="action-button" aria-label="Quote"><i class="fa-solid fa-quote-right"></i></a>
-            <form method="POST" action="{{ url_for('bookmark', tweet_id=post.action_tweet_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="action-button" aria-label="Bookmark"><i class="fa-regular fa-bookmark"></i></button></form>
+            {% if post.type != 'poll' %}<form method="POST" action="{{ url_for('retweet', tweet_id=post.action_tweet_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="action-button" aria-label="Repost"><i class="fa-solid fa-retweet"></i></button></form><a href="{{ url_for('quote', tweet_id=post.action_tweet_id) }}" class="action-button" aria-label="Quote"><i class="fa-solid fa-quote-right"></i></a><form method="POST" action="{{ url_for('bookmark', tweet_id=post.action_tweet_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="action-button" aria-label="Bookmark"><i class="fa-regular fa-bookmark"></i></button></form>{% endif %}
+            {% if current_user.is_authenticated and current_user.id != post.report_author_id %}<a href="{{ url_for('community.report_content', content_type=post.report_type, content_id=post.report_id) }}" class="action-button" aria-label="Report content" title="Report"><i class="fa-regular fa-flag"></i></a>{% endif %}
         </div>
-        {% endif %}
     </div>
 </article>
-{% else %}
-<div class="surface-card text-center"><h2>Your timeline is ready</h2><p class="text-muted mb-0">Follow someone or publish the first post to get things moving.</p></div>
-{% endfor %}
+{% else %}<div class="surface-card text-center"><h2>Your timeline is ready</h2><p class="text-muted mb-0">Follow someone or publish the first post to get things moving.</p></div>{% endfor %}
 </section>
-{% if timeline_page.total_pages > 1 %}
-<nav aria-label="Timeline pages"><ul class="pagination justify-content-center">
-    <li class="page-item{% if not timeline_page.has_previous %} disabled{% endif %}">{% if timeline_page.has_previous %}<a class="page-link" href="{{ url_for('index', page=timeline_page.previous_page) }}">Previous</a>{% else %}<span class="page-link">Previous</span>{% endif %}</li>
-    <li class="page-item disabled"><span class="page-link">Page {{ timeline_page.page }} of {{ timeline_page.total_pages }}</span></li>
-    <li class="page-item{% if not timeline_page.has_next %} disabled{% endif %}">{% if timeline_page.has_next %}<a class="page-link" href="{{ url_for('index', page=timeline_page.next_page) }}">Next</a>{% else %}<span class="page-link">Next</span>{% endif %}</li>
-</ul></nav>
-{% endif %}
+{% if timeline_page.total_pages > 1 %}<nav aria-label="Timeline pages"><ul class="pagination justify-content-center"><li class="page-item{% if not timeline_page.has_previous %} disabled{% endif %}">{% if timeline_page.has_previous %}<a class="page-link" href="{{ url_for('index', page=timeline_page.previous_page) }}">Previous</a>{% else %}<span class="page-link">Previous</span>{% endif %}</li><li class="page-item disabled"><span class="page-link">Page {{ timeline_page.page }} of {{ timeline_page.total_pages }}</span></li><li class="page-item{% if not timeline_page.has_next %} disabled{% endif %}">{% if timeline_page.has_next %}<a class="page-link" href="{{ url_for('index', page=timeline_page.next_page) }}">Next</a>{% else %}<span class="page-link">Next</span>{% endif %}</li></ul></nav>{% endif %}
 {% endblock %}

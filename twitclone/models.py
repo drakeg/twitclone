@@ -45,6 +45,8 @@ class User(db.Model, UserMixin):
     identity_verified = db.Column(db.Boolean, default=False, server_default=db.false(), nullable=False)
     verification_type = db.Column(db.String(40), nullable=True)
     verified_at = db.Column(db.DateTime, nullable=True)
+    community_guidelines_version = db.Column(db.String(20), nullable=True)
+    community_guidelines_accepted_at = db.Column(db.DateTime, nullable=True)
     followed = db.relationship(
         'User',
         secondary='follows',
@@ -103,7 +105,12 @@ class Tweet(db.Model):
     image = db.Column(db.String(100), nullable=True)
     original_image = db.Column(db.String(100), nullable=True)
     scheduled_at = db.Column(db.DateTime, nullable=True)
-    user = db.relationship('User', backref=db.backref('tweets', lazy=True))
+    is_removed = db.Column(db.Boolean, default=False, server_default=db.false(), nullable=False)
+    removed_at = db.Column(db.DateTime, nullable=True)
+    removed_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    removal_reason = db.Column(db.Text, nullable=True)
+    user = db.relationship('User', foreign_keys=[user_id], backref=db.backref('tweets', lazy=True))
+    removed_by = db.relationship('User', foreign_keys=[removed_by_id])
 
 
 class Retweet(db.Model):
@@ -125,8 +132,13 @@ class Quote(db.Model):
     tweet_id = db.Column(db.Integer, db.ForeignKey('tweet.id'), nullable=False)
     content = db.Column(db.String(144), nullable=False)
     timestamp = db.Column(db.DateTime, default=_utcnow)
-    user = db.relationship('User', backref=db.backref('quotes', lazy=True))
+    is_removed = db.Column(db.Boolean, default=False, server_default=db.false(), nullable=False)
+    removed_at = db.Column(db.DateTime, nullable=True)
+    removed_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    removal_reason = db.Column(db.Text, nullable=True)
+    user = db.relationship('User', foreign_keys=[user_id], backref=db.backref('quotes', lazy=True))
     tweet = db.relationship('Tweet', backref=db.backref('quotes', lazy=True))
+    removed_by = db.relationship('User', foreign_keys=[removed_by_id])
 
 
 class DirectMessage(db.Model):
@@ -158,6 +170,40 @@ class Notification(db.Model):
     tweet = db.relationship('Tweet', foreign_keys=[tweet_id])
 
 
+class PostReport(db.Model):
+    __table_args__ = (
+        db.CheckConstraint(
+            "content_type in ('tweet', 'quote', 'poll')",
+            name='ck_post_report_content_type',
+        ),
+        db.CheckConstraint(
+            "status in ('pending', 'dismissed', 'removed')",
+            name='ck_post_report_status',
+        ),
+        db.UniqueConstraint(
+            'reporter_id', 'content_type', 'content_id',
+            name='uq_post_report_reporter_content',
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    reporter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content_type = db.Column(db.String(20), nullable=False)
+    content_id = db.Column(db.Integer, nullable=False)
+    category = db.Column(db.String(40), nullable=False)
+    details = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default='pending', server_default='pending')
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+    reviewed_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    resolution_notes = db.Column(db.Text, nullable=True)
+
+    reporter = db.relationship('User', foreign_keys=[reporter_id])
+    author = db.relationship('User', foreign_keys=[author_id])
+    reviewed_by = db.relationship('User', foreign_keys=[reviewed_by_id])
+
+
 class Bookmark(db.Model):
     __table_args__ = (
         db.UniqueConstraint('user_id', 'tweet_id', name='uq_bookmark_user_tweet'),
@@ -179,7 +225,12 @@ class Poll(db.Model):
     duration_hours = db.Column(db.Integer, nullable=False)
     duration_minutes = db.Column(db.Integer, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    user = db.relationship('User', backref=db.backref('polls', lazy=True))
+    is_removed = db.Column(db.Boolean, default=False, server_default=db.false(), nullable=False)
+    removed_at = db.Column(db.DateTime, nullable=True)
+    removed_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    removal_reason = db.Column(db.Text, nullable=True)
+    user = db.relationship('User', foreign_keys=[user_id], backref=db.backref('polls', lazy=True))
+    removed_by = db.relationship('User', foreign_keys=[removed_by_id])
     options = db.relationship('PollOption', backref='poll', lazy=True)
 
     @property
@@ -225,6 +276,7 @@ __all__ = [
     'Poll',
     'PollOption',
     'PollVote',
+    'PostReport',
     'Quote',
     'Retweet',
     'Tweet',
