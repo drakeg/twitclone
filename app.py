@@ -51,11 +51,11 @@ def utility_processor():
     unread_notification_count = 0
     unread_message_count = 0
     if current_user.is_authenticated:
-        unread = Notification.query.filter_by(user_id=current_user.id, read=False)
-        unread_notification_count = unread.count()
-        unread_message_count = unread.filter(
-            Notification.message.like("% sent you a message")
-            | Notification.message.like("% replied to your message")
+        unread_notification_count = Notification.query.filter_by(
+            user_id=current_user.id, read=False
+        ).count()
+        unread_message_count = DirectMessage.query.filter_by(
+            receiver_id=current_user.id, read=False
         ).count()
 
     return {
