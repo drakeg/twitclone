@@ -47,6 +47,14 @@ def index():
     )
 
 
+def post_detail(tweet_id):
+    tweet = db.get_or_404(Tweet, tweet_id)
+    now = datetime.now(UTC).replace(tzinfo=None)
+    if tweet.scheduled_at is not None and tweet.scheduled_at > now:
+        return db.get_or_404(Tweet, -1)
+    return render_template("post_detail.html", tweet=tweet)
+
+
 @login_required
 def tweet():
     content = request.form.get("content")
@@ -105,8 +113,11 @@ def tweet():
             scheduled_at=scheduled_at,
         )
         db.session.add(new_tweet)
+        db.session.flush()
         if scheduled_at is None:
-            add_mention_notifications(content=content, author=current_user)
+            add_mention_notifications(
+                content=content, author=current_user, tweet_id=new_tweet.id
+            )
         db.session.commit()
         if scheduled_at:
             flash("Your tweet has been scheduled!", "success")
@@ -133,6 +144,7 @@ def retweet(tweet_id):
                 Notification(
                     user_id=original_tweet.user_id,
                     message=f"{current_user.username} reposted your post",
+                    tweet_id=original_tweet.id,
                 )
             )
         db.session.commit()
@@ -160,6 +172,7 @@ def quote(tweet_id):
                 Notification(
                     user_id=original_tweet.user_id,
                     message=f"{current_user.username} quoted your post",
+                    tweet_id=original_tweet.id,
                 )
             )
         db.session.commit()
@@ -172,6 +185,9 @@ def quote(tweet_id):
 def register_timeline_routes(state):
     """Register routes while retaining existing endpoint names."""
     state.app.add_url_rule("/", endpoint="index", view_func=index)
+    state.app.add_url_rule(
+        "/post/<int:tweet_id>", endpoint="post_detail", view_func=post_detail
+    )
     state.app.add_url_rule("/tweet", endpoint="tweet", view_func=tweet, methods=["POST"])
     state.app.add_url_rule(
         "/uploads/<filename>", endpoint="uploaded_file", view_func=uploaded_file
