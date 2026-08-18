@@ -10,7 +10,7 @@
         {% for notification in notifications %}
         <div class="list-group-item">
             <div class="d-flex gap-3 align-items-start">
-                <span class="about-icon flex-shrink-0" aria-hidden="true"><i class="fa-regular fa-bell"></i></span>
+                <span class="badge rounded-pill text-bg-light p-2" aria-hidden="true"><i class="fa-regular fa-bell"></i></span>
                 <div>
                     <p class="mb-1">{{ notification.message }}</p>
                     <small class="text-muted">{{ notification.timestamp.strftime('%Y-%m-%d %H:%M:%S') if notification.timestamp else 'unknown date' }}</small>
