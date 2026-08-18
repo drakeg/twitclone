@@ -15,7 +15,9 @@ def publish_due_tweets(*, now=None):
     for tweet in due_tweets:
         tweet.timestamp = tweet.scheduled_at
         tweet.scheduled_at = None
-        add_mention_notifications(content=tweet.content, author=tweet.user)
+        add_mention_notifications(
+            content=tweet.content, author=tweet.user, tweet_id=tweet.id
+        )
     if due_tweets:
         db.session.commit()
     return len(due_tweets)
