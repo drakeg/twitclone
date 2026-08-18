@@ -24,12 +24,32 @@ def test_regular_user_cannot_access_admin_dashboard(client, app):
     assert client.get('/admin').status_code == 403
 
 
+def test_regular_user_does_not_see_admin_navigation(client, app):
+    user_id = _user(app)
+    _login(client, user_id)
+    response = client.get('/')
+    assert response.status_code == 200
+    assert b'Ripple Admin' not in response.data
+    assert b'>Admin<' not in response.data
+
+
 def test_super_admin_can_access_admin_dashboard(client, app):
     user_id = _user(app, is_admin=True, is_super_admin=True)
     _login(client, user_id)
     response = client.get('/admin')
     assert response.status_code == 200
     assert b'Ripple Admin' in response.data
+    assert b'Super Admin control center' in response.data
+    assert b'Manage users' in response.data
+
+
+def test_super_admin_sees_admin_navigation_and_role(client, app):
+    user_id = _user(app, is_admin=True, is_super_admin=True)
+    _login(client, user_id)
+    response = client.get('/')
+    assert response.status_code == 200
+    assert b'>Admin<' in response.data
+    assert b'Super Admin' in response.data
 
 
 def test_user_can_submit_verification_request(client, app):
