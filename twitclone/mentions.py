@@ -12,7 +12,7 @@ def mentioned_usernames(content: str) -> set[str]:
     return {match.group(1).lower() for match in MENTION_RE.finditer(content or "")}
 
 
-def add_mention_notifications(*, content: str, author: User) -> int:
+def add_mention_notifications(*, content: str, author: User, tweet_id: int) -> int:
     """Queue one notification per valid mentioned user, excluding the author."""
     usernames = mentioned_usernames(content)
     if not usernames:
@@ -25,6 +25,7 @@ def add_mention_notifications(*, content: str, author: User) -> int:
             Notification(
                 user_id=user.id,
                 message=f"{author.username} mentioned you in a post",
+                tweet_id=tweet_id,
             )
         )
     return len(recipients)
