@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Report content · Ripple{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Report content</h1><small>Help keep Ripple respectful and welcoming.</small></div></header>
+<section class="surface-card">
+    <p class="text-muted">You are reporting content from <strong>@{{ content.user.username }}</strong>.</p>
+    <blockquote class="border-start ps-3">{{ preview }}</blockquote>
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3">
+            <label for="category" class="form-label">What is the concern?</label>
+            <select class="form-select" id="category" name="category" required>
+                <option value="">Choose a reason</option>
+                {% for value, label in categories.items() %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="details" class="form-label">Additional context <span class="text-muted">(optional)</span></label>
+            <textarea class="form-control" id="details" name="details" rows="4" maxlength="1000" placeholder="Tell the moderation team what happened or why this crosses the community standards."></textarea>
+        </div>
+        <p class="small text-muted">Submitting a report requests an admin review. It does not automatically remove the content or penalize the account.</p>
+        <button class="btn btn-danger" type="submit">Submit report</button>
+        <a class="btn btn-secondary" href="{{ url_for('index') }}">Cancel</a>
+    </form>
+</section>
+{% endblock %}
