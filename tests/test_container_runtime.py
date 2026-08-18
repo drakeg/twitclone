@@ -40,6 +40,17 @@ def test_compose_keeps_migration_web_and_worker_processes_separate():
     assert compose.count("condition: service_completed_successfully") == 2
 
 
+def test_compose_host_port_is_configurable_without_changing_container_port():
+    compose = read_project_file("compose.yaml")
+    env_example = read_project_file(".env.example")
+
+    assert '${RIPPLE_PORT:-8000}:8000' in compose
+    assert '"8000:8000"' not in compose
+    assert "RIPPLE_PORT=8000" in env_example
+    assert "--bind 0.0.0.0:8000" in compose
+    assert "http://127.0.0.1:8000/health/ready" in compose
+
+
 def test_compose_test_service_is_isolated_from_local_application_data():
     compose = read_project_file("compose.yaml")
 
