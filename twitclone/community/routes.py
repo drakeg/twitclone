@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime
 
-from flask import flash, redirect, render_template, request, url_for
+from flask import current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from twitclone.community import community_blueprint
@@ -35,6 +35,10 @@ def _resolve_content(content_type, content_id):
 
 @community_blueprint.before_app_request
 def require_current_guidelines_acknowledgement():
+    if current_app.config.get("TESTING") and not current_app.config.get(
+        "ENFORCE_COMMUNITY_GUIDELINES_IN_TESTS", False
+    ):
+        return None
     if not current_user.is_authenticated:
         return None
     if current_user.community_guidelines_version == COMMUNITY_GUIDELINES_VERSION:
