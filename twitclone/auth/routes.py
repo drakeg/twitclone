@@ -1,10 +1,13 @@
 """Authentication routes."""
 
+from datetime import UTC, datetime
+
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import login_required, login_user, logout_user
 
 from twitclone.auth import auth_blueprint
 from twitclone.auth.recovery import generate_reset_token, send_recovery_email, verify_reset_token
+from twitclone.community.routes import COMMUNITY_GUIDELINES_VERSION
 from twitclone.extensions import bcrypt, db
 from twitclone.models import User
 
@@ -14,8 +17,17 @@ def register():
         username = request.form["username"]
         email = request.form["email"]
         password = request.form["password"]
+        if request.form.get("community_standards") != "yes":
+            flash("You must agree to the Ripple Community Standards to create an account.", "danger")
+            return render_template("register.html")
         hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-        user = User(username=username, email=email, password=hashed_password)
+        user = User(
+            username=username,
+            email=email,
+            password=hashed_password,
+            community_guidelines_version=COMMUNITY_GUIDELINES_VERSION,
+            community_guidelines_accepted_at=datetime.now(UTC).replace(tzinfo=None),
+        )
         db.session.add(user)
         db.session.commit()
         flash("Your account has been created!", "success")
