@@ -40,6 +40,11 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(150), nullable=False, unique=True)
     password = db.Column(db.String(150), nullable=False)
     bio = db.Column(db.String(300))
+    is_admin = db.Column(db.Boolean, default=False, server_default=db.false(), nullable=False)
+    is_super_admin = db.Column(db.Boolean, default=False, server_default=db.false(), nullable=False)
+    identity_verified = db.Column(db.Boolean, default=False, server_default=db.false(), nullable=False)
+    verification_type = db.Column(db.String(40), nullable=True)
+    verified_at = db.Column(db.DateTime, nullable=True)
     followed = db.relationship(
         'User',
         secondary='follows',
@@ -53,6 +58,41 @@ class User(db.Model, UserMixin):
     )
     notifications = db.relationship('Notification', backref='user', lazy=True)
     bookmarks = db.relationship('Bookmark', back_populates='user', lazy=True)
+    verification_requests = db.relationship(
+        'VerificationRequest',
+        foreign_keys='VerificationRequest.user_id',
+        back_populates='user',
+        lazy=True,
+        cascade='all, delete-orphan',
+    )
+
+
+class VerificationRequest(db.Model):
+    __table_args__ = (
+        db.CheckConstraint(
+            "verification_type in ('person', 'organization')",
+            name='ck_verification_request_type',
+        ),
+        db.CheckConstraint(
+            "status in ('pending', 'approved', 'rejected', 'revoked')",
+            name='ck_verification_request_status',
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    verification_type = db.Column(db.String(40), nullable=False)
+    display_name = db.Column(db.String(200), nullable=False)
+    official_website = db.Column(db.String(500), nullable=True)
+    supporting_information = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='pending', server_default='pending')
+    submitted_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+    reviewed_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    review_notes = db.Column(db.Text, nullable=True)
+
+    user = db.relationship('User', foreign_keys=[user_id], back_populates='verification_requests')
+    reviewed_by = db.relationship('User', foreign_keys=[reviewed_by_id])
 
 
 class Tweet(db.Model):
@@ -189,4 +229,5 @@ __all__ = [
     'Retweet',
     'Tweet',
     'User',
+    'VerificationRequest',
 ]
