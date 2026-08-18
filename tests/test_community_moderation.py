@@ -103,8 +103,15 @@ def test_pending_report_is_obvious_to_admin_and_removal_hides_content(client, ap
     _login(client, admin_id)
     dashboard = client.get("/admin")
     assert dashboard.status_code == 200
-    assert b"Reports awaiting review" in dashboard.data
-    assert b"Moderation" in dashboard.data
+    assert b"Pending reports" in dashboard.data
+    assert b"Content under review" in dashboard.data
+    assert f"/admin/moderation#report-{report_id}".encode() in dashboard.data
+
+    review = client.get(f"/admin/moderation#report-{report_id}")
+    assert review.status_code == 200
+    assert f'id="report-{report_id}"'.encode() in review.data
+    assert b"Dismiss report" in review.data
+    assert b"Remove content" in review.data
 
     result = client.post(
         f"/admin/moderation/{report_id}",
