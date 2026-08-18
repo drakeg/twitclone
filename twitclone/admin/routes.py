@@ -118,6 +118,15 @@ def review_report(report_id):
         report.reviewed_at = reviewed_at
         report.reviewed_by_id = current_user.id
         report.resolution_notes = notes
+        db.session.add(
+            Notification(
+                user_id=report.reporter_id,
+                message=(
+                    "We reviewed your report. The content will remain on Ripple because "
+                    "it was not found to violate the Community Standards."
+                ),
+            )
+        )
         flash('Report dismissed. No content was removed.', 'success')
     else:
         content = _reported_content(report)
@@ -126,7 +135,15 @@ def review_report(report_id):
             content.removed_at = reviewed_at
             content.removed_by_id = current_user.id
             content.removal_reason = notes or 'Removed for violating Ripple Community Standards.'
-            db.session.add(Notification(user_id=report.author_id, message='A Ripple admin removed content from your account for violating the Community Standards.'))
+            db.session.add(
+                Notification(
+                    user_id=report.author_id,
+                    message=(
+                        'A Ripple admin removed content from your account for violating '
+                        'the Community Standards.'
+                    ),
+                )
+            )
         related_reports = PostReport.query.filter_by(
             content_type=report.content_type,
             content_id=report.content_id,
@@ -137,6 +154,15 @@ def review_report(report_id):
             related.reviewed_at = reviewed_at
             related.reviewed_by_id = current_user.id
             related.resolution_notes = notes
+            db.session.add(
+                Notification(
+                    user_id=related.reporter_id,
+                    message=(
+                        'We reviewed your report. The reported content was removed for '
+                        'violating the Ripple Community Standards.'
+                    ),
+                )
+            )
         flash(f'Content removed and {len(related_reports)} related report(s) resolved.', 'success')
     db.session.commit()
     return redirect(url_for('admin.moderation_queue'))
