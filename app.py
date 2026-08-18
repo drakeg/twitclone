@@ -55,7 +55,9 @@ def utility_processor():
             user_id=current_user.id, read=False
         ).count()
         unread_message_count = DirectMessage.query.filter_by(
-            receiver_id=current_user.id, read=False
+            receiver_id=current_user.id,
+            read=False,
+            deleted_by_receiver=False,
         ).count()
 
     return {
