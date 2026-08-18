@@ -114,6 +114,8 @@ class Notification(db.Model):
     read = db.Column(
         db.Boolean, default=False, server_default=db.false(), nullable=False
     )
+    tweet_id = db.Column(db.Integer, db.ForeignKey('tweet.id'), nullable=True)
+    tweet = db.relationship('Tweet', foreign_keys=[tweet_id])
 
 
 class Bookmark(db.Model):
