@@ -48,34 +48,27 @@ class Config:
     MAIL_USE_SSL = _as_bool(os.getenv("MAIL_USE_SSL"), default=False)
     MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "no-reply@ripple.local")
     MAIL_TIMEOUT_SECONDS = int(os.getenv("MAIL_TIMEOUT_SECONDS", "10"))
-    MAIL_SUPPRESS_SEND = _as_bool(
-        os.getenv("MAIL_SUPPRESS_SEND"), default=ENVIRONMENT != "production"
-    )
+    MAIL_SUPPRESS_SEND = _as_bool(os.getenv("MAIL_SUPPRESS_SEND"), default=ENVIRONMENT != "production")
+
+    STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+    STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+    STRIPE_BILLING_ENABLED = _as_bool(os.getenv("STRIPE_BILLING_ENABLED"), default=False)
 
     @classmethod
     def validate(cls) -> None:
         """Fail clearly when required configuration is unsafe or incomplete."""
-
         if not cls.SECRET_KEY:
-            raise RuntimeError(
-                "SECRET_KEY is required for every TwitClone environment. "
-                "Set it outside source control before starting the application."
-            )
-
+            raise RuntimeError("SECRET_KEY is required for every TwitClone environment. Set it outside source control before starting the application.")
         if cls.SCHEDULER_INTERVAL_SECONDS < 1:
             raise RuntimeError("SCHEDULER_INTERVAL_SECONDS must be at least 1")
         if cls.PASSWORD_RESET_MAX_AGE_SECONDS < 60:
             raise RuntimeError("PASSWORD_RESET_MAX_AGE_SECONDS must be at least 60")
         if cls.MAIL_USE_TLS and cls.MAIL_USE_SSL:
             raise RuntimeError("MAIL_USE_TLS and MAIL_USE_SSL cannot both be enabled")
-
-        if cls.ENVIRONMENT == "production" and cls.SQLALCHEMY_DATABASE_URI.startswith(
-            "sqlite:"
-        ):
-            raise RuntimeError(
-                "Production requires PostgreSQL. Set DATABASE_URL to a "
-                "PostgreSQL connection URL before starting TwitClone."
-            )
+        if cls.STRIPE_BILLING_ENABLED and (not cls.STRIPE_SECRET_KEY or not cls.STRIPE_WEBHOOK_SECRET):
+            raise RuntimeError("STRIPE_BILLING_ENABLED requires STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET")
+        if cls.ENVIRONMENT == "production" and cls.SQLALCHEMY_DATABASE_URI.startswith("sqlite:"):
+            raise RuntimeError("Production requires PostgreSQL. Set DATABASE_URL to a PostgreSQL connection URL before starting TwitClone.")
         if cls.ENVIRONMENT == "production" and cls.MAIL_SUPPRESS_SEND:
             raise RuntimeError("Production account recovery requires MAIL_SUPPRESS_SEND=false")
 
