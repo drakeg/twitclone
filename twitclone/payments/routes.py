@@ -27,7 +27,9 @@ def _dt(value):
 
 
 def _eligible_plan(plan):
-    if not current_user.identity_verified:
+    if plan.entitlement_key == 'ripple_plus':
+        return True
+    if plan.entitlement_key != 'verified_badge' or not current_user.identity_verified:
         return False
     if current_user.verification_type == 'organization':
         return plan.key.startswith('verified_organization_')
@@ -55,7 +57,8 @@ def _sync_subscription_object(obj):
     subscription.provider_customer_id = obj.get('customer')
     subscription.current_period_start = _dt(obj.get('current_period_start'))
     subscription.current_period_end = _dt(obj.get('current_period_end'))
-    if subscription.status == 'active' and user.identity_verified:
+    entitlement_allowed = plan.entitlement_key != 'verified_badge' or user.identity_verified
+    if subscription.status == 'active' and entitlement_allowed:
         grant_entitlement(user, plan.entitlement_key, source='stripe', subscription=subscription, expires_at=subscription.current_period_end)
     else:
         revoke_entitlement(user, plan.entitlement_key)
@@ -75,19 +78,23 @@ def billing_home():
 @payments_blueprint.route('/billing/checkout/<plan_key>', methods=['POST'])
 @login_required
 def checkout(plan_key):
-    if not current_user.identity_verified:
-        flash('Ripple must approve your identity before you can activate a verified badge.', 'warning')
-        return redirect(url_for('admin.apply_verification'))
-    if not _stripe_ready():
-        flash('Paid badge activation is not configured yet.', 'warning')
-        return redirect(url_for('payments.billing_home'))
     ensure_default_plans()
     plan = Plan.query.filter_by(key=plan_key, active=True).first_or_404()
     if not _eligible_plan(plan):
+        if plan.entitlement_key == 'verified_badge' and not current_user.identity_verified:
+            flash('Ripple must approve your identity before you can activate a verified badge.', 'warning')
+            return redirect(url_for('admin.apply_verification'))
         abort(403)
-    existing = Subscription.query.filter_by(user_id=current_user.id, status='active').first()
+    if not _stripe_ready():
+        flash('Paid subscriptions are not configured yet.', 'warning')
+        return redirect(url_for('payments.billing_home'))
+    existing = Subscription.query.join(Plan).filter(
+        Subscription.user_id == current_user.id,
+        Subscription.status == 'active',
+        Plan.entitlement_key == plan.entitlement_key,
+    ).first()
     if existing:
-        flash('You already have an active Ripple subscription. Use Manage billing instead.', 'info')
+        flash(f'You already have an active {plan.name} subscription. Use Manage billing instead.', 'info')
         return redirect(url_for('payments.billing_home'))
     _configure_stripe()
     session = stripe.checkout.Session.create(
@@ -113,7 +120,7 @@ def checkout(plan_key):
 @payments_blueprint.route('/billing/success')
 @login_required
 def checkout_success():
-    flash('Payment was submitted. Your badge activates after Ripple receives Stripe confirmation.', 'success')
+    flash('Payment was submitted. Paid features activate after Ripple receives Stripe confirmation.', 'success')
     return redirect(url_for('payments.billing_home'))
 
 
