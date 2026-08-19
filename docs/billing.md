@@ -9,7 +9,9 @@ Identity verification and payment are separate. A Stripe payment never sets `Use
 1. Ripple-approved identity verification, and
 2. an active `verified_badge` entitlement.
 
-The browser success URL never grants the entitlement. Subscription access is synchronized only from Stripe webhook events whose signature validates against `STRIPE_WEBHOOK_SECRET`.
+The browser success URL never grants an entitlement. Subscription access is synchronized only from Stripe webhook events whose signature validates against `STRIPE_WEBHOOK_SECRET`.
+
+Ripple+ is represented by a separate `ripple_plus` entitlement. Core social participation remains free; premium entitlements add convenience and account-management features.
 
 ## Local/test-mode setup
 
@@ -53,15 +55,26 @@ Ripple currently consumes:
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
 
-The synchronization is idempotent by Stripe subscription ID. Active subscriptions grant the plan entitlement only while the Ripple identity remains approved. Past-due, canceled, expired, or otherwise inactive subscriptions revoke the entitlement.
+The synchronization is idempotent by Stripe subscription ID. Active subscriptions grant the plan's entitlement. Verification-badge entitlements additionally require that Ripple identity approval remains active. Past-due, canceled, expired, or otherwise inactive subscriptions revoke the relevant entitlement.
 
 ## Customer portal
 
 Once a Stripe customer ID is associated with a local subscription, the Billing page can open Stripe's hosted customer portal so users can manage payment methods and cancellation without Ripple storing card data.
 
-## Initial verified-badge catalog
+## Paid plan catalog
+
+Verified identity badge:
 
 - Individual: $2.99/month or $29.99/year
 - Organization: $7.99/month or $79.99/year
+
+Ripple+:
+
+- $4.99/month or $49.99/year
+- personal account analytics
+- extended post scheduling
+- named bookmark folders
+
+Bookmarking itself remains free. Folder creation, assignment, filtering, and deletion require the `ripple_plus` entitlement. Deleting a folder never deletes its bookmarks; they return to the unfiled collection.
 
 Pricing is application-owned plan metadata. Stripe Checkout receives the selected plan's amount and recurring interval from Ripple.
