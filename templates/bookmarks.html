@@ -1,15 +1,53 @@
 {% extends "base.html" %}
+{% block title %}Bookmarks · Ripple{% endblock %}
 {% block content %}
-<h2>Bookmarked Tweets</h2>
-{% for bookmark in bookmarks %}
-<div class="card mb-3">
-    <div class="card-body">
-        <h5 class="card-title">
-            <a href="{{ url_for('profile', username=bookmark.tweet.user.username) }}">{{ bookmark.tweet.user.username }}</a>
-        </h5>
-        <p class="card-text">{{ bookmark.tweet.content | make_clickable | safe }}</p>
-        <p class="card-text"><small class="text-muted">{{ bookmark.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
+<header class="page-header"><div><h1>Bookmarks</h1><small>Posts you saved for later</small></div></header>
+
+{% if ripple_plus %}
+<section class="surface-card">
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+        <div><h2 class="h5 mb-1">Ripple+ folders</h2><p class="text-muted mb-0">Organize saved posts without changing the original bookmark.</p></div>
+        <form method="POST" action="{{ url_for('create_bookmark_folder') }}" class="d-flex gap-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input class="form-control" name="name" maxlength="80" required placeholder="New folder name" aria-label="New bookmark folder name">
+            <button class="btn btn-primary" type="submit">Create</button>
+        </form>
     </div>
-</div>
-{% endfor %}
+    {% if folders %}<div class="d-flex gap-2 flex-wrap mt-3">
+        <a class="btn btn-sm {% if not selected_folder %}btn-primary{% else %}btn-secondary{% endif %}" href="{{ url_for('bookmarks') }}">All bookmarks</a>
+        {% for folder in folders %}<div class="d-flex align-items-center gap-1">
+            <a class="btn btn-sm {% if selected_folder and selected_folder.id == folder.id %}btn-primary{% else %}btn-secondary{% endif %}" href="{{ url_for('bookmarks', folder=folder.id) }}">{{ folder.name }} ({{ folder.bookmarks|length }})</a>
+            <form method="POST" action="{{ url_for('delete_bookmark_folder', folder_id=folder.id) }}" onsubmit="return confirm('Delete this folder? The bookmarks themselves will remain saved.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-link text-danger" type="submit" aria-label="Delete {{ folder.name }}"><i class="fa-regular fa-trash-can"></i></button>
+            </form>
+        </div>{% endfor %}
+    </div>{% endif %}
+</section>
+{% else %}
+<section class="surface-card"><h2 class="h5">Organize with Ripple+</h2><p class="text-muted">Your normal bookmarks remain free. Ripple+ adds named folders so larger collections are easier to manage.</p><a class="btn btn-primary" href="{{ url_for('payments.billing_home') }}">Explore Ripple+</a></section>
+{% endif %}
+
+<section aria-label="Saved bookmarks">
+{% for bookmark in bookmarks %}
+<article class="post-card">
+    <a href="{{ url_for('profile', username=bookmark.tweet.user.username) }}"><img class="post-avatar" src="{{ gravatar(bookmark.tweet.user.email, size=48) }}" alt="" width="48" height="48"></a>
+    <div class="post-body">
+        <div class="post-meta"><a class="post-author" href="{{ url_for('profile', username=bookmark.tweet.user.username) }}">{{ bookmark.tweet.user.username }}</a><span class="post-handle">@{{ bookmark.tweet.user.username }}</span><span class="post-time">· saved {{ bookmark.timestamp.strftime('%b %d') }}</span></div>
+        <p class="post-text">{{ bookmark.tweet.content | make_clickable | safe }}</p>
+        <a class="btn btn-sm btn-secondary" href="{{ url_for('post_detail', tweet_id=bookmark.tweet.id) }}">View post</a>
+        {% if ripple_plus %}
+        <form method="POST" action="{{ url_for('move_bookmark', bookmark_id=bookmark.id) }}" class="d-flex gap-2 align-items-center mt-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label class="small text-muted" for="folder-{{ bookmark.id }}">Folder</label>
+            <select class="form-select form-select-sm" id="folder-{{ bookmark.id }}" name="folder_id" onchange="this.form.submit()">
+                <option value="" {% if not bookmark.folder_id %}selected{% endif %}>Unfiled</option>
+                {% for folder in folders %}<option value="{{ folder.id }}" {% if bookmark.folder_id == folder.id %}selected{% endif %}>{{ folder.name }}</option>{% endfor %}
+            </select>
+        </form>
+        {% endif %}
+    </div>
+</article>
+{% else %}<div class="surface-card text-center"><h2>No saved posts here</h2><p class="text-muted mb-0">Bookmark a post and it will appear here.</p></div>{% endfor %}
+</section>
 {% endblock %}
