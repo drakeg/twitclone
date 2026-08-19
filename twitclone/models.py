@@ -48,6 +48,7 @@ class User(db.Model, UserMixin):
     followed_hashtags = db.relationship('HashtagFollow', back_populates='user', lazy=True, cascade='all, delete-orphan')
     notifications = db.relationship('Notification', backref='user', lazy=True)
     bookmarks = db.relationship('Bookmark', back_populates='user', lazy=True)
+    bookmark_folders = db.relationship('BookmarkFolder', back_populates='user', lazy=True, cascade='all, delete-orphan')
     verification_requests = db.relationship('VerificationRequest', foreign_keys='VerificationRequest.user_id', back_populates='user', lazy=True, cascade='all, delete-orphan')
     subscriptions = db.relationship('Subscription', back_populates='user', lazy=True, cascade='all, delete-orphan')
     entitlements = db.relationship('Entitlement', back_populates='user', lazy=True, cascade='all, delete-orphan')
@@ -58,7 +59,6 @@ class User(db.Model, UserMixin):
 
     @property
     def verified_badge_active(self):
-        """Identity approval and paid badge display are intentionally separate."""
         return self.identity_verified and self.has_entitlement('verified_badge')
 
 
@@ -97,9 +97,7 @@ class Plan(db.Model):
 
 
 class Subscription(db.Model):
-    __table_args__ = (
-        db.CheckConstraint("status in ('pending', 'active', 'past_due', 'canceled', 'expired')", name='ck_subscription_status'),
-    )
+    __table_args__ = (db.CheckConstraint("status in ('pending', 'active', 'past_due', 'canceled', 'expired')", name='ck_subscription_status'),)
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     plan_id = db.Column(db.Integer, db.ForeignKey('plan.id'), nullable=False)
@@ -216,14 +214,26 @@ class PostReport(db.Model):
     reviewed_by = db.relationship('User', foreign_keys=[reviewed_by_id])
 
 
+class BookmarkFolder(db.Model):
+    __table_args__ = (db.UniqueConstraint('user_id', 'name', name='uq_bookmark_folder_user_name'),)
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(80), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+    user = db.relationship('User', back_populates='bookmark_folders')
+    bookmarks = db.relationship('Bookmark', back_populates='folder', lazy=True)
+
+
 class Bookmark(db.Model):
     __table_args__ = (db.UniqueConstraint('user_id', 'tweet_id', name='uq_bookmark_user_tweet'),)
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     tweet_id = db.Column(db.Integer, db.ForeignKey('tweet.id'), nullable=False)
+    folder_id = db.Column(db.Integer, db.ForeignKey('bookmark_folder.id'), nullable=True)
     timestamp = db.Column(db.DateTime, default=_utcnow)
     user = db.relationship('User', back_populates='bookmarks')
     tweet = db.relationship('Tweet', backref='bookmarked_tweets')
+    folder = db.relationship('BookmarkFolder', back_populates='bookmarks')
 
 
 class Poll(db.Model):
