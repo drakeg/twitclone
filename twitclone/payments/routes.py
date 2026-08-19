@@ -35,6 +35,7 @@ def _eligible_plan(plan):
 
 
 def _sync_subscription_object(obj):
+    """Synchronize Stripe state without ever letting payment confer identity."""
     metadata = obj.get('metadata') or {}
     user_id = metadata.get('ripple_user_id')
     plan_key = metadata.get('ripple_plan_key')
@@ -54,7 +55,7 @@ def _sync_subscription_object(obj):
     subscription.provider_customer_id = obj.get('customer')
     subscription.current_period_start = _dt(obj.get('current_period_start'))
     subscription.current_period_end = _dt(obj.get('current_period_end'))
-    if subscription.status == 'active':
+    if subscription.status == 'active' and user.identity_verified:
         grant_entitlement(user, plan.entitlement_key, source='stripe', subscription=subscription, expires_at=subscription.current_period_end)
     else:
         revoke_entitlement(user, plan.entitlement_key)
