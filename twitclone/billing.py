@@ -39,12 +39,32 @@ VERIFIED_ORGANIZATION_YEARLY = {
     'interval': 'year',
     'entitlement_key': 'verified_badge',
 }
+RIPPLE_PLUS_MONTHLY = {
+    'key': 'ripple_plus_monthly',
+    'name': 'Ripple+',
+    'description': 'Premium posting, extended scheduling, and personal analytics.',
+    'amount_cents': 499,
+    'currency': 'USD',
+    'interval': 'month',
+    'entitlement_key': 'ripple_plus',
+}
+RIPPLE_PLUS_YEARLY = {
+    'key': 'ripple_plus_yearly',
+    'name': 'Ripple+',
+    'description': 'Premium posting, extended scheduling, and personal analytics.',
+    'amount_cents': 4999,
+    'currency': 'USD',
+    'interval': 'year',
+    'entitlement_key': 'ripple_plus',
+}
 
 DEFAULT_PLANS = (
     VERIFIED_INDIVIDUAL_MONTHLY,
     VERIFIED_INDIVIDUAL_YEARLY,
     VERIFIED_ORGANIZATION_MONTHLY,
     VERIFIED_ORGANIZATION_YEARLY,
+    RIPPLE_PLUS_MONTHLY,
+    RIPPLE_PLUS_YEARLY,
 )
 
 

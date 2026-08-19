@@ -13,18 +13,23 @@ def _user(app, username='paiduser'):
         return user.id
 
 
-def test_default_verification_plans_are_idempotent(app):
+def test_default_plans_are_idempotent(app):
     with app.app_context():
         ensure_default_plans()
         ensure_default_plans()
-        assert Plan.query.count() == 4
+        assert Plan.query.count() == 6
         monthly = Plan.query.filter_by(key='verified_individual_monthly').one()
         yearly = Plan.query.filter_by(key='verified_individual_yearly').one()
         org = Plan.query.filter_by(key='verified_organization_monthly').one()
+        plus_monthly = Plan.query.filter_by(key='ripple_plus_monthly').one()
+        plus_yearly = Plan.query.filter_by(key='ripple_plus_yearly').one()
         assert monthly.amount_cents == 299
         assert yearly.amount_cents == 2999
         assert org.amount_cents == 799
         assert monthly.entitlement_key == 'verified_badge'
+        assert plus_monthly.amount_cents == 499
+        assert plus_yearly.amount_cents == 4999
+        assert plus_monthly.entitlement_key == 'ripple_plus'
 
 
 def test_identity_approval_does_not_automatically_activate_paid_badge(app):
@@ -59,4 +64,4 @@ def test_seed_billing_plans_cli_is_safe_to_repeat(app):
     assert first.exit_code == 0
     assert second.exit_code == 0
     with app.app_context():
-        assert Plan.query.count() == 4
+        assert Plan.query.count() == 6

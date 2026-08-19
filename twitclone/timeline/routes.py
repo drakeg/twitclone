@@ -1,6 +1,6 @@
 """Timeline and post routes."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from flask import abort, current_app, flash, redirect, render_template, request, send_from_directory, url_for
 from flask_login import current_user, login_required
@@ -31,6 +31,28 @@ def post_detail(tweet_id):
     return render_template("post_detail.html", tweet=tweet)
 
 
+def _scheduled_at_from_form():
+    scheduled_date = request.form.get("scheduled_date")
+    scheduled_time = request.form.get("scheduled_time")
+    if not scheduled_date and not scheduled_time:
+        return None, None
+    if not scheduled_date or not scheduled_time:
+        return None, "Choose both a date and time to schedule a post."
+    try:
+        scheduled_at = datetime.strptime(f"{scheduled_date} {scheduled_time}", "%Y-%m-%d %H:%M")
+    except ValueError:
+        return None, "Choose a valid schedule date and time."
+    now = datetime.now(UTC).replace(tzinfo=None)
+    if scheduled_at <= now:
+        return None, "Scheduled posts must be set for a future time."
+    max_days = 90 if current_user.has_entitlement('ripple_plus') else 7
+    if scheduled_at > now + timedelta(days=max_days):
+        if max_days == 7:
+            return None, "Free accounts can schedule up to 7 days ahead. Ripple+ extends scheduling to 90 days."
+        return None, "Ripple+ posts can be scheduled up to 90 days ahead."
+    return scheduled_at, None
+
+
 @login_required
 def tweet():
     content = request.form.get("content")
@@ -42,9 +64,9 @@ def tweet():
         image_error, original_image_filename, image_filename = store_image_upload(image, current_app.config["UPLOAD_FOLDER"])
         if image_error:
             flash(image_error, "danger"); return redirect(url_for("index"))
-    scheduled_date = request.form.get("scheduled_date"); scheduled_time = request.form.get("scheduled_time"); scheduled_at = None
-    if scheduled_date and scheduled_time:
-        scheduled_at = datetime.strptime(f"{scheduled_date} {scheduled_time}", "%Y-%m-%d %H:%M")
+    scheduled_at, schedule_error = _scheduled_at_from_form()
+    if schedule_error:
+        flash(schedule_error, "danger"); return redirect(url_for("index"))
     if content.startswith("/dm "):
         dm_parts = content.split(" ", 2)
         if len(dm_parts) == 3:

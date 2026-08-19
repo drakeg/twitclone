@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Analytics · Ripple{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Ripple+ Analytics</h1><small>Your account at a glance</small></div><span class="badge text-bg-primary">Ripple+</span></header>
+<section class="surface-card"><div class="row g-3">
+<div class="col-6 col-md-4"><div class="border rounded p-3 h-100"><small class="text-muted">Posts</small><h2 class="mb-0">{{ stats.posts }}</h2></div></div>
+<div class="col-6 col-md-4"><div class="border rounded p-3 h-100"><small class="text-muted">Followers</small><h2 class="mb-0">{{ stats.followers }}</h2></div></div>
+<div class="col-6 col-md-4"><div class="border rounded p-3 h-100"><small class="text-muted">Following</small><h2 class="mb-0">{{ stats.following }}</h2></div></div>
+<div class="col-6 col-md-4"><div class="border rounded p-3 h-100"><small class="text-muted">Reposts received</small><h2 class="mb-0">{{ stats.reposts_received }}</h2></div></div>
+<div class="col-6 col-md-4"><div class="border rounded p-3 h-100"><small class="text-muted">Quotes received</small><h2 class="mb-0">{{ stats.quotes_received }}</h2></div></div>
+</div></section>
+<section class="surface-card"><h2>More analytics are coming</h2><p class="text-muted mb-0">This first Ripple+ dashboard establishes the premium analytics surface. Future increments can add impressions, profile visits, engagement rate, hashtag performance, link clicks, and time-based trends once those events are captured reliably.</p></section>
+{% endblock %}

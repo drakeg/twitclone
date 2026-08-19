@@ -3,38 +3,24 @@
 {% block content %}
 <header class="page-header"><div><h1>Billing</h1><small>Manage Ripple paid features</small></div></header>
 <section class="surface-card">
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap"><div><span class="auth-kicker">Ripple+</span><h2 class="mb-1">More tools, same community</h2><p class="text-muted mb-0">Ripple+ adds premium convenience and insight without putting basic social features behind a paywall.</p></div>{% if current_user.has_entitlement('ripple_plus') %}<span class="badge text-bg-primary p-2">Active</span>{% endif %}</div>
+    <ul class="mt-3"><li>Personal analytics dashboard</li><li>Schedule posts up to 90 days ahead instead of 7 days</li><li>More premium profile and organization tools planned as Ripple+ grows</li></ul>
+    {% if current_user.has_entitlement('ripple_plus') %}
+    <a class="btn btn-primary" href="{{ url_for('analytics') }}">View analytics</a>
+    {% else %}
+    <div class="row g-3 mt-1">{% for plan in plans if plan.entitlement_key == 'ripple_plus' %}<div class="col-md-6"><div class="border rounded p-3 h-100"><h3 class="h5">{{ plan.name }} · {{ plan.interval|title }}</h3><p class="fs-4 mb-1">${{ '%.2f'|format(plan.amount_cents / 100) }} <small class="text-muted">/{{ 'mo' if plan.interval == 'month' else 'yr' }}</small></p><p class="text-muted">{{ plan.description }}</p><form method="POST" action="{{ url_for('payments.checkout', plan_key=plan.key) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary" type="submit" {% if not stripe_enabled %}disabled{% endif %}>Subscribe with Stripe</button></form></div></div>{% endfor %}</div>
+    {% endif %}
+</section>
+<section class="surface-card">
     <h2>Verified identity badge</h2>
     {% if not current_user.identity_verified %}
-    <div class="alert alert-info">Identity approval comes first. Payment cannot make an account verified.</div>
-    <a class="btn btn-primary" href="{{ url_for('admin.apply_verification') }}">Apply for verification</a>
+    <div class="alert alert-info">Identity approval comes first. Payment cannot make an account verified.</div><a class="btn btn-primary" href="{{ url_for('admin.apply_verification') }}">Apply for verification</a>
     {% elif current_user.verified_badge_active %}
     <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> Your paid Verified identity badge is active.</div>
     {% else %}
-    <div class="alert alert-success">Your identity is approved. Choose a plan to activate the public badge.</div>
+    <div class="alert alert-success">Your identity is approved. Choose a plan to activate the public badge.</div><div class="row g-3 mt-1">{% for plan in plans if plan.entitlement_key == 'verified_badge' %}<div class="col-md-6"><div class="border rounded p-3 h-100"><h3 class="h5">{{ plan.name }} · {{ plan.interval|title }}</h3><p class="fs-4 mb-1">${{ '%.2f'|format(plan.amount_cents / 100) }} <small class="text-muted">/{{ 'mo' if plan.interval == 'month' else 'yr' }}</small></p><p class="text-muted">{{ plan.description }}</p><form method="POST" action="{{ url_for('payments.checkout', plan_key=plan.key) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary" type="submit" {% if not stripe_enabled %}disabled{% endif %}>Subscribe with Stripe</button></form></div></div>{% endfor %}</div>
     {% endif %}
-
-    {% if current_user.identity_verified and not current_user.verified_badge_active %}
-    <div class="row g-3 mt-1">
-        {% for plan in plans %}
-        <div class="col-md-6"><div class="border rounded p-3 h-100">
-            <h3 class="h5">{{ plan.name }} · {{ plan.interval|title }}</h3>
-            <p class="fs-4 mb-1">${{ '%.2f'|format(plan.amount_cents / 100) }} <small class="text-muted">/{{ 'mo' if plan.interval == 'month' else 'yr' }}</small></p>
-            <p class="text-muted">{{ plan.description }}</p>
-            <form method="POST" action="{{ url_for('payments.checkout', plan_key=plan.key) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button class="btn btn-primary" type="submit" {% if not stripe_enabled %}disabled{% endif %}>Subscribe with Stripe</button>
-            </form>
-        </div></div>
-        {% endfor %}
-    </div>
     {% if not stripe_enabled %}<p class="small text-muted mt-3 mb-0">Stripe billing is disabled in this environment. No payment can be collected.</p>{% endif %}
-    {% endif %}
 </section>
-{% if subscriptions %}
-<section class="surface-card">
-    <div class="d-flex justify-content-between align-items-center gap-3"><div><h2 class="mb-1">Subscription history</h2><p class="text-muted mb-0">Stripe remains the source of truth for recurring payment state.</p></div>
-    {% if stripe_enabled %}<form method="POST" action="{{ url_for('payments.customer_portal') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-secondary" type="submit">Manage billing</button></form>{% endif %}</div>
-    <div class="list-group mt-3">{% for subscription in subscriptions %}<div class="list-group-item"><strong>{{ subscription.plan.name }}</strong> · {{ subscription.plan.interval|title }} <span class="badge text-bg-light">{{ subscription.status|replace('_', ' ')|title }}</span>{% if subscription.current_period_end %}<br><small class="text-muted">Current period through {{ subscription.current_period_end.strftime('%Y-%m-%d') }}</small>{% endif %}</div>{% endfor %}</div>
-</section>
-{% endif %}
+{% if subscriptions %}<section class="surface-card"><div class="d-flex justify-content-between align-items-center gap-3"><div><h2 class="mb-1">Subscription history</h2><p class="text-muted mb-0">Stripe remains the source of truth for recurring payment state.</p></div>{% if stripe_enabled %}<form method="POST" action="{{ url_for('payments.customer_portal') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-secondary" type="submit">Manage billing</button></form>{% endif %}</div><div class="list-group mt-3">{% for subscription in subscriptions %}<div class="list-group-item"><strong>{{ subscription.plan.name }}</strong> · {{ subscription.plan.interval|title }} <span class="badge text-bg-light">{{ subscription.status|replace('_', ' ')|title }}</span>{% if subscription.current_period_end %}<br><small class="text-muted">Current period through {{ subscription.current_period_end.strftime('%Y-%m-%d') }}</small>{% endif %}</div>{% endfor %}</div></section>{% endif %}
 {% endblock %}

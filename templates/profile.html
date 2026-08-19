@@ -14,12 +14,14 @@
             {% if current_user.id == user.id %}
             <a href="{{ url_for('edit_profile') }}" class="btn btn-secondary">Edit profile</a>
             <a href="{{ url_for('admin.apply_verification') }}" class="btn btn-secondary">{% if user.identity_verified %}Verification status{% else %}Get verified{% endif %}</a>
-            {% if user.identity_verified %}<a href="{{ url_for('payments.billing_home') }}" class="btn btn-secondary">Billing</a>{% endif %}
+            <a href="{{ url_for('payments.billing_home') }}" class="btn btn-secondary">{% if user.has_entitlement('ripple_plus') %}Ripple+ / Billing{% else %}Ripple+{% endif %}</a>
+            {% if user.has_entitlement('ripple_plus') %}<a href="{{ url_for('analytics') }}" class="btn btn-primary">Analytics</a>{% endif %}
             {% if current_user.is_admin or current_user.is_super_admin %}<a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-dark">Admin</a>{% endif %}
             {% endif %}
         </div>
         <h2 class="profile-name">{{ user.username }}{% if user.verified_badge_active %} <span title="Verified identity" aria-label="Verified identity"><i class="fa-solid fa-circle-check text-primary"></i></span>{% endif %}</h2><div class="profile-handle">@{{ user.username }}</div>
         {% if user.verified_badge_active %}<div class="mb-2"><span class="badge text-bg-light"><i class="fa-solid fa-circle-check text-primary"></i> Verified identity{% if user.verification_type %} · {{ user.verification_type|title }}{% endif %}</span></div>{% elif current_user.id == user.id and user.identity_verified %}<div class="mb-2"><span class="badge text-bg-light">Identity approved · badge inactive</span></div>{% endif %}
+        {% if current_user.id == user.id and user.has_entitlement('ripple_plus') %}<div class="mb-2"><span class="badge text-bg-primary">Ripple+</span></div>{% endif %}
         <p class="profile-bio">{{ user.bio or 'No bio yet — the story is still being written.' }}</p>
         <div class="profile-links"><a href="{{ url_for('following', username=user.username) }}"><strong>View</strong> Following</a><a href="{{ url_for('followers', username=user.username) }}"><strong>View</strong> Followers</a></div>
     </div>

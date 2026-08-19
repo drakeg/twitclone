@@ -4,7 +4,7 @@ from flask import flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from twitclone.extensions import db
-from twitclone.models import Notification, User
+from twitclone.models import Notification, Quote, Retweet, Tweet, User
 from twitclone.profiles import profiles_blueprint
 
 
@@ -14,18 +14,12 @@ def follow(username):
     if user and user not in current_user.followed:
         current_user.followed.append(user)
         db.session.commit()
-        notification = Notification(
-            user_id=user.id, message=f"{current_user.username} followed you"
-        )
+        notification = Notification(user_id=user.id, message=f"{current_user.username} followed you")
         db.session.add(notification)
         db.session.commit()
-        return jsonify(
-            {"status": "success", "message": f"You are now following {username}."}
-        )
+        return jsonify({"status": "success", "message": f"You are now following {username}."})
     if user:
-        return jsonify(
-            {"status": "success", "message": f"You are now following {username}."}
-        )
+        return jsonify({"status": "success", "message": f"You are now following {username}."})
     return jsonify({"status": "error", "message": "User not found."})
 
 
@@ -35,18 +29,12 @@ def unfollow(username):
     if user and user in current_user.followed:
         current_user.followed.remove(user)
         db.session.commit()
-        notification = Notification(
-            user_id=user.id, message=f"{current_user.username} unfollowed you"
-        )
+        notification = Notification(user_id=user.id, message=f"{current_user.username} unfollowed you")
         db.session.add(notification)
         db.session.commit()
-        return jsonify(
-            {"status": "success", "message": f"You have unfollowed {username}."}
-        )
+        return jsonify({"status": "success", "message": f"You have unfollowed {username}."})
     if user:
-        return jsonify(
-            {"status": "success", "message": f"You have unfollowed {username}."}
-        )
+        return jsonify({"status": "success", "message": f"You have unfollowed {username}."})
     return jsonify({"status": "error", "message": "User not found."})
 
 
@@ -55,6 +43,27 @@ def profile(username):
     user = User.query.filter_by(username=username).first_or_404()
     is_following = user in current_user.followed
     return render_template("profile.html", user=user, is_following=is_following)
+
+
+@login_required
+def analytics():
+    if not current_user.has_entitlement('ripple_plus'):
+        flash('Personal analytics are included with Ripple+.', 'info')
+        return redirect(url_for('payments.billing_home'))
+    authored_tweet_ids = [row[0] for row in db.session.query(Tweet.id).filter(Tweet.user_id == current_user.id).all()]
+    reposts_received = 0
+    quotes_received = 0
+    if authored_tweet_ids:
+        reposts_received = Retweet.query.filter(Retweet.tweet_id.in_(authored_tweet_ids)).count()
+        quotes_received = Quote.query.filter(Quote.tweet_id.in_(authored_tweet_ids), Quote.is_removed.is_(False)).count()
+    stats = {
+        'posts': Tweet.query.filter_by(user_id=current_user.id, is_removed=False).count(),
+        'followers': current_user.followers.count(),
+        'following': current_user.followed.count(),
+        'reposts_received': reposts_received,
+        'quotes_received': quotes_received,
+    }
+    return render_template('analytics.html', stats=stats)
 
 
 @login_required
@@ -96,32 +105,11 @@ def unfollow_from_list(user_id):
 @profiles_blueprint.record_once
 def register_profile_routes(state):
     """Register routes while retaining existing endpoint names."""
-    state.app.add_url_rule(
-        "/follow/<username>", endpoint="follow", view_func=follow, methods=["POST"]
-    )
-    state.app.add_url_rule(
-        "/unfollow/<username>",
-        endpoint="unfollow",
-        view_func=unfollow,
-        methods=["POST"],
-    )
-    state.app.add_url_rule(
-        "/profile/<username>", endpoint="profile", view_func=profile
-    )
-    state.app.add_url_rule(
-        "/profile/edit",
-        endpoint="edit_profile",
-        view_func=edit_profile,
-        methods=["GET", "POST"],
-    )
-    state.app.add_url_rule(
-        "/followers/<username>", endpoint="followers", view_func=followers
-    )
-    state.app.add_url_rule(
-        "/following/<username>", endpoint="following", view_func=following
-    )
-    state.app.add_url_rule(
-        "/unfollow_from_list/<int:user_id>",
-        endpoint="unfollow_from_list",
-        view_func=unfollow_from_list,
-    )
+    state.app.add_url_rule("/follow/<username>", endpoint="follow", view_func=follow, methods=["POST"])
+    state.app.add_url_rule("/unfollow/<username>", endpoint="unfollow", view_func=unfollow, methods=["POST"])
+    state.app.add_url_rule("/profile/<username>", endpoint="profile", view_func=profile)
+    state.app.add_url_rule("/analytics", endpoint="analytics", view_func=analytics)
+    state.app.add_url_rule("/profile/edit", endpoint="edit_profile", view_func=edit_profile, methods=["GET", "POST"])
+    state.app.add_url_rule("/followers/<username>", endpoint="followers", view_func=followers)
+    state.app.add_url_rule("/following/<username>", endpoint="following", view_func=following)
+    state.app.add_url_rule("/unfollow_from_list/<int:user_id>", endpoint="unfollow_from_list", view_func=unfollow_from_list)
