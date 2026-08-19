@@ -1,12 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Verification · Ripple{% endblock %}
 {% block content %}
-<header class="page-header"><div><h1>Identity verification</h1><small>Request a verified identity badge</small></div></header>
+<header class="page-header"><div><h1>Identity verification</h1><small>Verify who you are, then activate your badge</small></div></header>
 <section class="surface-card">
     <h2>Apply for verification</h2>
-    <p class="text-muted">Verification means Ripple has reviewed evidence that this account represents the person or organization it claims to represent. Payment alone never grants a badge.</p>
+    <p class="text-muted">Ripple first reviews evidence that this account represents the person or organization it claims to represent. Payment never grants identity verification. Once approved, a small paid subscription can activate and maintain the public Verified identity badge.</p>
+    <div class="alert alert-light border"><strong>Planned badge pricing:</strong> individuals $2.99/month or $29.99/year; organizations $7.99/month or $79.99/year. Billing checkout is not active yet.</div>
     {% if current_user.identity_verified %}
-    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> Your identity is verified.</div>
+    <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> Your identity has been approved by Ripple.</div>
+    <p class="text-muted mb-0">Paid badge activation will appear here when billing is enabled. Your identity approval remains separate from subscription status.</p>
     {% elif active_request %}
     <div class="alert alert-info">Your verification request is currently <strong>{{ active_request.status }}</strong>.</div>
     {% else %}
