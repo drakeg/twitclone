@@ -7,6 +7,7 @@ from pathlib import Path
 from flask import current_app, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
+from twitclone.analytics_tracking import record_profile_visit, snapshot_followers
 from twitclone.extensions import db
 from twitclone.models import Notification, Quote, Retweet, Tweet, User
 from twitclone.profiles import profiles_blueprint
@@ -26,7 +27,7 @@ def _store_profile_banner(upload):
 def follow(username):
     user = User.query.filter_by(username=username).first()
     if user and user not in current_user.followed:
-        current_user.followed.append(user); db.session.commit(); db.session.add(Notification(user_id=user.id, message=f"{current_user.username} followed you")); db.session.commit(); return jsonify({'status':'success','message':f'You are now following {username}.'})
+        current_user.followed.append(user); db.session.commit(); snapshot_followers(user); db.session.add(Notification(user_id=user.id, message=f"{current_user.username} followed you")); db.session.commit(); return jsonify({'status':'success','message':f'You are now following {username}.'})
     if user: return jsonify({'status':'success','message':f'You are now following {username}.'})
     return jsonify({'status':'error','message':'User not found.'})
 
@@ -35,14 +36,14 @@ def follow(username):
 def unfollow(username):
     user = User.query.filter_by(username=username).first()
     if user and user in current_user.followed:
-        current_user.followed.remove(user); db.session.commit(); db.session.add(Notification(user_id=user.id, message=f"{current_user.username} unfollowed you")); db.session.commit(); return jsonify({'status':'success','message':f'You have unfollowed {username}.'})
+        current_user.followed.remove(user); db.session.commit(); snapshot_followers(user); db.session.add(Notification(user_id=user.id, message=f"{current_user.username} unfollowed you")); db.session.commit(); return jsonify({'status':'success','message':f'You have unfollowed {username}.'})
     if user: return jsonify({'status':'success','message':f'You have unfollowed {username}.'})
     return jsonify({'status':'error','message':'User not found.'})
 
 
 @login_required
 def profile(username):
-    user = User.query.filter_by(username=username).first_or_404(); is_following = user in current_user.followed; premium_profile_active = user.has_entitlement('ripple_plus')
+    user = User.query.filter_by(username=username).first_or_404(); record_profile_visit(user); is_following = user in current_user.followed; premium_profile_active = user.has_entitlement('ripple_plus')
     return render_template('profile.html', user=user, is_following=is_following, premium_profile_active=premium_profile_active)
 
 
@@ -110,7 +111,7 @@ def following(username):
 @login_required
 def unfollow_from_list(user_id):
     user=db.get_or_404(User,user_id)
-    if user in current_user.followed: current_user.followed.remove(user); db.session.commit(); flash(f'You have unfollowed {user.username}.','success')
+    if user in current_user.followed: current_user.followed.remove(user); db.session.commit(); snapshot_followers(user); flash(f'You have unfollowed {user.username}.','success')
     return redirect(url_for('following',username=current_user.username))
 
 
