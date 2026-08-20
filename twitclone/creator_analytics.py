@@ -6,7 +6,7 @@ from collections import Counter
 from datetime import UTC, date, datetime, timedelta
 import re
 
-from sqlalchemy import func
+from sqlalchemy import false, func
 
 from twitclone.analytics_models import FollowerSnapshot, PostImpression, ProfileVisit
 from twitclone.extensions import db
@@ -100,10 +100,11 @@ def _follower_growth(user, start: date, end: date):
         complete = False
         baseline_date = observed[0].snapshot_date
     else:
+        current_count = user.followers.count()
         return {
             'growth': 0,
-            'start_count': user.followers.count(),
-            'end_count': user.followers.count(),
+            'start_count': current_count,
+            'end_count': current_count,
             'baseline_date': None,
             'complete': False,
         }
@@ -140,43 +141,39 @@ def build_creator_dashboard(user, raw_days=None):
     current_complete = bool(first_tracking_date and first_tracking_date <= start)
     previous_complete = bool(first_tracking_date and first_tracking_date <= previous_start)
 
-    impression_counts = Counter(
-        dict(
-            db.session.query(PostImpression.tweet_id, func.count(PostImpression.id))
-            .filter(
-                PostImpression.author_id == user.id,
-                PostImpression.impression_date >= start,
-                PostImpression.impression_date <= end,
-            )
-            .group_by(PostImpression.tweet_id)
-            .all()
+    impression_counts = Counter(dict(
+        db.session.query(PostImpression.tweet_id, func.count(PostImpression.id))
+        .filter(
+            PostImpression.author_id == user.id,
+            PostImpression.impression_date >= start,
+            PostImpression.impression_date <= end,
         )
-    )
-    repost_counts = Counter(
-        dict(
-            db.session.query(Retweet.tweet_id, func.count(Retweet.id))
-            .filter(
-                Retweet.tweet_id.in_(tweet_ids) if tweet_ids else db.false(),
-                Retweet.timestamp >= datetime.combine(start, datetime.min.time()),
-                Retweet.timestamp < datetime.combine(end + timedelta(days=1), datetime.min.time()),
-            )
-            .group_by(Retweet.tweet_id)
-            .all()
+        .group_by(PostImpression.tweet_id)
+        .all()
+    ))
+    id_filter = Retweet.tweet_id.in_(tweet_ids) if tweet_ids else false()
+    repost_counts = Counter(dict(
+        db.session.query(Retweet.tweet_id, func.count(Retweet.id))
+        .filter(
+            id_filter,
+            Retweet.timestamp >= datetime.combine(start, datetime.min.time()),
+            Retweet.timestamp < datetime.combine(end + timedelta(days=1), datetime.min.time()),
         )
-    )
-    quote_counts = Counter(
-        dict(
-            db.session.query(Quote.tweet_id, func.count(Quote.id))
-            .filter(
-                Quote.tweet_id.in_(tweet_ids) if tweet_ids else db.false(),
-                Quote.is_removed.is_(False),
-                Quote.timestamp >= datetime.combine(start, datetime.min.time()),
-                Quote.timestamp < datetime.combine(end + timedelta(days=1), datetime.min.time()),
-            )
-            .group_by(Quote.tweet_id)
-            .all()
+        .group_by(Retweet.tweet_id)
+        .all()
+    ))
+    quote_filter = Quote.tweet_id.in_(tweet_ids) if tweet_ids else false()
+    quote_counts = Counter(dict(
+        db.session.query(Quote.tweet_id, func.count(Quote.id))
+        .filter(
+            quote_filter,
+            Quote.is_removed.is_(False),
+            Quote.timestamp >= datetime.combine(start, datetime.min.time()),
+            Quote.timestamp < datetime.combine(end + timedelta(days=1), datetime.min.time()),
         )
-    )
+        .group_by(Quote.tweet_id)
+        .all()
+    ))
 
     post_performance = []
     hashtag_posts = Counter()
@@ -214,8 +211,6 @@ def build_creator_dashboard(user, raw_days=None):
             'engagement_rate': round((tag_engagements / tag_impressions) * 100, 2) if tag_impressions else 0,
         })
 
-    follower_growth = _follower_growth(user, start, end)
-
     return {
         'days': days,
         'range_start': start,
@@ -238,7 +233,7 @@ def build_creator_dashboard(user, raw_days=None):
             'engagements': previous_engagements,
             'engagement_rate': previous_engagement_rate,
         },
-        'follower_growth': follower_growth,
+        'follower_growth': _follower_growth(user, start, end),
         'post_performance': post_performance,
         'hashtag_performance': hashtag_performance,
     }
