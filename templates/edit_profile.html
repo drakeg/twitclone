@@ -5,39 +5,19 @@
 <section class="surface-card">
 <form method="POST" action="{{ url_for('edit_profile') }}" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <div class="mb-3">
-        <label for="username" class="form-label">Username</label>
-        <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required>
-    </div>
-    <div class="mb-3">
-        <label for="email" class="form-label">Email</label>
-        <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
-    </div>
-    <div class="mb-3">
-        <label for="bio" class="form-label">Bio</label>
-        <textarea class="form-control" id="bio" name="bio" rows="3">{{ user.bio or '' }}</textarea>
-    </div>
-
+    <div class="mb-3"><label for="username" class="form-label">Username</label><input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required></div>
+    <div class="mb-3"><label for="email" class="form-label">Email</label><input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required></div>
+    <div class="mb-3"><label for="bio" class="form-label">Bio</label><textarea class="form-control" id="bio" name="bio" rows="3">{{ user.bio or '' }}</textarea></div>
     <div class="border-top pt-4 mt-4">
-        <div class="d-flex justify-content-between align-items-start gap-3 mb-3"><div><h2 class="h5 mb-1">Ripple+ profile customization</h2><p class="text-muted mb-0">Choose a profile theme and add a banner image.</p></div>{% if ripple_plus %}<span class="badge text-bg-primary">Ripple+</span>{% endif %}</div>
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-3"><div><h2 class="h5 mb-1">Profile customization</h2><p class="text-muted mb-0">Make your profile more distinctive with a theme and header image.</p></div>{% if ripple_plus %}<span class="badge text-bg-primary">Ripple+</span>{% else %}<span class="badge text-bg-light"><i class="fa-solid fa-lock"></i> Ripple+</span>{% endif %}</div>
         {% if ripple_plus %}
-        <div class="mb-3">
-            <label for="profile_theme" class="form-label">Profile theme</label>
-            <select class="form-select" id="profile_theme" name="profile_theme">
-                {% for key, label in profile_themes.items() %}<option value="{{ key }}" {% if user.profile_theme == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
-            </select>
-        </div>
-        <div class="mb-3">
-            <label for="profile_banner" class="form-label">Profile banner</label>
-            <input class="form-control" type="file" id="profile_banner" name="profile_banner" accept="image/png,image/jpeg,image/gif">
-            <div class="form-text">PNG, JPEG, or GIF; maximum 5 MB.</div>
-        </div>
+        <div class="mb-3"><label for="profile_theme" class="form-label">Profile theme</label><select class="form-select" id="profile_theme" name="profile_theme">{% for key, label in profile_themes.items() %}<option value="{{ key }}" {% if user.profile_theme == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="mb-3"><label for="profile_banner" class="form-label">Profile banner</label><input class="form-control" type="file" id="profile_banner" name="profile_banner" accept="image/png,image/jpeg,image/gif"><div class="form-text">PNG, JPEG, or GIF; maximum 5 MB.</div></div>
         {% if user.profile_banner %}<div class="form-check mb-3"><input class="form-check-input" type="checkbox" value="1" id="remove_banner" name="remove_banner"><label class="form-check-label" for="remove_banner">Remove current banner</label></div>{% endif %}
         {% else %}
-        <div class="alert alert-light border mb-0">Profile themes and banner images are included with Ripple+. <a href="{{ url_for('payments.billing_home') }}">View Ripple+ plans</a>.</div>
+        <div class="border rounded p-3 bg-light"><strong>Included with Ripple+</strong><p class="text-muted mt-2 mb-2">Unlock five curated profile themes and your own banner image. Your normal profile, bio, and avatar stay free.</p><a class="btn btn-sm btn-primary" href="{{ url_for('payments.billing_home') }}">See Ripple+ options</a></div>
         {% endif %}
     </div>
-
     <button type="submit" class="btn btn-primary mt-4">Update Profile</button>
 </form>
 </section>
