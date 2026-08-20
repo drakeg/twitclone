@@ -36,27 +36,31 @@ def test_creator_analytics_requires_entitlement(app, client):
     assert '/billing' in response.headers['Location']
 
 
-def test_creator_analytics_uses_measured_range_data(app, client):
+def test_creator_analytics_uses_measured_range_data_and_insights(app, client):
     today = datetime.now(UTC).date()
     now = datetime.now(UTC).replace(tzinfo=None)
     with app.app_context():
         creator = User(username='creatorpro', email='creatorpro@example.com', password='hash')
         fan = User(username='fan', email='fan@example.com', password='hash')
-        db.session.add_all([creator, fan])
+        other = User(username='otherfan', email='otherfan@example.com', password='hash')
+        db.session.add_all([creator, fan, other])
         db.session.commit()
         grant_entitlement(creator, 'creator_pro', source='admin')
-        tweet = Tweet(content='Testing #Travel #RV', user_id=creator.id, timestamp=now - timedelta(days=2))
-        db.session.add(tweet)
+        strong = Tweet(content='Testing #Travel #RV', user_id=creator.id, timestamp=now - timedelta(days=2))
+        baseline = Tweet(content='General update #News', user_id=creator.id, timestamp=now - timedelta(days=3))
+        db.session.add_all([strong, baseline])
         db.session.commit()
 
         db.session.add_all([
-            PostImpression(tweet_id=tweet.id, author_id=creator.id, viewer_user_id=fan.id, viewer_key=f'user:{fan.id}', impression_date=today - timedelta(days=2)),
-            PostImpression(tweet_id=tweet.id, author_id=creator.id, viewer_user_id=None, viewer_key='anon:test', impression_date=today - timedelta(days=1)),
+            PostImpression(tweet_id=strong.id, author_id=creator.id, viewer_user_id=fan.id, viewer_key=f'user:{fan.id}', impression_date=today - timedelta(days=2)),
+            PostImpression(tweet_id=strong.id, author_id=creator.id, viewer_user_id=other.id, viewer_key=f'user:{other.id}', impression_date=today - timedelta(days=1)),
+            PostImpression(tweet_id=baseline.id, author_id=creator.id, viewer_user_id=fan.id, viewer_key='baseline:1', impression_date=today - timedelta(days=2)),
+            PostImpression(tweet_id=baseline.id, author_id=creator.id, viewer_user_id=other.id, viewer_key='baseline:2', impression_date=today - timedelta(days=1)),
             ProfileVisit(profile_user_id=creator.id, visitor_user_id=fan.id, visitor_key=f'user:{fan.id}', visit_date=today - timedelta(days=1)),
             FollowerSnapshot(user_id=creator.id, snapshot_date=today - timedelta(days=8), follower_count=3),
             FollowerSnapshot(user_id=creator.id, snapshot_date=today - timedelta(days=1), follower_count=5),
-            Retweet(user_id=fan.id, tweet_id=tweet.id, timestamp=now - timedelta(days=1)),
-            Quote(user_id=fan.id, tweet_id=tweet.id, content='Useful', timestamp=now - timedelta(days=1)),
+            Retweet(user_id=fan.id, tweet_id=strong.id, timestamp=now - timedelta(days=1)),
+            Quote(user_id=other.id, tweet_id=strong.id, content='Useful', timestamp=now - timedelta(days=1)),
         ])
         db.session.commit()
         creator_id = creator.id
@@ -72,8 +76,14 @@ def test_creator_analytics_uses_measured_range_data(app, client):
     assert 'Impressions' in text
     assert 'Profile visits' in text
     assert 'Engagement rate' in text
-    assert '100.0%' in text
     assert 'Follower growth' in text
+    assert 'Performance insights' in text
+    assert 'What Ripple sees' in text
+    assert 'Top measured posts' in text
+    assert 'Top measured hashtags' in text
+    assert 'Above average' in text
+    assert 'posts/week' in text
+    assert '#travel posts are outperforming your measured average' in text
     assert 'Partial history' not in text
 
 
@@ -88,13 +98,7 @@ def test_creator_analytics_marks_incomplete_history_and_defaults_invalid_range(a
         tweet = Tweet(content='Fresh post', user_id=creator.id)
         db.session.add(tweet)
         db.session.commit()
-        db.session.add(PostImpression(
-            tweet_id=tweet.id,
-            author_id=creator.id,
-            viewer_user_id=viewer.id,
-            viewer_key=f'user:{viewer.id}',
-            impression_date=today,
-        ))
+        db.session.add(PostImpression(tweet_id=tweet.id, author_id=creator.id, viewer_user_id=viewer.id, viewer_key=f'user:{viewer.id}', impression_date=today))
         db.session.commit()
         creator_id = creator.id
 
@@ -105,3 +109,21 @@ def test_creator_analytics_marks_incomplete_history_and_defaults_invalid_range(a
     assert '30 days' in text
     assert 'Partial history.' in text
     assert 'A complete previous 30-day window is not available yet.' in text
+    assert 'Posts need measured impressions before Ripple can identify reliable performance patterns.' not in text
+
+
+def test_creator_insights_do_not_make_unmeasured_performance_claims(app, client):
+    with app.app_context():
+        creator = User(username='quietcreator', email='quietcreator@example.com', password='hash')
+        db.session.add(creator)
+        db.session.commit()
+        grant_entitlement(creator, 'creator_pro', source='admin')
+        db.session.add(Tweet(content='No measured traffic #Topic', user_id=creator.id))
+        db.session.commit()
+        creator_id = creator.id
+
+    _login(client, creator_id)
+    text = client.get('/creator/analytics?days=7').get_data(as_text=True)
+    assert 'Posts need measured impressions before Ripple can identify reliable performance patterns.' in text
+    assert 'outperforming your measured average' not in text
+    assert 'Top measured posts' not in text
