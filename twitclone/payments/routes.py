@@ -44,9 +44,25 @@ def _sync_subscription_object(obj):
 @payments_blueprint.route('/billing')
 @login_required
 def billing_home():
-    ensure_default_plans(); plans = Plan.query.filter_by(active=True).order_by(Plan.amount_cents.asc()).all(); eligible_plans = [plan for plan in plans if _eligible_plan(plan)]
+    ensure_default_plans()
+    plans = Plan.query.filter_by(active=True).order_by(Plan.amount_cents.asc()).all()
+    eligible_plans = [plan for plan in plans if _eligible_plan(plan)]
     subscriptions = Subscription.query.filter_by(user_id=current_user.id).order_by(Subscription.created_at.desc()).all()
-    return render_template('billing.html', plans=eligible_plans, subscriptions=subscriptions, stripe_enabled=_stripe_ready())
+    active_entitlements = {
+        key: current_user.has_entitlement(key)
+        for key in ('ripple_plus', 'creator_pro', 'verified_badge')
+    }
+    billing_interval = request.args.get('interval', 'month').lower()
+    if billing_interval not in {'month', 'year'}:
+        billing_interval = 'month'
+    return render_template(
+        'billing.html',
+        plans=eligible_plans,
+        subscriptions=subscriptions,
+        stripe_enabled=_stripe_ready(),
+        active_entitlements=active_entitlements,
+        billing_interval=billing_interval,
+    )
 
 
 @payments_blueprint.route('/billing/checkout/<plan_key>', methods=['POST'])
