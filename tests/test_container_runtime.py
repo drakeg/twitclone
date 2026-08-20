@@ -11,7 +11,7 @@ def read_project_file(name):
 def test_gunicorn_is_an_exact_runtime_dependency():
     requirements = read_project_file("requirements.txt").splitlines()
 
-    assert "gunicorn==26.0.0" in requirements
+    assert "gunicorn==26.1.0" in requirements
     assert "psycopg[binary]==3.3.4" in requirements
 
 

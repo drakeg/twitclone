@@ -6,7 +6,14 @@ from flask import flash, redirect, render_template, request, url_for
 from flask_login import login_required, login_user, logout_user
 
 from twitclone.auth import auth_blueprint
-from twitclone.auth.recovery import generate_reset_token, send_recovery_email, verify_reset_token
+from sqlalchemy.exc import IntegrityError
+
+from twitclone.auth.recovery import (
+    generate_reset_token,
+    reset_token_matches_password,
+    send_recovery_email,
+    verify_reset_token,
+)
 from twitclone.community.routes import COMMUNITY_GUIDELINES_VERSION
 from twitclone.extensions import bcrypt, db
 from twitclone.models import User
@@ -20,6 +27,9 @@ def register():
         if request.form.get("community_standards") != "yes":
             flash("You must agree to the Ripple Community Standards to create an account.", "danger")
             return render_template("register.html")
+        if User.query.filter(db.or_(User.username == username, User.email == email)).first():
+            flash("That username or email is already registered.", "danger")
+            return render_template("register.html")
         hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
         user = User(
             username=username,
@@ -29,7 +39,12 @@ def register():
             community_guidelines_accepted_at=datetime.now(UTC).replace(tzinfo=None),
         )
         db.session.add(user)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            flash("That username or email is already registered.", "danger")
+            return render_template("register.html")
         flash("Your account has been created!", "success")
         return redirect(url_for("login"))
     return render_template("register.html")
@@ -52,7 +67,7 @@ def forgot_account():
         email = (request.form.get("email") or "").strip().lower()
         user = User.query.filter(db.func.lower(User.email) == email).first() if email else None
         if user:
-            token = generate_reset_token(user.email)
+            token = generate_reset_token(user.email, user.password)
             reset_url = url_for("reset_password", token=token, _external=True)
             send_recovery_email(
                 recipient=user.email,
@@ -68,13 +83,13 @@ def forgot_account():
 
 
 def reset_password(token):
-    email = verify_reset_token(token)
-    if email is None:
+    payload = verify_reset_token(token)
+    if payload is None:
         flash("That password reset link is invalid or has expired.", "danger")
         return redirect(url_for("forgot_account"))
 
-    user = User.query.filter_by(email=email).first()
-    if user is None:
+    user = User.query.filter_by(email=payload["email"]).first()
+    if user is None or not reset_token_matches_password(payload, user.password):
         flash("That password reset link is invalid or has expired.", "danger")
         return redirect(url_for("forgot_account"))
 

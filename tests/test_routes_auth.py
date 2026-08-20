@@ -22,7 +22,7 @@ def test_auth_blueprint_owns_legacy_routes(app):
 def test_registration_hashes_password_and_preserves_redirect(client, app):
     response = client.post(
         "/register",
-        data={"username": "alice", "email": "alice@example.com", "password": "secret"},
+        data={"username": "alice", "email": "alice@example.com", "password": "secret", "community_standards": "yes"},
     )
 
     assert response.status_code == 302
@@ -52,6 +52,18 @@ def test_login_and_logout_preserve_redirects(client, app):
     logout_response = client.get("/logout")
     assert logout_response.status_code == 302
     assert logout_response.headers["Location"] == "/login"
+
+
+def test_duplicate_registration_renders_validation_error(client, app):
+    data = {"username": "alice", "email": "alice@example.com", "password": "secret", "community_standards": "yes"}
+    assert client.post("/register", data=data).status_code == 302
+
+    duplicate = client.post("/register", data=data)
+
+    assert duplicate.status_code == 200
+    assert b"already registered" in duplicate.data
+    with app.app_context():
+        assert User.query.count() == 1
 
 
 def test_invalid_login_renders_existing_template(client):

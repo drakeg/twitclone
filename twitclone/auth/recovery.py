@@ -1,6 +1,7 @@
 """Password-recovery token and email helpers."""
 
 from email.message import EmailMessage
+import hashlib
 import smtplib
 import ssl
 
@@ -11,21 +12,35 @@ from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 RESET_SALT = "ripple-password-reset"
 
 
-def generate_reset_token(email: str) -> str:
+def _password_fingerprint(password_hash: str) -> str:
+    return hashlib.sha256(password_hash.encode("utf-8")).hexdigest()
+
+
+def generate_reset_token(email: str, password_hash: str) -> str:
     serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
-    return serializer.dumps(email, salt=RESET_SALT)
+    return serializer.dumps(
+        {"email": email, "password": _password_fingerprint(password_hash)},
+        salt=RESET_SALT,
+    )
 
 
-def verify_reset_token(token: str) -> str | None:
+def verify_reset_token(token: str) -> dict[str, str] | None:
     serializer = URLSafeTimedSerializer(current_app.config["SECRET_KEY"])
     try:
-        return serializer.loads(
+        payload = serializer.loads(
             token,
             salt=RESET_SALT,
             max_age=current_app.config["PASSWORD_RESET_MAX_AGE_SECONDS"],
         )
+        if not isinstance(payload, dict) or set(payload) != {"email", "password"}:
+            return None
+        return payload
     except (BadSignature, SignatureExpired):
         return None
+
+
+def reset_token_matches_password(payload: dict[str, str], password_hash: str) -> bool:
+    return payload["password"] == _password_fingerprint(password_hash)
 
 
 def send_recovery_email(*, recipient: str, username: str, reset_url: str) -> None:

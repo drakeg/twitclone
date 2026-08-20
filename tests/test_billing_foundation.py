@@ -17,7 +17,7 @@ def test_default_plans_are_idempotent(app):
     with app.app_context():
         ensure_default_plans()
         ensure_default_plans()
-        assert Plan.query.count() == 6
+        assert Plan.query.count() == 8
         monthly = Plan.query.filter_by(key='verified_individual_monthly').one()
         yearly = Plan.query.filter_by(key='verified_individual_yearly').one()
         org = Plan.query.filter_by(key='verified_organization_monthly').one()
@@ -64,4 +64,4 @@ def test_seed_billing_plans_cli_is_safe_to_repeat(app):
     assert first.exit_code == 0
     assert second.exit_code == 0
     with app.app_context():
-        assert Plan.query.count() == 6
+        assert Plan.query.count() == 8

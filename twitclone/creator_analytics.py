@@ -221,7 +221,7 @@ def build_creator_dashboard(user, raw_days=None):
         post_engagements = post_reposts + post_quotes
         post_rate = round((post_engagements / post_impressions) * 100, 2) if post_impressions else 0
         post_performance.append({'tweet': tweet, 'impressions': post_impressions, 'reposts': post_reposts, 'quotes': post_quotes, 'engagements': post_engagements, 'engagement_rate': post_rate})
-        tags = {tag.lower() for tag in HASHTAG_RE.findall(tweet.content or '')}
+        tags = dict.fromkeys(tag.lower() for tag in HASHTAG_RE.findall(tweet.content or ''))
         for tag in tags:
             hashtag_posts[tag] += 1; hashtag_impressions[tag] += post_impressions; hashtag_engagements[tag] += post_engagements
 

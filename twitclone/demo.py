@@ -75,13 +75,15 @@ def seed_demo_content(*, seed: int = 2026) -> dict[str, int]:
                 db.session.add(Follows(follower_id=follower.id, followed_id=followed.id)); created_follows += 1
     for user in rng.sample(user_list, k=min(4, len(user_list))):
         target = rng.choice([tweet for tweet in posts if tweet.user_id != user.id])
+        age_minutes = rng.randint(3, 90)
         if Retweet.query.filter_by(user_id=user.id, tweet_id=target.id).first() is None:
-            db.session.add(Retweet(user_id=user.id, tweet_id=target.id, timestamp=now-timedelta(minutes=rng.randint(3,90)))); created_reposts += 1
+            db.session.add(Retweet(user_id=user.id, tweet_id=target.id, timestamp=now-timedelta(minutes=age_minutes))); created_reposts += 1
     quote_texts = ("This is exactly the kind of thing I come here for.", "Adding this to the weekend list.", "Strong agreement from me.")
     for user in rng.sample(user_list, k=min(3, len(user_list))):
         target = rng.choice([tweet for tweet in posts if tweet.user_id != user.id]); content = rng.choice(quote_texts)
+        age_minutes = rng.randint(2, 75)
         if Quote.query.filter_by(user_id=user.id, tweet_id=target.id, content=content).first() is None:
-            db.session.add(Quote(user_id=user.id, tweet_id=target.id, content=content, timestamp=now-timedelta(minutes=rng.randint(2,75)))); created_quotes += 1
+            db.session.add(Quote(user_id=user.id, tweet_id=target.id, content=content, timestamp=now-timedelta(minutes=age_minutes))); created_quotes += 1
     db.session.commit()
     return {"users": created_users, "posts": created_posts, "follows": created_follows, "reposts": created_reposts, "quotes": created_quotes}
 
