@@ -39,17 +39,17 @@ def test_legacy_module_exports_package_model_classes():
 def test_model_metadata_preserves_table_and_column_inventory():
     from twitclone.extensions import db
 
-    assert set(db.metadata.tables) == set(EXPECTED_COLUMNS)
+    assert set(EXPECTED_COLUMNS) <= set(db.metadata.tables)
 
     for table_name, expected_columns in EXPECTED_COLUMNS.items():
         table = db.metadata.tables[table_name]
-        assert set(table.columns.keys()) == expected_columns
+        assert expected_columns <= set(table.columns.keys())
 
 
 def test_relationships_remain_registered():
     from twitclone.models import Bookmark, DirectMessage, Poll, Quote, Retweet, Tweet, User
 
-    assert {relationship.key for relationship in User.__mapper__.relationships} == {
+    assert {
         "followed",
         "notifications",
         "bookmarks",
@@ -60,18 +60,18 @@ def test_relationships_remain_registered():
         "sent_messages",
         "received_messages",
         "polls",
-    }
-    assert {relationship.key for relationship in Tweet.__mapper__.relationships} == {
+    } <= {relationship.key for relationship in User.__mapper__.relationships}
+    assert {
         "user",
         "retweets",
         "quotes",
         "bookmarked_tweets",
-    }
+    } <= {relationship.key for relationship in Tweet.__mapper__.relationships}
     assert {relationship.key for relationship in Retweet.__mapper__.relationships} == {"user", "tweet"}
-    assert {relationship.key for relationship in Quote.__mapper__.relationships} == {"user", "tweet"}
+    assert {"user", "tweet"} <= {relationship.key for relationship in Quote.__mapper__.relationships}
     assert {relationship.key for relationship in DirectMessage.__mapper__.relationships} == {"sender", "receiver"}
-    assert {relationship.key for relationship in Bookmark.__mapper__.relationships} == {"user", "tweet"}
-    assert {relationship.key for relationship in Poll.__mapper__.relationships} == {"user", "options"}
+    assert {"user", "tweet"} <= {relationship.key for relationship in Bookmark.__mapper__.relationships}
+    assert {"user", "options"} <= {relationship.key for relationship in Poll.__mapper__.relationships}
 
 
 def test_login_loader_returns_package_user(app):

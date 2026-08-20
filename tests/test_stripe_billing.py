@@ -34,12 +34,14 @@ def test_unverified_user_cannot_start_badge_checkout(client, app):
 
 
 def test_approved_identity_sees_eligible_plans_without_collecting_money(client, app):
+    app.config['STRIPE_BILLING_ENABLED'] = False
     user_id = _user(app, 'approved', verified=True)
     _login(client, user_id)
     response = client.get('/billing')
     assert response.status_code == 200
     assert b'$2.99' in response.data
-    assert b'$29.99' in response.data
+    annual = client.get('/billing?interval=year')
+    assert b'$29.99' in annual.data
     assert b'Stripe billing is disabled' in response.data
 
 

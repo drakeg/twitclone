@@ -33,7 +33,8 @@ def test_ripple_plus_plans_are_available_without_identity_verification(client, a
     assert response.status_code == 200
     assert b'Ripple+' in response.data
     assert b'$4.99' in response.data
-    assert b'$49.99' in response.data
+    annual = client.get('/billing?interval=year')
+    assert b'$49.99' in annual.data
 
 
 def test_free_account_schedule_is_limited_to_seven_days(client, app):

@@ -37,7 +37,8 @@ def test_mention_notification_links_to_exact_post(client, app):
 
     detail = client.get(f"/post/{tweet_id}")
     assert detail.status_code == 200
-    assert b"This is the exact @bob mention." in detail.data
+    assert b"This is the exact " in detail.data
+    assert b'href="/profile/bob">@bob</a> mention.' in detail.data
 
 
 def test_repost_notification_links_to_original_post(client, app):

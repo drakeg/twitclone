@@ -42,7 +42,8 @@ def test_recovery_request_does_not_disclose_account_existence(client, app):
 def test_valid_reset_token_changes_password(client, app):
     _create_user(app)
     with app.app_context():
-        token = generate_reset_token("alice@example.com")
+        user = User.query.filter_by(email="alice@example.com").one()
+        token = generate_reset_token(user.email, user.password)
 
     response = client.post(
         f"/reset-password/{token}",
@@ -50,6 +51,16 @@ def test_valid_reset_token_changes_password(client, app):
     )
     assert response.status_code == 302
     assert response.headers["Location"] == "/login"
+    with app.app_context():
+        user = User.query.filter_by(email="alice@example.com").one()
+        assert bcrypt.check_password_hash(user.password, "new-password")
+
+    replay = client.post(
+        f"/reset-password/{token}",
+        data={"password": "attacker-password", "password_confirm": "attacker-password"},
+    )
+    assert replay.status_code == 302
+    assert replay.headers["Location"] == "/forgot-account"
     with app.app_context():
         user = User.query.filter_by(email="alice@example.com").one()
         assert bcrypt.check_password_hash(user.password, "new-password")

@@ -38,8 +38,9 @@ def test_free_user_sees_ripple_plus_customization_upsell(client, app):
     _login(client, user_id)
     response = client.get('/profile/edit')
     assert response.status_code == 200
-    assert b'Ripple+ profile customization' in response.data
-    assert b'View Ripple+ plans' in response.data
+    assert b'Profile customization' in response.data
+    assert b'Included with Ripple+' in response.data
+    assert b'See Ripple+ options' in response.data
     assert b'name="profile_theme"' not in response.data
 
 

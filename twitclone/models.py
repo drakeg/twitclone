@@ -292,3 +292,20 @@ class ScheduledPost(db.Model):
     scheduled_at = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, default=_utcnow)
     user = db.relationship('User', backref=db.backref('scheduled_posts', lazy=True))
+
+
+__all__ = [
+    'Bookmark',
+    'DirectMessage',
+    'Follows',
+    'HashtagFollow',
+    'Notification',
+    'Poll',
+    'PollOption',
+    'PollVote',
+    'PostReport',
+    'Quote',
+    'Retweet',
+    'Tweet',
+    'User',
+]
