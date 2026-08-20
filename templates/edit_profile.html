@@ -1,7 +1,10 @@
 {% extends "base.html" %}
+{% block title %}Edit profile · Ripple{% endblock %}
 {% block content %}
-<h2>Edit Profile</h2>
-<form method="POST" action="{{ url_for('edit_profile') }}">
+<header class="page-header"><div><h1>Edit profile</h1><small>Update your public Ripple profile</small></div></header>
+<section class="surface-card">
+<form method="POST" action="{{ url_for('edit_profile') }}" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="mb-3">
         <label for="username" class="form-label">Username</label>
         <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required>
@@ -12,8 +15,30 @@
     </div>
     <div class="mb-3">
         <label for="bio" class="form-label">Bio</label>
-        <textarea class="form-control" id="bio" name="bio" rows="3">{{ user.bio }}</textarea>
+        <textarea class="form-control" id="bio" name="bio" rows="3">{{ user.bio or '' }}</textarea>
     </div>
-    <button type="submit" class="btn btn-primary">Update Profile</button>
+
+    <div class="border-top pt-4 mt-4">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-3"><div><h2 class="h5 mb-1">Ripple+ profile customization</h2><p class="text-muted mb-0">Choose a profile theme and add a banner image.</p></div>{% if ripple_plus %}<span class="badge text-bg-primary">Ripple+</span>{% endif %}</div>
+        {% if ripple_plus %}
+        <div class="mb-3">
+            <label for="profile_theme" class="form-label">Profile theme</label>
+            <select class="form-select" id="profile_theme" name="profile_theme">
+                {% for key, label in profile_themes.items() %}<option value="{{ key }}" {% if user.profile_theme == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="profile_banner" class="form-label">Profile banner</label>
+            <input class="form-control" type="file" id="profile_banner" name="profile_banner" accept="image/png,image/jpeg,image/gif">
+            <div class="form-text">PNG, JPEG, or GIF; maximum 5 MB.</div>
+        </div>
+        {% if user.profile_banner %}<div class="form-check mb-3"><input class="form-check-input" type="checkbox" value="1" id="remove_banner" name="remove_banner"><label class="form-check-label" for="remove_banner">Remove current banner</label></div>{% endif %}
+        {% else %}
+        <div class="alert alert-light border mb-0">Profile themes and banner images are included with Ripple+. <a href="{{ url_for('payments.billing_home') }}">View Ripple+ plans</a>.</div>
+        {% endif %}
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-4">Update Profile</button>
 </form>
+</section>
 {% endblock %}
