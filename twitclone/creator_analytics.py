@@ -101,21 +101,76 @@ def _follower_growth(user, start: date, end: date):
         baseline_date = observed[0].snapshot_date
     else:
         current_count = user.followers.count()
-        return {
-            'growth': 0,
-            'start_count': current_count,
-            'end_count': current_count,
-            'baseline_date': None,
-            'complete': False,
-        }
+        return {'growth': 0, 'start_count': current_count, 'end_count': current_count, 'baseline_date': None, 'complete': False}
 
     end_count = observed[-1].follower_count if observed else user.followers.count()
+    return {'growth': end_count - start_count, 'start_count': start_count, 'end_count': end_count, 'baseline_date': baseline_date, 'complete': complete}
+
+
+def _build_insights(*, post_performance, hashtag_performance, range_posts, days):
+    measured_posts = [item for item in post_performance if item['impressions'] > 0]
+    total_impressions = sum(item['impressions'] for item in measured_posts)
+    total_engagements = sum(item['engagements'] for item in measured_posts)
+    account_rate = round((total_engagements / total_impressions) * 100, 2) if total_impressions else 0
+
+    ranked = sorted(
+        measured_posts,
+        key=lambda item: (item['engagement_rate'], item['engagements'], item['impressions']),
+        reverse=True,
+    )
+    top_posts = ranked[:3]
+    above_average_posts = [
+        item for item in ranked
+        if account_rate > 0 and item['engagement_rate'] > account_rate
+    ][:5]
+
+    measured_hashtags = [item for item in hashtag_performance if item['impressions'] > 0]
+    top_hashtags = sorted(
+        measured_hashtags,
+        key=lambda item: (item['engagement_rate'], item['engagements'], item['impressions']),
+        reverse=True,
+    )[:3]
+
+    posting_days = len({tweet.timestamp.date() for tweet in range_posts})
+    posts_in_range = len(range_posts)
+    posts_per_week = round((posts_in_range / days) * 7, 1) if days else 0
+
+    recommendations = []
+    if top_posts:
+        leader = top_posts[0]
+        if account_rate and leader['engagement_rate'] > account_rate:
+            recommendations.append(
+                f"Your top measured post earned a {leader['engagement_rate']}% engagement rate versus your {account_rate}% measured average."
+            )
+    if top_hashtags:
+        leader = top_hashtags[0]
+        if account_rate and leader['engagement_rate'] > account_rate:
+            recommendations.append(
+                f"#{leader['tag']} posts are outperforming your measured average ({leader['engagement_rate']}% vs {account_rate}%)."
+            )
+    if posts_in_range == 0:
+        recommendations.append("No posts were published in this reporting window, so posting-cadence insights are not available yet.")
+    elif posting_days == 1 and days >= 7:
+        recommendations.append("Most posting activity in this window occurred on a single day. More consistent posting would provide better data for cadence comparisons.")
+    elif posts_per_week < 1 and days >= 30:
+        recommendations.append("Posting frequency is below one post per week in this window, so performance patterns are based on limited publishing activity.")
+
+    if not recommendations and measured_posts:
+        recommendations.append("No clear outlier is strong enough to call out yet. Keep collecting measured traffic before changing your content strategy.")
+    elif not measured_posts:
+        recommendations.append("Posts need measured impressions before Ripple can identify reliable performance patterns.")
+
     return {
-        'growth': end_count - start_count,
-        'start_count': start_count,
-        'end_count': end_count,
-        'baseline_date': baseline_date,
-        'complete': complete,
+        'account_engagement_rate': account_rate,
+        'top_posts': top_posts,
+        'above_average_posts': above_average_posts,
+        'top_hashtags': top_hashtags,
+        'posting_summary': {
+            'posts': posts_in_range,
+            'active_days': posting_days,
+            'posts_per_week': posts_per_week,
+        },
+        'recommendations': recommendations,
     }
 
 
@@ -143,73 +198,42 @@ def build_creator_dashboard(user, raw_days=None):
 
     impression_counts = Counter(dict(
         db.session.query(PostImpression.tweet_id, func.count(PostImpression.id))
-        .filter(
-            PostImpression.author_id == user.id,
-            PostImpression.impression_date >= start,
-            PostImpression.impression_date <= end,
-        )
-        .group_by(PostImpression.tweet_id)
-        .all()
+        .filter(PostImpression.author_id == user.id, PostImpression.impression_date >= start, PostImpression.impression_date <= end)
+        .group_by(PostImpression.tweet_id).all()
     ))
     id_filter = Retweet.tweet_id.in_(tweet_ids) if tweet_ids else false()
     repost_counts = Counter(dict(
         db.session.query(Retweet.tweet_id, func.count(Retweet.id))
-        .filter(
-            id_filter,
-            Retweet.timestamp >= datetime.combine(start, datetime.min.time()),
-            Retweet.timestamp < datetime.combine(end + timedelta(days=1), datetime.min.time()),
-        )
-        .group_by(Retweet.tweet_id)
-        .all()
+        .filter(id_filter, Retweet.timestamp >= datetime.combine(start, datetime.min.time()), Retweet.timestamp < datetime.combine(end + timedelta(days=1), datetime.min.time()))
+        .group_by(Retweet.tweet_id).all()
     ))
     quote_filter = Quote.tweet_id.in_(tweet_ids) if tweet_ids else false()
     quote_counts = Counter(dict(
         db.session.query(Quote.tweet_id, func.count(Quote.id))
-        .filter(
-            quote_filter,
-            Quote.is_removed.is_(False),
-            Quote.timestamp >= datetime.combine(start, datetime.min.time()),
-            Quote.timestamp < datetime.combine(end + timedelta(days=1), datetime.min.time()),
-        )
-        .group_by(Quote.tweet_id)
-        .all()
+        .filter(quote_filter, Quote.is_removed.is_(False), Quote.timestamp >= datetime.combine(start, datetime.min.time()), Quote.timestamp < datetime.combine(end + timedelta(days=1), datetime.min.time()))
+        .group_by(Quote.tweet_id).all()
     ))
 
     post_performance = []
-    hashtag_posts = Counter()
-    hashtag_impressions = Counter()
-    hashtag_engagements = Counter()
+    hashtag_posts = Counter(); hashtag_impressions = Counter(); hashtag_engagements = Counter()
     for tweet in sorted(tweets, key=lambda item: item.timestamp, reverse=True):
-        post_impressions = impression_counts[tweet.id]
-        post_reposts = repost_counts[tweet.id]
-        post_quotes = quote_counts[tweet.id]
+        post_impressions = impression_counts[tweet.id]; post_reposts = repost_counts[tweet.id]; post_quotes = quote_counts[tweet.id]
         post_engagements = post_reposts + post_quotes
         post_rate = round((post_engagements / post_impressions) * 100, 2) if post_impressions else 0
-        post_performance.append({
-            'tweet': tweet,
-            'impressions': post_impressions,
-            'reposts': post_reposts,
-            'quotes': post_quotes,
-            'engagements': post_engagements,
-            'engagement_rate': post_rate,
-        })
+        post_performance.append({'tweet': tweet, 'impressions': post_impressions, 'reposts': post_reposts, 'quotes': post_quotes, 'engagements': post_engagements, 'engagement_rate': post_rate})
         tags = {tag.lower() for tag in HASHTAG_RE.findall(tweet.content or '')}
         for tag in tags:
-            hashtag_posts[tag] += 1
-            hashtag_impressions[tag] += post_impressions
-            hashtag_engagements[tag] += post_engagements
+            hashtag_posts[tag] += 1; hashtag_impressions[tag] += post_impressions; hashtag_engagements[tag] += post_engagements
 
     hashtag_performance = []
     for tag, post_count in hashtag_posts.most_common():
-        tag_impressions = hashtag_impressions[tag]
-        tag_engagements = hashtag_engagements[tag]
-        hashtag_performance.append({
-            'tag': tag,
-            'posts': post_count,
-            'impressions': tag_impressions,
-            'engagements': tag_engagements,
-            'engagement_rate': round((tag_engagements / tag_impressions) * 100, 2) if tag_impressions else 0,
-        })
+        tag_impressions = hashtag_impressions[tag]; tag_engagements = hashtag_engagements[tag]
+        hashtag_performance.append({'tag': tag, 'posts': post_count, 'impressions': tag_impressions, 'engagements': tag_engagements, 'engagement_rate': round((tag_engagements / tag_impressions) * 100, 2) if tag_impressions else 0})
+
+    range_start_dt = datetime.combine(start, datetime.min.time())
+    range_end_dt = datetime.combine(end + timedelta(days=1), datetime.min.time())
+    range_posts = [tweet for tweet in tweets if range_start_dt <= tweet.timestamp < range_end_dt]
+    insights = _build_insights(post_performance=post_performance, hashtag_performance=hashtag_performance, range_posts=range_posts, days=days)
 
     return {
         'days': days,
@@ -218,24 +242,12 @@ def build_creator_dashboard(user, raw_days=None):
         'first_tracking_date': first_tracking_date,
         'current_complete': current_complete,
         'previous_complete': previous_complete,
-        'stats': {
-            'followers': user.followers.count(),
-            'impressions': impressions,
-            'profile_visits': profile_visits,
-            'reposts': reposts,
-            'quotes': quotes,
-            'engagements': engagements,
-            'engagement_rate': engagement_rate,
-        },
-        'previous': {
-            'impressions': previous_impressions,
-            'profile_visits': previous_profile_visits,
-            'engagements': previous_engagements,
-            'engagement_rate': previous_engagement_rate,
-        },
+        'stats': {'followers': user.followers.count(), 'impressions': impressions, 'profile_visits': profile_visits, 'reposts': reposts, 'quotes': quotes, 'engagements': engagements, 'engagement_rate': engagement_rate},
+        'previous': {'impressions': previous_impressions, 'profile_visits': previous_profile_visits, 'engagements': previous_engagements, 'engagement_rate': previous_engagement_rate},
         'follower_growth': _follower_growth(user, start, end),
         'post_performance': post_performance,
         'hashtag_performance': hashtag_performance,
+        'insights': insights,
     }
 
 
