@@ -41,6 +41,24 @@ def _sync_subscription_object(obj):
     db.session.commit()
 
 
+def _membership_status(subscriptions):
+    """Return one account-status row per paid product/add-on."""
+    benefits = {
+        'ripple_plus': ['90-day scheduling', 'Bookmark folders', 'Profile themes and banners', 'Personal analytics'],
+        'creator_pro': ['Measured impressions', 'Profile visits and follower trends', 'Advanced post and hashtag analytics', 'Performance insights'],
+        'verified_badge': ['Public verified identity badge'],
+    }
+    labels = {'ripple_plus': 'Ripple+', 'creator_pro': 'Creator Pro', 'verified_badge': 'Verified identity'}
+    rows = []
+    for key in ('ripple_plus', 'creator_pro', 'verified_badge'):
+        matching = [item for item in subscriptions if item.plan.entitlement_key == key]
+        subscription = matching[0] if matching else None
+        entitlement_active = current_user.has_entitlement(key)
+        status = subscription.status if subscription else ('active' if entitlement_active else 'not_subscribed')
+        rows.append({'key': key, 'label': labels[key], 'subscription': subscription, 'status': status, 'active': entitlement_active, 'benefits': benefits[key]})
+    return rows
+
+
 @payments_blueprint.route('/billing')
 @login_required
 def billing_home():
@@ -48,21 +66,21 @@ def billing_home():
     plans = Plan.query.filter_by(active=True).order_by(Plan.amount_cents.asc()).all()
     eligible_plans = [plan for plan in plans if _eligible_plan(plan)]
     subscriptions = Subscription.query.filter_by(user_id=current_user.id).order_by(Subscription.created_at.desc()).all()
-    active_entitlements = {
-        key: current_user.has_entitlement(key)
-        for key in ('ripple_plus', 'creator_pro', 'verified_badge')
-    }
+    active_entitlements = {key: current_user.has_entitlement(key) for key in ('ripple_plus', 'creator_pro', 'verified_badge')}
     billing_interval = request.args.get('interval', 'month').lower()
-    if billing_interval not in {'month', 'year'}:
-        billing_interval = 'month'
-    return render_template(
-        'billing.html',
-        plans=eligible_plans,
-        subscriptions=subscriptions,
-        stripe_enabled=_stripe_ready(),
-        active_entitlements=active_entitlements,
-        billing_interval=billing_interval,
-    )
+    if billing_interval not in {'month', 'year'}: billing_interval = 'month'
+    return render_template('billing.html', plans=eligible_plans, subscriptions=subscriptions, stripe_enabled=_stripe_ready(), active_entitlements=active_entitlements, billing_interval=billing_interval)
+
+
+@payments_blueprint.route('/membership')
+@login_required
+def membership_home():
+    ensure_default_plans()
+    subscriptions = Subscription.query.filter_by(user_id=current_user.id).order_by(Subscription.created_at.desc()).all()
+    membership = _membership_status(subscriptions)
+    has_stripe_account = any(item.provider_customer_id for item in subscriptions)
+    needs_attention = any(item.status in {'past_due', 'pending'} for item in subscriptions)
+    return render_template('membership.html', membership=membership, subscriptions=subscriptions, stripe_enabled=_stripe_ready(), has_stripe_account=has_stripe_account, needs_attention=needs_attention)
 
 
 @payments_blueprint.route('/billing/checkout/<plan_key>', methods=['POST'])
@@ -83,16 +101,16 @@ def checkout(plan_key):
 
 @payments_blueprint.route('/billing/success')
 @login_required
-def checkout_success(): flash('Payment was submitted. Paid features activate after Ripple receives Stripe confirmation.', 'success'); return redirect(url_for('payments.billing_home'))
+def checkout_success(): flash('Payment was submitted. Paid features activate after Ripple receives Stripe confirmation.', 'success'); return redirect(url_for('payments.membership_home'))
 
 
 @payments_blueprint.route('/billing/portal', methods=['POST'])
 @login_required
 def customer_portal():
-    if not _stripe_ready(): flash('Billing management is not configured yet.', 'warning'); return redirect(url_for('payments.billing_home'))
+    if not _stripe_ready(): flash('Billing management is not configured yet.', 'warning'); return redirect(url_for('payments.membership_home'))
     subscription = Subscription.query.filter_by(user_id=current_user.id).filter(Subscription.provider_customer_id.isnot(None)).order_by(Subscription.created_at.desc()).first()
-    if subscription is None: flash('No Stripe billing account is associated with your Ripple account yet.', 'warning'); return redirect(url_for('payments.billing_home'))
-    _configure_stripe(); session = stripe.billing_portal.Session.create(customer=subscription.provider_customer_id, return_url=url_for('payments.billing_home', _external=True)); return redirect(session.url, code=303)
+    if subscription is None: flash('No Stripe billing account is associated with your Ripple account yet.', 'warning'); return redirect(url_for('payments.membership_home'))
+    _configure_stripe(); session = stripe.billing_portal.Session.create(customer=subscription.provider_customer_id, return_url=url_for('payments.membership_home', _external=True)); return redirect(session.url, code=303)
 
 
 @payments_blueprint.route('/billing/webhook', methods=['POST'])
