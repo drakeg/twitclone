@@ -41,7 +41,8 @@ Before exposing TwitClone publicly, the hosting environment must also provide:
   durable uploaded-media storage.
 - External monitoring, backups, and rollback procedures. The application health
   and structured-log contracts are documented in
-  [`observability.md`](observability.md).
+  [`observability.md`](observability.md); recovery procedures and launch gates
+  are documented in [`operations.md`](operations.md).
 - Exactly one scheduled-post worker until database-level job claiming exists.
 
 Gunicorn handles termination signals and allows in-flight requests up to the

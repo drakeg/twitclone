@@ -126,5 +126,5 @@ the schema upgrade:
 - restore the recorded backup when a destructive migration corrupted or removed
   data, accepting that writes after the backup will need reconciliation.
 
-The next operations story defines the complete backup, restore, media-storage,
-and rollback runbook.
+The complete backup, restore, media-storage, and rollback procedure is defined
+in [`operations.md`](operations.md).

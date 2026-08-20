@@ -121,9 +121,12 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Public deployment still requires the remaining Sprint 6 storage, backup,
-rollback, and cost decisions. See [`docs/database.md`](docs/database.md) for the
-selected production database and release procedure.
+The production database, durable-media boundary, backup and restore runbook,
+rollback procedure, and initial cost estimate are documented. Public deployment
+still requires the object-storage adapter and a successful restore rehearsal.
+See [`docs/database.md`](docs/database.md),
+[`docs/operations.md`](docs/operations.md), and
+[`docs/deployment-costs.md`](docs/deployment-costs.md).
 
 ## Agile delivery model
 
@@ -155,9 +158,9 @@ See:
 
 ## Security notice
 
-This repository is currently a development project. Gunicorn serving is now
-defined, but durable media storage, backups, and rollback procedures still need
-to be completed before public deployment.
+This repository is currently a development project. Production serving and
+recovery contracts are defined, but the durable object-storage adapter and a
+successful restore rehearsal are still required before public deployment.
 
 ## License
 
