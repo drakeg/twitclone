@@ -37,6 +37,8 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(150), nullable=False, unique=True)
     password = db.Column(db.String(150), nullable=False)
     bio = db.Column(db.String(300))
+    profile_theme = db.Column(db.String(20), nullable=False, default='ripple', server_default='ripple')
+    profile_banner = db.Column(db.String(160), nullable=True)
     is_admin = db.Column(db.Boolean, default=False, server_default=db.false(), nullable=False)
     is_super_admin = db.Column(db.Boolean, default=False, server_default=db.false(), nullable=False)
     identity_verified = db.Column(db.Boolean, default=False, server_default=db.false(), nullable=False)

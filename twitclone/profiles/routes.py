@@ -1,11 +1,31 @@
 """Profile and social graph routes."""
 
-from flask import flash, jsonify, redirect, render_template, request, url_for
+from pathlib import Path
+
+from flask import current_app, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from twitclone.extensions import db
 from twitclone.models import Notification, Quote, Retweet, Tweet, User
 from twitclone.profiles import profiles_blueprint
+from twitclone.timeline.media import prepare_image_upload
+
+PROFILE_THEMES = {
+    'ripple': 'Ripple Blue',
+    'sunset': 'Sunset',
+    'forest': 'Forest',
+    'violet': 'Violet',
+    'slate': 'Slate',
+}
+
+
+def _store_profile_banner(upload):
+    error, generated_name = prepare_image_upload(upload)
+    if error:
+        return error, None
+    banner_name = f"banner_{generated_name}"
+    upload.save(Path(current_app.config['UPLOAD_FOLDER']) / banner_name)
+    return None, banner_name
 
 
 @login_required
@@ -42,7 +62,13 @@ def unfollow(username):
 def profile(username):
     user = User.query.filter_by(username=username).first_or_404()
     is_following = user in current_user.followed
-    return render_template("profile.html", user=user, is_following=is_following)
+    premium_profile_active = user.has_entitlement('ripple_plus')
+    return render_template(
+        "profile.html",
+        user=user,
+        is_following=is_following,
+        premium_profile_active=premium_profile_active,
+    )
 
 
 @login_required
@@ -68,14 +94,38 @@ def analytics():
 
 @login_required
 def edit_profile():
+    ripple_plus = current_user.has_entitlement('ripple_plus')
     if request.method == "POST":
         current_user.username = request.form["username"]
         current_user.email = request.form["email"]
         current_user.bio = request.form["bio"]
+
+        if ripple_plus:
+            requested_theme = (request.form.get('profile_theme') or 'ripple').strip().lower()
+            if requested_theme not in PROFILE_THEMES:
+                flash('Choose one of the available Ripple+ profile themes.', 'danger')
+                return render_template('edit_profile.html', user=current_user, ripple_plus=True, profile_themes=PROFILE_THEMES)
+            current_user.profile_theme = requested_theme
+
+            if request.form.get('remove_banner') == '1':
+                current_user.profile_banner = None
+            banner = request.files.get('profile_banner')
+            if banner and banner.filename:
+                error, banner_name = _store_profile_banner(banner)
+                if error:
+                    flash(error, 'danger')
+                    return render_template('edit_profile.html', user=current_user, ripple_plus=True, profile_themes=PROFILE_THEMES)
+                current_user.profile_banner = banner_name
+
         db.session.commit()
         flash("Your profile has been updated!", "success")
         return redirect(url_for("profile", username=current_user.username))
-    return render_template("edit_profile.html", user=current_user)
+    return render_template(
+        "edit_profile.html",
+        user=current_user,
+        ripple_plus=ripple_plus,
+        profile_themes=PROFILE_THEMES,
+    )
 
 
 @login_required

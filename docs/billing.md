@@ -74,7 +74,10 @@ Ripple+:
 - personal account analytics
 - extended post scheduling
 - named bookmark folders
+- profile themes and profile banner images
 
 Bookmarking itself remains free. Folder creation, assignment, filtering, and deletion require the `ripple_plus` entitlement. Deleting a folder never deletes its bookmarks; they return to the unfiled collection.
+
+Ordinary profiles, usernames, email addresses, bios, and avatars remain free. Ripple+ adds a curated set of profile themes and an optional banner image. Banner uploads use the same validated PNG/JPEG/GIF, 5 MB image contract as post media. Premium appearance is displayed publicly only while the account has an active `ripple_plus` entitlement; saved customization remains stored so it can return after renewal.
 
 Pricing is application-owned plan metadata. Stripe Checkout receives the selected plan's amount and recurring interval from Ripple.
