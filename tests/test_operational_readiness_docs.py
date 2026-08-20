@@ -41,3 +41,14 @@ def test_local_compose_durable_state_contract_remains_intact():
     assert "UPLOAD_FOLDER: /data/uploads" in compose
     assert "twitclone_data:/data" in compose
     assert 'DATABASE_URL: "sqlite:///:memory:"' in compose
+
+
+def test_administration_guide_documents_supported_promotion_command():
+    guide = read("docs/administration.md")
+    readme = read("README.md")
+
+    command = "docker compose exec web flask --app application make-super-admin user@example.com"
+    assert command in guide
+    assert "flask --app application make-super-admin user@example.com" in guide
+    assert "sets both the administrator and super-administrator flags" in guide
+    assert "docs/administration.md" in readme

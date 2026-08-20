@@ -91,6 +91,18 @@ docker compose run --rm test
 The test service uses an in-memory database and temporary upload directory. It
 does not read, migrate, or erase the named volume used by the local application.
 
+### Administrator access
+
+After registering the account normally, promote it by email while Compose is
+running:
+
+```bash
+docker compose exec web flask --app application make-super-admin user@example.com
+```
+
+See [`docs/administration.md`](docs/administration.md) for the non-Docker form,
+expected output, production safety notes, and current revocation limitation.
+
 ### Prerequisites
 
 - Python 3.11 or newer
