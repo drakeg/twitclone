@@ -1,10 +1,65 @@
 {% extends "base.html" %}
 {% block title %}Creator Pro Analytics · Ripple{% endblock %}
 {% block content %}
-<header class="page-header"><div><h1>Creator Pro Analytics</h1><small>Performance from engagement Ripple can measure reliably</small></div><span class="badge text-bg-dark">Creator Pro</span></header>
-<section class="surface-card"><div class="row g-3">
-{% for label, value in [('Posts',stats.posts),('Followers',stats.followers),('Reposts received',stats.reposts_received),('Quotes received',stats.quotes_received),('Total engagements',stats.engagements),('Engagements / post',stats.engagements_per_post)] %}<div class="col-6 col-md-4"><div class="border rounded p-3 h-100"><small class="text-muted">{{ label }}</small><h2 class="mb-0">{{ value }}</h2></div></div>{% endfor %}
-</div></section>
-<section class="surface-card"><h2>Post performance</h2><p class="text-muted">Engagement currently means reposts plus quotes. Ripple does not claim impression or view metrics until those events are explicitly tracked.</p>{% if post_performance %}<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Post</th><th>Reposts</th><th>Quotes</th><th>Engagements</th></tr></thead><tbody>{% for item in post_performance %}<tr><td><a href="{{ url_for('post_detail', tweet_id=item.tweet.id) }}">{{ item.tweet.content|truncate(90) }}</a><br><small class="text-muted">{{ item.tweet.timestamp.strftime('%Y-%m-%d %H:%M') }}</small></td><td>{{ item.reposts }}</td><td>{{ item.quotes }}</td><td><strong>{{ item.engagements }}</strong></td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="text-muted mb-0">Publish some posts to begin building performance data.</p>{% endif %}</section>
-<section class="surface-card"><h2>Hashtag performance</h2>{% if hashtag_performance %}<div class="table-responsive"><table class="table"><thead><tr><th>Hashtag</th><th>Posts</th><th>Engagements</th></tr></thead><tbody>{% for item in hashtag_performance %}<tr><td><a href="{{ url_for('hashtag', hashtag=item.tag) }}">#{{ item.tag }}</a></td><td>{{ item.posts }}</td><td>{{ item.engagements }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="text-muted mb-0">Use hashtags in your posts to compare topic performance.</p>{% endif %}</section>
+<header class="page-header">
+  <div><h1>Creator Pro Analytics</h1><small>Measured performance from {{ range_start.strftime('%Y-%m-%d') }} through {{ range_end.strftime('%Y-%m-%d') }}</small></div>
+  <span class="badge text-bg-dark">Creator Pro</span>
+</header>
+
+<section class="surface-card">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div><strong>Reporting range</strong><div class="text-muted small">Daily-unique impressions and profile visits</div></div>
+    <div class="btn-group" role="group" aria-label="Analytics reporting range">
+      {% for option in (7, 30, 90) %}<a class="btn {% if days == option %}btn-dark{% else %}btn-outline-secondary{% endif %}" href="{{ url_for('creator_analytics', days=option) }}">{{ option }} days</a>{% endfor %}
+    </div>
+  </div>
+  {% if not current_complete %}
+  <div class="alert alert-info mt-3 mb-0"><strong>Partial history.</strong> Ripple does not yet have a complete {{ days }}-day measurement window for this account.{% if first_tracking_date %} Measured history currently begins on {{ first_tracking_date.strftime('%Y-%m-%d') }}.{% else %} Measurement will begin as posts and the profile receive eligible traffic.{% endif %}</div>
+  {% endif %}
+</section>
+
+<section class="surface-card">
+  <div class="row g-3">
+    {% for label, value, suffix in [
+      ('Impressions', stats.impressions, ''),
+      ('Profile visits', stats.profile_visits, ''),
+      ('Engagements', stats.engagements, ''),
+      ('Engagement rate', stats.engagement_rate, '%'),
+      ('Followers', stats.followers, ''),
+      ('Follower growth', follower_growth.growth, '')
+    ] %}
+    <div class="col-6 col-lg-4"><div class="border rounded p-3 h-100"><small class="text-muted">{{ label }}</small><h2 class="mb-0">{{ value }}{{ suffix }}</h2>{% if label == 'Follower growth' and not follower_growth.complete %}<small class="text-muted">Since first observed snapshot{% if follower_growth.baseline_date %} ({{ follower_growth.baseline_date.strftime('%Y-%m-%d') }}){% endif %}</small>{% endif %}</div></div>
+    {% endfor %}
+  </div>
+  <p class="text-muted small mt-3 mb-0">Engagement rate = reposts + quotes during the selected period divided by measured impressions during that period.</p>
+</section>
+
+<section class="surface-card">
+  <h2>Previous-period comparison</h2>
+  {% if previous_complete %}
+  <div class="table-responsive"><table class="table mb-0"><thead><tr><th>Metric</th><th>Current {{ days }} days</th><th>Previous {{ days }} days</th><th>Change</th></tr></thead><tbody>
+    <tr><td>Impressions</td><td>{{ stats.impressions }}</td><td>{{ previous.impressions }}</td><td>{{ stats.impressions - previous.impressions }}</td></tr>
+    <tr><td>Profile visits</td><td>{{ stats.profile_visits }}</td><td>{{ previous.profile_visits }}</td><td>{{ stats.profile_visits - previous.profile_visits }}</td></tr>
+    <tr><td>Engagements</td><td>{{ stats.engagements }}</td><td>{{ previous.engagements }}</td><td>{{ stats.engagements - previous.engagements }}</td></tr>
+    <tr><td>Engagement rate</td><td>{{ stats.engagement_rate }}%</td><td>{{ previous.engagement_rate }}%</td><td>{{ (stats.engagement_rate - previous.engagement_rate)|round(2) }} pts</td></tr>
+  </tbody></table></div>
+  {% else %}
+  <p class="text-muted mb-0">A complete previous {{ days }}-day window is not available yet. Ripple will show comparisons once enough measured history has accumulated.</p>
+  {% endif %}
+</section>
+
+<section class="surface-card">
+  <h2>Post performance</h2>
+  <p class="text-muted">Metrics below use activity recorded during the selected {{ days }}-day window, even for posts published earlier.</p>
+  {% if post_performance %}<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Post</th><th>Impressions</th><th>Reposts</th><th>Quotes</th><th>Engagement rate</th></tr></thead><tbody>
+  {% for item in post_performance %}<tr><td><a href="{{ url_for('post_detail', tweet_id=item.tweet.id) }}">{{ item.tweet.content|truncate(90) }}</a><br><small class="text-muted">{{ item.tweet.timestamp.strftime('%Y-%m-%d %H:%M') }}</small></td><td>{{ item.impressions }}</td><td>{{ item.reposts }}</td><td>{{ item.quotes }}</td><td><strong>{{ item.engagement_rate }}%</strong></td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<p class="text-muted mb-0">Publish some posts to begin building performance data.</p>{% endif %}
+</section>
+
+<section class="surface-card">
+  <h2>Hashtag performance</h2>
+  {% if hashtag_performance %}<div class="table-responsive"><table class="table"><thead><tr><th>Hashtag</th><th>Posts</th><th>Impressions</th><th>Engagements</th><th>Engagement rate</th></tr></thead><tbody>
+  {% for item in hashtag_performance %}<tr><td><a href="{{ url_for('hashtag', hashtag=item.tag) }}">#{{ item.tag }}</a></td><td>{{ item.posts }}</td><td>{{ item.impressions }}</td><td>{{ item.engagements }}</td><td>{{ item.engagement_rate }}%</td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<p class="text-muted mb-0">Use hashtags in your posts to compare topic performance.</p>{% endif %}
+</section>
 {% endblock %}

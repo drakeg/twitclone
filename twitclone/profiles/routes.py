@@ -1,20 +1,18 @@
 """Profile and social graph routes."""
 
-import re
-from collections import Counter
 from pathlib import Path
 
 from flask import current_app, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from twitclone.analytics_tracking import record_profile_visit, snapshot_followers
+from twitclone.creator_analytics import build_creator_dashboard
 from twitclone.extensions import db
 from twitclone.models import Notification, Quote, Retweet, Tweet, User
 from twitclone.profiles import profiles_blueprint
 from twitclone.timeline.media import prepare_image_upload
 
 PROFILE_THEMES = {'ripple':'Ripple Blue','sunset':'Sunset','forest':'Forest','violet':'Violet','slate':'Slate'}
-HASHTAG_RE = re.compile(r'(?<!\w)#([A-Za-z0-9_]+)')
 
 
 def _store_profile_banner(upload):
@@ -66,21 +64,8 @@ def analytics():
 def creator_analytics():
     if not current_user.has_entitlement('creator_pro'):
         flash('Advanced creator analytics are included with Creator Pro.', 'info'); return redirect(url_for('payments.billing_home'))
-    tweets, stats = _analytics_counts(current_user); tweet_ids = [tweet.id for tweet in tweets]
-    repost_counts = Counter(row[0] for row in db.session.query(Retweet.tweet_id).filter(Retweet.tweet_id.in_(tweet_ids)).all()) if tweet_ids else Counter()
-    quote_counts = Counter(row[0] for row in db.session.query(Quote.tweet_id).filter(Quote.tweet_id.in_(tweet_ids), Quote.is_removed.is_(False)).all()) if tweet_ids else Counter()
-    post_performance = []
-    for tweet in sorted(tweets, key=lambda item: item.timestamp, reverse=True):
-        reposts = repost_counts[tweet.id]; quotes = quote_counts[tweet.id]; engagements = reposts + quotes
-        post_performance.append({'tweet':tweet,'reposts':reposts,'quotes':quotes,'engagements':engagements})
-    hashtag_totals = Counter(); hashtag_engagement = Counter()
-    for item in post_performance:
-        tags = {tag.lower() for tag in HASHTAG_RE.findall(item['tweet'].content or '')}
-        for tag in tags:
-            hashtag_totals[tag] += 1; hashtag_engagement[tag] += item['engagements']
-    hashtag_performance = [{'tag':tag,'posts':count,'engagements':hashtag_engagement[tag]} for tag, count in hashtag_totals.most_common()]
-    total_engagements = stats['reposts_received'] + stats['quotes_received']; stats['engagements'] = total_engagements; stats['engagements_per_post'] = round(total_engagements / stats['posts'], 2) if stats['posts'] else 0
-    return render_template('creator_analytics.html', stats=stats, post_performance=post_performance, hashtag_performance=hashtag_performance)
+    dashboard = build_creator_dashboard(current_user, request.args.get('days'))
+    return render_template('creator_analytics.html', **dashboard)
 
 
 @login_required
