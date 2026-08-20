@@ -5,36 +5,10 @@
 {% if active_theme == 'sunset' %}{% set cover_style = 'background: linear-gradient(135deg, #f97316, #db2777);' %}{% elif active_theme == 'forest' %}{% set cover_style = 'background: linear-gradient(135deg, #166534, #0f766e);' %}{% elif active_theme == 'violet' %}{% set cover_style = 'background: linear-gradient(135deg, #6d28d9, #a21caf);' %}{% elif active_theme == 'slate' %}{% set cover_style = 'background: linear-gradient(135deg, #334155, #0f172a);' %}{% else %}{% set cover_style = 'background: linear-gradient(135deg, #2563eb, #06b6d4);' %}{% endif %}
 <header class="page-header"><div><h1>{{ user.username }}{% if user.verified_badge_active %} <span title="Verified identity" aria-label="Verified identity"><i class="fa-solid fa-circle-check text-primary"></i></span>{% endif %}</h1><small>Profile</small></div></header>
 <section class="profile-hero">
-    {% if premium_profile_active and user.profile_banner %}<div class="profile-cover" style="background-image: linear-gradient(rgba(0,0,0,.08), rgba(0,0,0,.08)), url('{{ url_for('uploaded_file', filename=user.profile_banner) }}'); background-size: cover; background-position: center;"></div>{% else %}<div class="profile-cover" style="{{ cover_style }}"></div>{% endif %}
-    <div class="profile-details">
-        <img src="{{ gravatar(user.email, size=200) }}" alt="{{ user.username }}'s avatar" class="profile-avatar">
-        <div class="profile-actions">
-            {% if current_user.id != user.id %}
-            <a href="{{ url_for('new_message', to=user.username) }}" class="btn btn-secondary">Message</a>
-            <button id="follow-btn" class="btn {% if is_following %}btn-secondary{% else %}btn-primary{% endif %}" data-username="{{ user.username }}">{% if is_following %}Following{% else %}Follow{% endif %}</button>
-            {% endif %}
-            {% if current_user.id == user.id %}
-            <a href="{{ url_for('edit_profile') }}" class="btn btn-secondary">Edit profile</a>
-            <a href="{{ url_for('admin.apply_verification') }}" class="btn btn-secondary">{% if user.identity_verified %}Verification status{% else %}Get verified{% endif %}</a>
-            <a href="{{ url_for('payments.billing_home') }}" class="btn btn-secondary">{% if user.has_entitlement('ripple_plus') %}Ripple+ / Billing{% else %}Ripple+{% endif %}</a>
-            {% if user.has_entitlement('ripple_plus') %}<a href="{{ url_for('analytics') }}" class="btn btn-primary">Analytics</a>{% endif %}
-            {% if current_user.is_admin or current_user.is_super_admin %}<a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-dark">Admin</a>{% endif %}
-            {% endif %}
-        </div>
-        <h2 class="profile-name">{{ user.username }}{% if user.verified_badge_active %} <span title="Verified identity" aria-label="Verified identity"><i class="fa-solid fa-circle-check text-primary"></i></span>{% endif %}</h2><div class="profile-handle">@{{ user.username }}</div>
-        {% if user.verified_badge_active %}<div class="mb-2"><span class="badge text-bg-light"><i class="fa-solid fa-circle-check text-primary"></i> Verified identity{% if user.verification_type %} · {{ user.verification_type|title }}{% endif %}</span></div>{% elif current_user.id == user.id and user.identity_verified %}<div class="mb-2"><span class="badge text-bg-light">Identity approved · badge inactive</span></div>{% endif %}
-        {% if premium_profile_active %}<div class="mb-2"><span class="badge text-bg-primary">Ripple+</span></div>{% endif %}
-        <p class="profile-bio">{{ user.bio or 'No bio yet — the story is still being written.' }}</p>
-        <div class="profile-links"><a href="{{ url_for('following', username=user.username) }}"><strong>View</strong> Following</a><a href="{{ url_for('followers', username=user.username) }}"><strong>View</strong> Followers</a></div>
-    </div>
-</section>
+{% if premium_profile_active and user.profile_banner %}<div class="profile-cover" style="background-image: linear-gradient(rgba(0,0,0,.08), rgba(0,0,0,.08)), url('{{ url_for('uploaded_file', filename=user.profile_banner) }}'); background-size: cover; background-position: center;"></div>{% else %}<div class="profile-cover" style="{{ cover_style }}"></div>{% endif %}
+<div class="profile-details"><img src="{{ gravatar(user.email, size=200) }}" alt="{{ user.username }}'s avatar" class="profile-avatar"><div class="profile-actions">
+{% if current_user.id != user.id %}<a href="{{ url_for('new_message', to=user.username) }}" class="btn btn-secondary">Message</a><button id="follow-btn" class="btn {% if is_following %}btn-secondary{% else %}btn-primary{% endif %}" data-username="{{ user.username }}">{% if is_following %}Following{% else %}Follow{% endif %}</button>{% endif %}
+{% if current_user.id == user.id %}<a href="{{ url_for('edit_profile') }}" class="btn btn-secondary">Edit profile</a><a href="{{ url_for('admin.apply_verification') }}" class="btn btn-secondary">{% if user.identity_verified %}Verification status{% else %}Get verified{% endif %}</a><a href="{{ url_for('payments.billing_home') }}" class="btn btn-secondary">Plans / Billing</a>{% if user.has_entitlement('ripple_plus') %}<a href="{{ url_for('analytics') }}" class="btn btn-primary">Analytics</a>{% endif %}{% if user.has_entitlement('creator_pro') %}<a href="{{ url_for('creator_analytics') }}" class="btn btn-dark">Creator Pro Analytics</a>{% endif %}{% if current_user.is_admin or current_user.is_super_admin %}<a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-dark">Admin</a>{% endif %}{% endif %}
+</div><h2 class="profile-name">{{ user.username }}{% if user.verified_badge_active %} <span title="Verified identity"><i class="fa-solid fa-circle-check text-primary"></i></span>{% endif %}</h2><div class="profile-handle">@{{ user.username }}</div>{% if user.verified_badge_active %}<div class="mb-2"><span class="badge text-bg-light"><i class="fa-solid fa-circle-check text-primary"></i> Verified identity{% if user.verification_type %} · {{ user.verification_type|title }}{% endif %}</span></div>{% elif current_user.id == user.id and user.identity_verified %}<div class="mb-2"><span class="badge text-bg-light">Identity approved · badge inactive</span></div>{% endif %}{% if premium_profile_active %}<div class="mb-2"><span class="badge text-bg-primary">Ripple+</span></div>{% endif %}{% if user.has_entitlement('creator_pro') %}<div class="mb-2"><span class="badge text-bg-dark">Creator Pro</span></div>{% endif %}<p class="profile-bio">{{ user.bio or 'No bio yet — the story is still being written.' }}</p><div class="profile-links"><a href="{{ url_for('following', username=user.username) }}"><strong>View</strong> Following</a><a href="{{ url_for('followers', username=user.username) }}"><strong>View</strong> Followers</a></div></div></section>
 {% endblock %}
-{% block scripts %}
-{% if current_user.id != user.id %}<script>
-document.getElementById('follow-btn')?.addEventListener('click', function() {
-    const following = this.textContent.trim() === 'Following';
-    fetch(`/${following ? 'unfollow' : 'follow'}/${this.dataset.username}`, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'}})
-        .then(response => response.json()).then(data => { if (data.status === 'success') { this.textContent = following ? 'Follow' : 'Following'; this.classList.toggle('btn-primary', following); this.classList.toggle('btn-secondary', !following); }});
-});
-</script>{% endif %}
-{% endblock %}
+{% block scripts %}{% if current_user.id != user.id %}<script>document.getElementById('follow-btn')?.addEventListener('click',function(){const following=this.textContent.trim()==='Following';fetch(`/${following?'unfollow':'follow'}/${this.dataset.username}`,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':'{{ csrf_token() }}'}}).then(response=>response.json()).then(data=>{if(data.status==='success'){this.textContent=following?'Follow':'Following';this.classList.toggle('btn-primary',following);this.classList.toggle('btn-secondary',!following);}});});</script>{% endif %}{% endblock %}
