@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 
 from flask import abort, current_app, flash, redirect, render_template, request, send_from_directory, url_for
 from flask_login import current_user, login_required
+from twitclone.analytics_tracking import record_post_impression, record_post_impressions
 from twitclone.extensions import db
 from twitclone.mentions import add_mention_notifications
 from twitclone.models import DirectMessage, Notification, Quote, Retweet, Tweet, User
@@ -20,6 +21,7 @@ def index():
     posts = build_timeline_posts(now=now, viewer=current_user)
     page = request.args.get("page", default=1, type=int) or 1
     timeline_page = paginate_timeline_posts(posts, page=page)
+    record_post_impressions(timeline_page.items)
     return render_template("index.html", posts=timeline_page.items, timeline_page=timeline_page, current_time=current_time, trending_hashtags=get_trending_hashtags(), newest_users=get_newest_users())
 
 
@@ -28,6 +30,7 @@ def post_detail(tweet_id):
     now = datetime.now(UTC).replace(tzinfo=None)
     if tweet.is_removed or (tweet.scheduled_at is not None and tweet.scheduled_at > now):
         abort(404)
+    record_post_impression(tweet)
     return render_template("post_detail.html", tweet=tweet)
 
 
