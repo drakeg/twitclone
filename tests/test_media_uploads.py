@@ -12,6 +12,7 @@ from twitclone.extensions import db
 from twitclone.models import Tweet, User
 from twitclone.timeline.media import IMAGE_UPLOAD_MAX_BYTES
 from twitclone.timeline.media import store_image_upload
+from twitclone.media_storage import S3MediaStorage
 
 
 def log_in(client, app):
@@ -50,6 +51,11 @@ def test_valid_image_uses_generated_filename(client, app):
     assert (upload_folder / filename).is_file()
     assert (upload_folder / original_filename).is_file()
     assert filename.removeprefix("thumb_") == original_filename.removeprefix("original_")
+    served = client.get(f"/uploads/{filename}")
+    assert served.status_code == 200
+    assert served.mimetype == "image/png"
+    assert served.data.startswith(b"\x89PNG")
+    assert client.get(f"/uploads/{original_filename}").status_code == 404
 
 
 def assert_rejected(client, app, image):
@@ -101,3 +107,36 @@ def test_processing_failure_cleans_up_partial_files(tmp_path, monkeypatch):
         store_image_upload(upload, tmp_path)
 
     assert list(tmp_path.iterdir()) == []
+
+
+class FakeBody:
+    def __init__(self, content): self.content = content
+    def read(self): return self.content
+
+
+class FakeS3Client:
+    def __init__(self): self.objects = {}
+    def put_object(self, **kwargs): self.objects[(kwargs["Bucket"], kwargs["Key"])] = (kwargs["Body"], kwargs["ContentType"])
+    def get_object(self, **kwargs):
+        content, content_type = self.objects[(kwargs["Bucket"], kwargs["Key"])]
+        return {"Body": FakeBody(content), "ContentType": content_type}
+    def delete_object(self, **kwargs): self.objects.pop((kwargs["Bucket"], kwargs["Key"]), None)
+
+
+def test_s3_adapter_keeps_media_private_behind_existing_name_contract():
+    client = FakeS3Client()
+    storage = S3MediaStorage(bucket="ripple-media", region="nyc3", prefix="production/media", client=client)
+    storage.put("thumb_example.png", b"image-bytes", content_type="image/png")
+    assert client.objects[("ripple-media", "production/media/thumb_example.png")] == (b"image-bytes", "image/png")
+    media = storage.get("thumb_example.png")
+    assert media.content == b"image-bytes"
+    assert media.content_type == "image/png"
+    storage.delete("thumb_example.png")
+    assert client.objects == {}
+
+
+@pytest.mark.parametrize("name", ["../secret", "folder/image.png", "", "."])
+def test_s3_adapter_rejects_unsafe_object_names(name):
+    storage = S3MediaStorage(bucket="ripple-media", region="nyc3", client=FakeS3Client())
+    with pytest.raises(ValueError, match="safe path component"):
+        storage.put(name, b"content")

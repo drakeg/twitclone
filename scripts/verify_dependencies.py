@@ -15,6 +15,7 @@ from pathlib import Path
 REQUIRED_IMPORTS = {
     "apscheduler": "APScheduler",
     "bcrypt": "bcrypt",
+    "boto3": "boto3",
     "flask": "Flask",
     "flask_bcrypt": "Flask-Bcrypt",
     "flask_login": "Flask-Login",

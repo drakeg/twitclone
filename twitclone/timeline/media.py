@@ -2,11 +2,13 @@
 
 from io import BytesIO
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from uuid import uuid4
 
 from PIL import Image, UnidentifiedImageError
 
 from twitclone.utils.images import resize_image
+from twitclone.media_storage import FileSystemMediaStorage
 
 IMAGE_UPLOAD_MAX_BYTES = 5 * 1024 * 1024
 ALLOWED_IMAGE_TYPES = {
@@ -43,25 +45,43 @@ def prepare_image_upload(upload):
     return None, f"{uuid4().hex}{extension}"
 
 
-def store_image_upload(upload, upload_folder):
+def _storage_adapter(storage):
+    return storage if hasattr(storage, "put") else FileSystemMediaStorage(storage)
+
+
+def store_image_upload(upload, storage):
     """Validate and store distinct original and thumbnail files."""
     error, generated_name = prepare_image_upload(upload)
     if error:
         return error, None, None
 
-    folder = Path(upload_folder)
+    storage = _storage_adapter(storage)
     original_name = f"original_{generated_name}"
     thumbnail_name = f"thumb_{generated_name}"
-    original_path = folder / original_name
-    thumbnail_path = folder / thumbnail_name
-    try:
+    with TemporaryDirectory() as temporary_folder:
+        original_path = Path(temporary_folder) / original_name
+        thumbnail_path = Path(temporary_folder) / thumbnail_name
         upload.save(original_path)
         resize_image(original_path, thumbnail_path)
-    except Exception:
-        original_path.unlink(missing_ok=True)
-        thumbnail_path.unlink(missing_ok=True)
-        raise
+        try:
+            storage.put(original_name, original_path.read_bytes())
+            storage.put(thumbnail_name, thumbnail_path.read_bytes())
+        except Exception:
+            storage.delete(original_name)
+            storage.delete(thumbnail_name)
+            raise
     return None, original_name, thumbnail_name
 
 
-__all__ = ["IMAGE_UPLOAD_MAX_BYTES", "prepare_image_upload", "store_image_upload"]
+def store_profile_banner(upload, storage):
+    error, generated_name = prepare_image_upload(upload)
+    if error:
+        return error, None
+    banner_name = f"banner_{generated_name}"
+    storage = _storage_adapter(storage)
+    storage.put(banner_name, upload.stream.read())
+    upload.stream.seek(0)
+    return None, banner_name
+
+
+__all__ = ["IMAGE_UPLOAD_MAX_BYTES", "prepare_image_upload", "store_image_upload", "store_profile_banner"]

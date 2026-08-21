@@ -42,6 +42,11 @@ The project does not automatically parse `.env` yet. Export the variables or use
 | `SECRET_KEY` | Production only | Development-only fallback | Signs sessions and CSRF tokens. Production startup fails when absent. |
 | `DATABASE_URL` | Production | Local SQLite database | SQLAlchemy database connection URL. Production requires PostgreSQL. |
 | `UPLOAD_FOLDER` | No | `static/uploads` | Development filesystem location for uploaded post images. Production must use the durable media adapter defined by the operations runbook. |
+| `MEDIA_STORAGE_BACKEND` | No | `filesystem` | `filesystem` for local development and `s3` for production. |
+| `MEDIA_S3_BUCKET` | S3 backend | None | Private S3-compatible bucket name. |
+| `MEDIA_S3_REGION` | S3 backend | None | Bucket region used by the S3 client. |
+| `MEDIA_S3_ENDPOINT_URL` | No | AWS default | Optional endpoint for S3-compatible providers. |
+| `MEDIA_S3_PREFIX` | No | `media` | Object-key prefix within the bucket. |
 | `SCHEDULER_ENABLED` | No | `true` | Enables or disables scheduled-post processing. |
 | `SCHEDULER_INTERVAL_SECONDS` | No | `60` | Scheduler polling interval; must be at least one second. |
 | `PORT` | No | `8000` | Port used by the local `application.py` runner. |
@@ -65,8 +70,9 @@ appropriate to the deployment platform. `postgres://` and `postgresql://` URLs
 are normalized to the supported Psycopg 3 SQLAlchemy driver. SQLite production
 startup is rejected. See [`database.md`](database.md) for the migration and
 release procedure and [`operations.md`](operations.md) for the durable-media,
-backup, restore, and rollback contract. The current filesystem upload adapter is
-not approved for an ephemeral production container.
+backup, restore, and rollback contract. Production requires the S3 backend, a
+bucket, and a region. Credentials use Boto3's standard credential chain and
+must be injected by the platform rather than stored in application settings.
 
 ## Security notes
 

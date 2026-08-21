@@ -16,9 +16,10 @@ procedure in [`database.md`](database.md) and the process contract in
 | Logs and metrics | External platform collection | Retention appropriate to incident investigation; logs are not application backups |
 
 Container filesystems are disposable. Production must not use `static/uploads`
-inside an ephemeral container as its media system of record. The current code
-uses a filesystem upload adapter, so public deployment remains blocked until an
-S3-compatible adapter is implemented and migration/rollback behavior is tested.
+inside an ephemeral container as its media system of record. Ripple provides
+filesystem and private S3-compatible adapters. Production startup requires S3;
+local development retains the filesystem path. Existing media must be copied to
+the configured bucket before cutover.
 
 Local Docker Compose is intentionally different: `/data/twitclone.db` and
 `/data/uploads` share the `twitclone_data` named volume. This preserves local
@@ -115,7 +116,8 @@ and follow-up issue.
 
 Public traffic is not approved until all of these are true:
 
-- the production media adapter uses private durable object storage;
+- the production media adapter uses private durable object storage and existing
+  media has been copied and verified;
 - database point-in-time recovery and independent logical backups are enabled;
 - media versioning and an independent media copy are enabled;
 - a full restore rehearsal meets the documented RPO and RTO;

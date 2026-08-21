@@ -135,7 +135,8 @@ pip install -r requirements.txt
 
 The production database, durable-media boundary, backup and restore runbook,
 rollback procedure, and initial cost estimate are documented. Public deployment
-still requires the object-storage adapter and a successful restore rehearsal.
+still requires provisioning private object storage, migrating existing media,
+and completing a successful restore rehearsal.
 See [`docs/database.md`](docs/database.md),
 [`docs/operations.md`](docs/operations.md), and
 [`docs/deployment-costs.md`](docs/deployment-costs.md).
@@ -171,8 +172,9 @@ See:
 ## Security notice
 
 This repository is currently a development project. Production serving and
-recovery contracts are defined, but the durable object-storage adapter and a
-successful restore rehearsal are still required before public deployment.
+recovery contracts and the durable object-storage adapter are defined, but
+production resources, media migration, and a successful restore rehearsal are
+still required before public deployment.
 
 ## License
 
