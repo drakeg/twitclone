@@ -91,8 +91,8 @@ This roadmap is intentionally incremental. Sprint scope may be refined as the re
 
 Story 6.4 documents the durable-state boundary, recovery objectives, backup and
 restore rehearsal, rollback decision tree, and a dated low-traffic deployment
-estimate. Public deployment remains gated on implementing the selected
-object-storage adapter and completing a restore rehearsal.
+estimate. Story 6.5 implements the selected private S3-compatible adapter while
+preserving local filesystem-backed Compose.
 
 ## Priority design sprint — UI cleanup and visual refresh
 

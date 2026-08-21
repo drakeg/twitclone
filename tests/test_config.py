@@ -12,6 +12,11 @@ def load_config(monkeypatch, **environment):
         "SECRET_KEY",
         "DATABASE_URL",
         "UPLOAD_FOLDER",
+        "MEDIA_STORAGE_BACKEND",
+        "MEDIA_S3_BUCKET",
+        "MEDIA_S3_REGION",
+        "MEDIA_S3_ENDPOINT_URL",
+        "MEDIA_S3_PREFIX",
         "SCHEDULER_ENABLED",
         "SCHEDULER_INTERVAL_SECONDS",
     }
@@ -19,6 +24,11 @@ def load_config(monkeypatch, **environment):
         monkeypatch.delenv(key, raising=False)
     for key, value in environment.items():
         monkeypatch.setenv(key, value)
+
+    if environment.get("TWITCLONE_ENV") == "production":
+        monkeypatch.setenv("MEDIA_STORAGE_BACKEND", environment.get("MEDIA_STORAGE_BACKEND", "s3"))
+        monkeypatch.setenv("MEDIA_S3_BUCKET", environment.get("MEDIA_S3_BUCKET", "ripple-media"))
+        monkeypatch.setenv("MEDIA_S3_REGION", environment.get("MEDIA_S3_REGION", "nyc3"))
 
     sys.modules.pop("config", None)
     return importlib.import_module("config")
@@ -66,6 +76,16 @@ def test_scheduler_interval_must_be_positive(monkeypatch):
             SECRET_KEY="test-only-secret-not-for-production",
             SCHEDULER_INTERVAL_SECONDS="0",
         )
+
+
+def test_s3_media_storage_requires_bucket_and_region(monkeypatch):
+    with pytest.raises(RuntimeError, match="requires MEDIA_S3_BUCKET and MEDIA_S3_REGION"):
+        load_config(monkeypatch, TWITCLONE_ENV="testing", SECRET_KEY="test-only-secret", DATABASE_URL="sqlite:///:memory:", MEDIA_STORAGE_BACKEND="s3")
+
+
+def test_production_rejects_filesystem_media_storage(monkeypatch):
+    with pytest.raises(RuntimeError, match="Production requires MEDIA_STORAGE_BACKEND=s3"):
+        load_config(monkeypatch, TWITCLONE_ENV="production", SECRET_KEY="test-only-secret", DATABASE_URL="postgresql://user:password@database.example/ripple", MEDIA_STORAGE_BACKEND="filesystem")
 
 
 @pytest.mark.parametrize(

@@ -6,8 +6,6 @@ as a transitional startup and compatibility module.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import click
 from flask import Flask
 
@@ -30,6 +28,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     from twitclone.discovery import discovery_blueprint
     from twitclone.extensions import db
     from twitclone.messaging import messaging_blueprint
+    from twitclone.media_storage import init_media_storage
     from twitclone.models import User
     from twitclone.notifications import notifications_blueprint
     from twitclone.observability import configure_observability
@@ -43,7 +42,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     flask_app = legacy_app.app
     scheduler = legacy_app.scheduler
     flask_app.config.from_object(config_object)
-    Path(flask_app.config["UPLOAD_FOLDER"]).mkdir(parents=True, exist_ok=True)
+    init_media_storage(flask_app)
     configure_observability(flask_app)
 
     for blueprint in (

@@ -2,11 +2,13 @@
 
 from datetime import UTC, datetime, timedelta
 
-from flask import abort, current_app, flash, redirect, render_template, request, send_from_directory, url_for
+from flask import abort, flash, redirect, render_template, request, send_file, url_for
+from io import BytesIO
 from flask_login import current_user, login_required
 from twitclone.analytics_tracking import record_post_impression, record_post_impressions
 from twitclone.extensions import db
 from twitclone.mentions import add_mention_notifications
+from twitclone.media_storage import MediaNotFound, get_media_storage
 from twitclone.models import DirectMessage, Notification, Quote, Retweet, Tweet, User
 from twitclone.timeline import timeline_blueprint
 from twitclone.timeline.media import store_image_upload
@@ -64,7 +66,7 @@ def tweet():
         flash(validation_error, "danger"); return redirect(url_for("index"))
     image = request.files.get("image"); image_filename = None; original_image_filename = None
     if image and image.filename:
-        image_error, original_image_filename, image_filename = store_image_upload(image, current_app.config["UPLOAD_FOLDER"])
+        image_error, original_image_filename, image_filename = store_image_upload(image, get_media_storage())
         if image_error:
             flash(image_error, "danger"); return redirect(url_for("index"))
     scheduled_at, schedule_error = _scheduled_at_from_form()
@@ -86,7 +88,13 @@ def tweet():
 
 
 def uploaded_file(filename):
-    return send_from_directory(current_app.config["UPLOAD_FOLDER"], filename)
+    if not filename.startswith(("thumb_", "banner_")):
+        abort(404)
+    try:
+        media = get_media_storage().get(filename)
+    except (MediaNotFound, ValueError):
+        abort(404)
+    return send_file(BytesIO(media.content), mimetype=media.content_type, download_name=filename, max_age=31536000)
 
 
 @login_required

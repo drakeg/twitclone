@@ -1,24 +1,21 @@
 """Profile and social graph routes."""
 
-from pathlib import Path
-
-from flask import current_app, flash, jsonify, redirect, render_template, request, url_for
+from flask import flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from twitclone.analytics_tracking import record_profile_visit, snapshot_followers
 from twitclone.creator_analytics import build_creator_dashboard
 from twitclone.extensions import db
 from twitclone.models import Notification, Quote, Retweet, Tweet, User
+from twitclone.media_storage import get_media_storage
 from twitclone.profiles import profiles_blueprint
-from twitclone.timeline.media import prepare_image_upload
+from twitclone.timeline.media import store_profile_banner
 
 PROFILE_THEMES = {'ripple':'Ripple Blue','sunset':'Sunset','forest':'Forest','violet':'Violet','slate':'Slate'}
 
 
 def _store_profile_banner(upload):
-    error, generated_name = prepare_image_upload(upload)
-    if error: return error, None
-    banner_name = f"banner_{generated_name}"; upload.save(Path(current_app.config['UPLOAD_FOLDER']) / banner_name); return None, banner_name
+    return store_profile_banner(upload, get_media_storage())
 
 
 @login_required
