@@ -21,6 +21,30 @@ filesystem and private S3-compatible adapters. Production startup requires S3;
 local development retains the filesystem path. Existing media must be copied to
 the configured bucket before cutover.
 
+### Migrating existing filesystem media
+
+Configure the application for the destination S3 bucket using the variables in
+[`configuration.md`](configuration.md), while keeping the existing upload
+directory available to the one-shot migration process. First preview the copy:
+
+```bash
+flask --app application migrate-media-to-s3 --source /path/to/uploads --dry-run
+```
+
+Then perform and verify the copy:
+
+```bash
+flask --app application migrate-media-to-s3 --source /path/to/uploads
+```
+
+The command compares every regular, non-hidden top-level source file with its
+destination object by SHA-256 content digest. It verifies each newly written
+object by reading it back. A repeat run is safe and should report all objects as
+unchanged. Differing destination objects are reported as conflicts and produce
+a failed command; review them before using `--overwrite`. Do not remove the
+source directory or cut traffic over until the final run has no conflicts and
+the application can retrieve a representative sample of migrated images.
+
 Local Docker Compose is intentionally different: `/data/twitclone.db` and
 `/data/uploads` share the `twitclone_data` named volume. This preserves local
 developer data across `docker compose down`. Running `docker compose down -v`
@@ -117,7 +141,7 @@ and follow-up issue.
 Public traffic is not approved until all of these are true:
 
 - the production media adapter uses private durable object storage and existing
-  media has been copied and verified;
+  media has been copied and verified with `migrate-media-to-s3`;
 - database point-in-time recovery and independent logical backups are enabled;
 - media versioning and an independent media copy are enabled;
 - a full restore rehearsal meets the documented RPO and RTO;
