@@ -134,7 +134,10 @@ assistive technology, zoom, and reduced-motion preferences.
 
 Story 7.1 establishes the shared keyboard-focus, semantic navigation,
 decorative-icon, dynamic-control-state, and reduced-motion foundation. Later
-stories will perform the broader template and assistive-technology audit.
+stories will perform the broader template and assistive-technology audit. Story
+7.2 connects authentication errors to invalid fields, adds shared polite status
+announcements for asynchronous follow actions and composer feedback, and removes
+duplicate follow-button request handlers.
 
 ## Future backlog
 

@@ -6,12 +6,13 @@
     <span class="auth-kicker">Your voice belongs here</span>
     <h1>Create your account.</h1>
     <p>Meet interesting people and share what matters to you.</p>
+    {% if form_error %}<div class="alert alert-danger" id="register-error" role="alert" tabindex="-1" data-error-summary>{{ form_error }}</div>{% endif %}
     <form method="POST" action="{{ url_for('register') }}">
-        <div class="mb-3"><label for="username" class="form-label">Username</label><input type="text" class="form-control" id="username" name="username" autocomplete="username" required></div>
-        <div class="mb-3"><label for="email" class="form-label">Email address</label><input type="email" class="form-control" id="email" name="email" autocomplete="email" required></div>
+        <div class="mb-3"><label for="username" class="form-label">Username</label><input type="text" class="form-control" id="username" name="username" value="{{ username|default('') }}" autocomplete="username" required {% if invalid_fields and 'username' in invalid_fields %}aria-invalid="true" aria-describedby="register-error"{% endif %}></div>
+        <div class="mb-3"><label for="email" class="form-label">Email address</label><input type="email" class="form-control" id="email" name="email" value="{{ email|default('') }}" autocomplete="email" required {% if invalid_fields and 'email' in invalid_fields %}aria-invalid="true" aria-describedby="register-error"{% endif %}></div>
         <div class="mb-3"><label for="password" class="form-label">Password</label><input type="password" class="form-control" id="password" name="password" autocomplete="new-password" required></div>
         <div class="form-check mb-4">
-            <input class="form-check-input" type="checkbox" value="yes" id="community_standards" name="community_standards" required>
+            <input class="form-check-input" type="checkbox" value="yes" id="community_standards" name="community_standards" required {% if invalid_fields and 'community_standards' in invalid_fields %}aria-invalid="true" aria-describedby="register-error"{% endif %}>
             <label class="form-check-label" for="community_standards">I agree to follow the <a href="{{ url_for('community.guidelines') }}" target="_blank" rel="noopener">Ripple Community Standards</a>, including treating others with respect and not bullying or harassing people.</label>
         </div>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
