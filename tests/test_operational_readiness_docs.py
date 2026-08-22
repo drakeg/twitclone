@@ -18,6 +18,8 @@ def test_operations_runbook_defines_complete_recovery_boundary():
         "pg_restore --clean --if-exists",
         "independent backup",
         "object versioning",
+        "migrate-media-to-s3 --source /path/to/uploads --dry-run",
+        "SHA-256 content digest",
         "previous known-good SHA",
         "Public traffic is not approved",
     ):

@@ -92,7 +92,9 @@ This roadmap is intentionally incremental. Sprint scope may be refined as the re
 Story 6.4 documents the durable-state boundary, recovery objectives, backup and
 restore rehearsal, rollback decision tree, and a dated low-traffic deployment
 estimate. Story 6.5 implements the selected private S3-compatible adapter while
-preserving local filesystem-backed Compose.
+preserving local filesystem-backed Compose. Story 6.6 adds a dry-run-first,
+repeatable, content-verified command for migrating existing filesystem media to
+the configured private bucket.
 
 ## Priority design sprint — UI cleanup and visual refresh
 

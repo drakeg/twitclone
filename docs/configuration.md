@@ -73,6 +73,8 @@ release procedure and [`operations.md`](operations.md) for the durable-media,
 backup, restore, and rollback contract. Production requires the S3 backend, a
 bucket, and a region. Credentials use Boto3's standard credential chain and
 must be injected by the platform rather than stored in application settings.
+Use the verified `flask --app application migrate-media-to-s3` procedure in the
+operations runbook before switching an existing deployment to S3-backed media.
 
 ## Security notes
 
