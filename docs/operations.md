@@ -136,6 +136,26 @@ read, media retrieval, and scheduled-worker logs. Record the failed and restored
 SHAs, database revision, recovery-set identifiers, timestamps, operator, impact,
 and follow-up issue.
 
+## Deployment preflight
+
+After applying migrations and before enabling public traffic, run this one-shot
+command in the production environment with the same configuration and network
+access as the web process:
+
+```bash
+flask --app application deployment-preflight
+```
+
+The command fails unless `TWITCLONE_ENV=production`. It verifies database
+connectivity, confirms the database is at every repository migration head, and
+writes, reads, and deletes a uniquely named private media probe. A successful
+result ends with `Deployment preflight passed.` and leaves no probe object.
+
+Treat any failure as a blocked release. The command does not replace a backup,
+restore rehearsal, application smoke test, or monitoring check. After it passes,
+start one web process, verify both health endpoints and core reads, then start
+exactly one scheduled worker. Record the command result with the release SHA.
+
 ## Launch gate
 
 Public traffic is not approved until all of these are true:
@@ -147,3 +167,4 @@ Public traffic is not approved until all of these are true:
 - a full restore rehearsal meets the documented RPO and RTO;
 - the prior image and migration compatibility decision are recorded per release;
 - backup failure alerts have an owner and tested notification path.
+- `deployment-preflight` passes using the release image and production services.

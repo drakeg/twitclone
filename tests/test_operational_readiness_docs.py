@@ -20,6 +20,8 @@ def test_operations_runbook_defines_complete_recovery_boundary():
         "object versioning",
         "migrate-media-to-s3 --source /path/to/uploads --dry-run",
         "SHA-256 content digest",
+        "flask --app application deployment-preflight",
+        "Deployment preflight passed.",
         "previous known-good SHA",
         "Public traffic is not approved",
     ):

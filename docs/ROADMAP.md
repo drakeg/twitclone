@@ -94,7 +94,9 @@ restore rehearsal, rollback decision tree, and a dated low-traffic deployment
 estimate. Story 6.5 implements the selected private S3-compatible adapter while
 preserving local filesystem-backed Compose. Story 6.6 adds a dry-run-first,
 repeatable, content-verified command for migrating existing filesystem media to
-the configured private bucket.
+the configured private bucket. Story 6.7 adds a production-only deployment
+preflight that proves database connectivity, migration currency, and private
+media read/write/delete access before traffic is enabled.
 
 ## Priority design sprint — UI cleanup and visual refresh
 

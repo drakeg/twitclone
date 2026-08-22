@@ -28,6 +28,10 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     from twitclone.community import community_blueprint
     from twitclone.demo import DEMO_PASSWORD, seed_demo_content
     from twitclone.discovery import discovery_blueprint
+    from twitclone.deployment_preflight import (
+        DeploymentPreflightError,
+        run_deployment_preflight,
+    )
     from twitclone.extensions import db
     from twitclone.media_migration import migrate_media_directory
     from twitclone.media_storage import init_media_storage
@@ -124,6 +128,27 @@ def create_app(config_object: type[Config] = Config) -> Flask:
                 raise click.ClickException(
                     "Destination conflicts were not overwritten. Review them and rerun with --overwrite only if approved."
                 )
+
+    if "deployment-preflight" not in flask_app.cli.commands:
+        @flask_app.cli.command("deployment-preflight")
+        def deployment_preflight():
+            """Verify production database, schema, and media readiness."""
+            if flask_app.config.get("ENVIRONMENT") != "production":
+                raise click.ClickException(
+                    "Set TWITCLONE_ENV=production before running deployment preflight."
+                )
+            try:
+                result = run_deployment_preflight(
+                    database_session=db.session,
+                    media_storage=flask_app.extensions["media_storage"],
+                    migrations_directory=Path(flask_app.root_path) / "migrations",
+                )
+            except DeploymentPreflightError as exc:
+                raise click.ClickException(str(exc)) from exc
+            click.echo(f"Database: {result.database}")
+            click.echo(f"Migrations: current ({result.migrations})")
+            click.echo(f"Media: {result.media}")
+            click.echo("Deployment preflight passed.")
 
     if not flask_app.config["SCHEDULER_ENABLED"] and scheduler.running:
         scheduler.shutdown(wait=False)
