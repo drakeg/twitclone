@@ -117,11 +117,29 @@ This sprint was intentionally prioritized after Sprint 6 Story 6.2. The
 refreshed interface has been reviewed, and deployment-readiness work resumes
 with the production database story.
 
+## Sprint 7 — Accessible interaction and content
+
+**Goal:** Make Ripple's core flows understandable and operable with keyboards,
+assistive technology, zoom, and reduced-motion preferences.
+
+**Planned outcomes:**
+
+- Establish tested focus, landmark, navigation-state, and motion contracts
+- Audit forms, validation errors, and dynamic status announcements
+- Verify component and content contrast across interaction states
+- Test representative account, timeline, messaging, and moderation flows with
+  keyboard and current screen readers
+- Record findings and remediation against WCAG 2.2 without claiming unverified
+  conformance
+
+Story 7.1 establishes the shared keyboard-focus, semantic navigation,
+decorative-icon, dynamic-control-state, and reduced-motion foundation. Later
+stories will perform the broader template and assistive-technology audit.
+
 ## Future backlog
 
 Potential work after stabilization:
 
-- Accessibility review
 - Account recovery and email verification
 - Moderation and reporting tools
 - API design
