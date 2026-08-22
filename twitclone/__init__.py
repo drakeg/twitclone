@@ -6,6 +6,8 @@ as a transitional startup and compatibility module.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import click
 from flask import Flask
 
@@ -27,8 +29,9 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     from twitclone.demo import DEMO_PASSWORD, seed_demo_content
     from twitclone.discovery import discovery_blueprint
     from twitclone.extensions import db
-    from twitclone.messaging import messaging_blueprint
+    from twitclone.media_migration import migrate_media_directory
     from twitclone.media_storage import init_media_storage
+    from twitclone.messaging import messaging_blueprint
     from twitclone.models import User
     from twitclone.notifications import notifications_blueprint
     from twitclone.observability import configure_observability
@@ -91,6 +94,36 @@ def create_app(config_object: type[Config] = Config) -> Flask:
             """Create/update Ripple's provider-neutral plan catalog."""
             ensure_default_plans()
             click.echo("Ripple billing plan catalog is ready.")
+
+    if "migrate-media-to-s3" not in flask_app.cli.commands:
+        @flask_app.cli.command("migrate-media-to-s3")
+        @click.option("--source", type=click.Path(path_type=Path), default=None)
+        @click.option("--dry-run", is_flag=True, help="Report work without writing objects.")
+        @click.option("--overwrite", is_flag=True, help="Replace destination objects whose content differs.")
+        def migrate_media_to_s3(source, dry_run, overwrite):
+            """Copy existing filesystem media into configured S3 storage."""
+            if flask_app.config.get("MEDIA_STORAGE_BACKEND") != "s3":
+                raise click.ClickException("Set MEDIA_STORAGE_BACKEND=s3 before migrating media.")
+            source = source or Path(flask_app.config["UPLOAD_FOLDER"])
+            try:
+                result = migrate_media_directory(
+                    source,
+                    flask_app.extensions["media_storage"],
+                    dry_run=dry_run,
+                    overwrite=overwrite,
+                )
+            except (OSError, RuntimeError, ValueError) as exc:
+                raise click.ClickException(str(exc)) from exc
+            click.echo(
+                f"Media migration {'plan' if dry_run else 'complete'}: "
+                f"{result.discovered} discovered, {result.copied} copied, "
+                f"{result.unchanged} unchanged, {result.conflicts} conflicts, "
+                f"{result.bytes_copied} bytes {'planned' if dry_run else 'written'}."
+            )
+            if result.conflicts:
+                raise click.ClickException(
+                    "Destination conflicts were not overwritten. Review them and rerun with --overwrite only if approved."
+                )
 
     if not flask_app.config["SCHEDULER_ENABLED"] and scheduler.running:
         scheduler.shutdown(wait=False)
