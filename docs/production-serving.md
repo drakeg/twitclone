@@ -52,4 +52,6 @@ active requests to finish.
 
 The Docker image's default command is the same Gunicorn command used by Compose.
 Database migration remains an explicit release or one-shot task rather than a
-side effect of starting each web replica.
+side effect of starting each web replica. After that task succeeds, run
+`flask --app application deployment-preflight` using the release image before
+enabling public traffic; the full sequence is in [`operations.md`](operations.md).
