@@ -25,11 +25,21 @@ def register():
         email = request.form["email"]
         password = request.form["password"]
         if request.form.get("community_standards") != "yes":
-            flash("You must agree to the Ripple Community Standards to create an account.", "danger")
-            return render_template("register.html")
+            return render_template(
+                "register.html",
+                form_error="You must agree to the Ripple Community Standards to create an account.",
+                invalid_fields={"community_standards"},
+                username=username,
+                email=email,
+            )
         if User.query.filter(db.or_(User.username == username, User.email == email)).first():
-            flash("That username or email is already registered.", "danger")
-            return render_template("register.html")
+            return render_template(
+                "register.html",
+                form_error="That username or email is already registered.",
+                invalid_fields={"username", "email"},
+                username=username,
+                email=email,
+            )
         hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
         user = User(
             username=username,
@@ -43,8 +53,13 @@ def register():
             db.session.commit()
         except IntegrityError:
             db.session.rollback()
-            flash("That username or email is already registered.", "danger")
-            return render_template("register.html")
+            return render_template(
+                "register.html",
+                form_error="That username or email is already registered.",
+                invalid_fields={"username", "email"},
+                username=username,
+                email=email,
+            )
         flash("Your account has been created!", "success")
         return redirect(url_for("login"))
     return render_template("register.html")
@@ -58,7 +73,12 @@ def login():
         if user and bcrypt.check_password_hash(user.password, password):
             login_user(user)
             return redirect(url_for("index"))
-        flash("Login Unsuccessful. Please check email and password", "danger")
+        return render_template(
+            "login.html",
+            form_error="Login Unsuccessful. Please check email and password",
+            invalid_fields={"email", "password"},
+            email=email,
+        )
     return render_template("login.html")
 
 

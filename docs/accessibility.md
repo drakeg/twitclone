@@ -13,6 +13,12 @@ Automated checks cannot establish conformance on their own.
 - Icon-only controls have accessible names and decorative icons are hidden from
   assistive technology where the surrounding control already supplies a name.
 - The post scheduler announces its controlled region and expanded state.
+- Authentication errors move focus to a shared error summary, identify invalid
+  fields, and preserve non-secret values for correction.
+- Follow actions announce success or failure through one polite status region;
+  toggle buttons expose their current pressed state.
+- The composer exposes remaining characters and selected-image previews as
+  status information.
 - Reduced-motion preferences disable smooth scrolling and transitions and
   minimize animations.
 
