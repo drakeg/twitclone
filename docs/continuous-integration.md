@@ -43,6 +43,17 @@ The pytest command alone is:
 python -m pytest
 ```
 
+Docker users can run the current checkout with the isolated Compose test
+service:
+
+```bash
+docker compose run --rm test
+```
+
+The checkout is mounted read-only over the cached dependency image. Run
+`docker compose build test` after changing `requirements.txt`,
+`requirements-dev.txt`, or the Dockerfile.
+
 ## Test Isolation
 
 The test environment sets:

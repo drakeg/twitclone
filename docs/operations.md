@@ -116,6 +116,11 @@ Never test a restore over the production database or live media bucket.
    and RTO were met.
 8. Destroy rehearsal resources only after the result and evidence are recorded.
 
+Record the exercise using
+[`templates/restore-rehearsal-record.md`](templates/restore-rehearsal-record.md).
+Store the completed record in the approved operational system, not this public
+repository, and link it from the release readiness record.
+
 For a real incident, keep web and worker processes stopped until validation is
 complete. Cut over secrets or connection settings to the new database and media
 bucket, start one web process, verify health and core reads, then start exactly
@@ -155,6 +160,11 @@ Treat any failure as a blocked release. The command does not replace a backup,
 restore rehearsal, application smoke test, or monitoring check. After it passes,
 start one web process, verify both health endpoints and core reads, then start
 exactly one scheduled worker. Record the command result with the release SHA.
+
+Use [`templates/release-readiness-record.md`](templates/release-readiness-record.md)
+for every public release. A reviewer must confirm every applicable launch-gate
+item and record an explicit approved, blocked, or rolled-back decision. Completed
+records belong in the approved operational system and must not contain secrets.
 
 ## Launch gate
 

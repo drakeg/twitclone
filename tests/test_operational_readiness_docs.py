@@ -56,3 +56,37 @@ def test_administration_guide_documents_supported_promotion_command():
     assert "flask --app application make-super-admin user@example.com" in guide
     assert "sets both the administrator and super-administrator flags" in guide
     assert "docs/administration.md" in readme
+
+
+def test_release_readiness_template_covers_every_launch_gate():
+    template = read("docs/templates/release-readiness-record.md")
+
+    for required in (
+        "Release SHA:",
+        "Previous known-good SHA:",
+        "Migration compatibility decision",
+        "Database backup identifier:",
+        "Media backup identifier:",
+        "Rehearsal record location:",
+        "Deployment preflight job identifier and result:",
+        "Backup-failure alert owner:",
+        "Result: approved / blocked / rolled back",
+        "Do not commit completed records",
+    ):
+        assert required in template
+
+
+def test_restore_rehearsal_template_records_objectives_and_cleanup():
+    template = read("docs/templates/restore-rehearsal-record.md")
+
+    for required in (
+        "Source recovery-set identifier:",
+        "No production database or live media bucket was targeted.",
+        "flask --app application db current",
+        "flask --app application deployment-preflight",
+        "Observed RPO:",
+        "Observed RTO:",
+        "Exercise result: passed / failed",
+        "Temporary resources were destroyed only after evidence was retained.",
+    ):
+        assert required in template
