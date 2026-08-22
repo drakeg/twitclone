@@ -96,7 +96,9 @@ preserving local filesystem-backed Compose. Story 6.6 adds a dry-run-first,
 repeatable, content-verified command for migrating existing filesystem media to
 the configured private bucket. Story 6.7 adds a production-only deployment
 preflight that proves database connectivity, migration currency, and private
-media read/write/delete access before traffic is enabled.
+media read/write/delete access before traffic is enabled. Story 6.8 supplies
+standard release-readiness and restore-rehearsal evidence records so every
+launch gate has an owner, timestamp, result, and reviewable disposition.
 
 ## Priority design sprint — UI cleanup and visual refresh
 

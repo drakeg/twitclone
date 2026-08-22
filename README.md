@@ -88,6 +88,11 @@ Run the complete automated test suite in an isolated one-off container with:
 docker compose run --rm test
 ```
 
+The test service mounts the current checkout read-only, so this command always
+tests current source and test files even when the dependency image is cached.
+Rebuild after dependency-file or Dockerfile changes with
+`docker compose build test`.
+
 The test service uses an in-memory database and temporary upload directory. It
 does not read, migrate, or erase the named volume used by the local application.
 
@@ -140,6 +145,9 @@ migrating existing media, and completing a successful restore rehearsal.
 See [`docs/database.md`](docs/database.md),
 [`docs/operations.md`](docs/operations.md), and
 [`docs/deployment-costs.md`](docs/deployment-costs.md).
+The operations runbook links reusable release-readiness and restore-rehearsal
+record templates; completed records must remain in the approved operations
+system rather than this repository.
 
 ## Agile delivery model
 

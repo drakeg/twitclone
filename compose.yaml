@@ -41,6 +41,8 @@ services:
     build: .
     profiles: ["tools"]
     command: python -m pytest --strict-markers --maxfail=1
+    volumes:
+      - .:/app:ro
     environment:
       TWITCLONE_ENV: testing
       SECRET_KEY: compose-test-only-secret
@@ -48,6 +50,8 @@ services:
       UPLOAD_FOLDER: /tmp/twitclone-test-uploads
       SCHEDULER_ENABLED: "false"
       SCHEDULER_INTERVAL_SECONDS: "60"
+      PYTEST_ADDOPTS: "-o cache_dir=/tmp/pytest-cache"
+      PYTHONDONTWRITEBYTECODE: "1"
 
 volumes:
   twitclone_data:
