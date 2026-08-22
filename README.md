@@ -176,6 +176,7 @@ See:
 - **Sprint 4:** Social interactions and notifications
 - **Sprint 5:** Media, polls, and scheduled-post hardening
 - **Sprint 6:** Deployment readiness and operational documentation
+- **Sprint 7:** Accessible interaction and content
 
 ## Security notice
 
