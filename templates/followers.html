@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>{{ user.username }}'s Followers</h2>
+<h1>{{ user.username }}'s Followers</h1>
 <ul class="list-group">
     {% for follower in followers %}
     <li class="list-group-item">
-        <img src="{{ gravatar(follower.email, size=40) }}" alt="avatar" class="rounded-circle me-2">
+        <img src="{{ gravatar(follower.email, size=40) }}" alt="" class="rounded-circle me-2">
         <a href="{{ url_for('profile', username=follower.username) }}">{{ follower.username }}</a>
     </li>
     {% endfor %}

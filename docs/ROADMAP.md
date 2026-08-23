@@ -138,6 +138,9 @@ stories will perform the broader template and assistive-technology audit. Story
 7.2 connects authentication errors to invalid fields, adds shared polite status
 announcements for asynchronous follow actions and composer feedback, and removes
 duplicate follow-button request handlers.
+Story 7.3 audits representative creation, discovery, messaging, account, and
+moderation-adjacent templates for heading structure, control names, decorative
+content, table relationships, dynamic focus, and core text-token contrast.
 
 ## Future backlog
 

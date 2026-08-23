@@ -19,6 +19,13 @@ Automated checks cannot establish conformance on their own.
   toggle buttons expose their current pressed state.
 - The composer exposes remaining characters and selected-image previews as
   status information.
+- Audited secondary pages use one level-one heading, decorative repeated images
+  stay out of the accessibility tree, and account data tables identify their
+  purpose and header relationships.
+- Dynamically added poll choices receive focus and a polite announcement; the
+  add control exposes a descriptive name and its existing limit.
+- Automated contrast regression checks cover Ripple's core text token pairs at
+  the WCAG 2.x 4.5:1 normal-text threshold.
 - Reduced-motion preferences disable smooth scrolling and transitions and
   minimize animations.
 
