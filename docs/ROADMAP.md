@@ -141,6 +141,11 @@ duplicate follow-button request handlers.
 Story 7.3 audits representative creation, discovery, messaging, account, and
 moderation-adjacent templates for heading structure, control names, decorative
 content, table relationships, dynamic focus, and core text-token contrast.
+Story 7.4 adds deterministic reflow safeguards for narrow/zoomed layouts,
+removes remaining decorative timeline icon noise, maps current evidence to
+representative WCAG 2.2 criteria, and defines the explicit NVDA/VoiceOver and
+200%/400% zoom evidence gate that must be completed before any conformance
+claim.
 
 ## Future backlog
 
