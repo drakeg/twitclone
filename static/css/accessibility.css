@@ -1,0 +1,51 @@
+/* Sprint 7 accessibility safeguards layered on top of the visual design system. */
+
+:where(.page-header, .profile-actions, .composer-tools, .d-flex) {
+    min-width: 0;
+}
+
+.page-header,
+.profile-actions {
+    flex-wrap: wrap;
+}
+
+:where(.surface-card, .post-body, .person-copy, .page-header > *, .profile-details) {
+    min-width: 0;
+}
+
+:where(p, li, td, th, a, button, label, small, strong, .post-text, .profile-bio, .post-handle) {
+    overflow-wrap: anywhere;
+}
+
+.table-responsive {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 600px) {
+    .schedule-panel {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .surface-card,
+    .content-column > form:not(.composer),
+    .content-column > .search-results {
+        margin-inline: 12px;
+        padding-inline: 16px;
+    }
+
+    .page-header {
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .profile-actions {
+        justify-content: flex-start;
+        margin-top: 12px;
+    }
+
+    .profile-avatar {
+        margin-top: -44px;
+    }
+}
