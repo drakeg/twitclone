@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Quote Tweet</h2>
+<h1>Quote post</h1>
 <div class="card mb-3">
     <div class="card-body">
-        <h5 class="card-title">
+        <h2 class="h5 card-title">
             <a href="{{ url_for('profile', username=tweet.user.username) }}">{{ tweet.user.username }}</a>
-        </h5>
+        </h2>
         <p class="card-text">{{ tweet.content | make_clickable | safe }}</p>
         <p class="card-text"><small class="text-muted">{{ tweet.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
     </div>
