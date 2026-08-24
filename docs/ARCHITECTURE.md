@@ -2,77 +2,92 @@
 
 ## Current state
 
-TwitClone is a Flask application backed by SQLite for local development and
-PostgreSQL for production. HTML templates and static assets provide the browser
-interface.
+Ripple is a modular Flask application backed by SQLite for local development and
+managed PostgreSQL 18 for production. HTML templates and static assets provide
+the browser interface. Production media uses a private S3-compatible adapter;
+local development retains filesystem uploads.
 
 ## Current components
 
-- **Web framework:** Flask
-- **Persistence:** Flask-SQLAlchemy with local SQLite and production PostgreSQL
-- **Migrations:** Flask-Migrate/Alembic
+- **Web framework:** Flask application factory with modular blueprints
+- **Persistence:** Flask-SQLAlchemy with local SQLite and production PostgreSQL 18
+- **Migrations:** Flask-Migrate/Alembic, run as an explicit release task
 - **Authentication:** Flask-Login and Flask-Bcrypt
 - **Forms and CSRF:** Flask-WTF
-- **Background scheduling:** APScheduler running with the web application
-- **Media:** Local filesystem uploads processed by Pillow
-- **Presentation:** Server-rendered Jinja templates and static assets
+- **Background scheduling:** one separately controlled scheduled-worker process
+- **Media:** validated image processing with local filesystem and private S3-compatible adapters
+- **Presentation:** server-rendered Jinja templates and static assets
+- **Billing:** provider-neutral plan/subscription/entitlement model with Stripe integration
+- **Operations:** health checks, structured logging, deployment preflight, backup/restore and release-evidence contracts
 
 ## Existing domain capabilities
 
-- Users and authentication
-- Following relationships
-- Posts, reposts, and quotes
-- Likes and bookmarks
-- Direct messages and notifications
-- Hashtag discovery
-- Image uploads
-- Scheduled posts
+- Users, authentication, and account recovery
+- Following relationships and followed hashtags
+- Posts, reposts, quotes, bookmarks, and scheduled publishing
+- Direct messages and actionable notifications
+- Image uploads and private durable production media
 - Polls and votes
+- Community standards, reporting, and moderation workflows
+- Identity verification and paid verified badges
+- Ripple+ and Creator Pro subscriptions
+- Measured creator analytics and performance insights
 
-## Known architectural risks
+## Current architectural risks
 
-### Configuration and secrets
+### Single application-host launch boundary
 
-The application currently defines development configuration in source code, including a hard-coded secret. This must be replaced before public deployment.
+Sprint 8's selected low-traffic AWS topology intentionally begins with one EC2
+application host. Web and scheduled-worker processes remain logically separate,
+but the VM is a shared interruption boundary until measured load or availability
+requirements justify a second host and load balancer.
 
-### Single-module concentration
+### Single-AZ launch database
 
-Models, routes, configuration, scheduler startup, and utility functions are tightly coupled. This makes testing and controlled startup difficult and increases regression risk.
+The initial managed PostgreSQL database is Single-AZ to control recurring cost.
+Backups, restore rehearsals, independent logical dumps, and a documented
+Multi-AZ upgrade path are therefore important parts of launch readiness.
 
-### Scheduler lifecycle
+### Secret delivery
 
-Starting APScheduler during module import can create duplicate scheduler processes under reloaders or multi-worker servers. Scheduled work should eventually run in a separately controlled process.
+Production secrets must remain outside source, container images, logs, and
+Terraform outputs. The Sprint 8 implementation must define a repeatable bootstrap
+and rotation path before apply.
 
-### Local media storage
+### Release and recovery evidence
 
-Uploaded files are stored under the application filesystem. Validation, collision handling, retention, backups, and production persistence require explicit design.
+Production safety depends on actually exercising the existing migration,
+deployment-preflight, backup/restore, rollback, and release-record procedures.
+Documentation alone is not evidence that those procedures work in the selected
+environment.
 
-### Database constraints
+### Accessibility evidence
 
-Application-level checks may not fully prevent duplicate follows, votes, bookmarks, likes, or other relationships. Important invariants should be enforced at the database level.
-
-### Timeline query complexity
-
-The timeline combines several content types. Its ordering, authorization, media fields, scheduled visibility, pagination, and rendering behavior require tests before refactoring.
-
-### Dependency lifecycle
-
-The repository has multiple overlapping automated dependency pull requests. Dependencies should be reconciled as a tested set rather than merging historical bot PRs independently.
+Automated accessibility regression coverage is established, but public launch
+still requires the documented manual NVDA/VoiceOver and zoom evidence disposition.
+No WCAG conformance claim is currently authorized.
 
 ## Target direction
 
-The near-term target remains a modular Flask monolith:
+The application remains a modular Flask monolith. Sprint 8 does not introduce a
+distributed application architecture.
 
-- Application factory
-- Environment-based configuration
-- Explicit extension initialization
-- Separate models, services, and blueprints
-- Automated tests and CI
-- Controlled background-worker entry point
-- SQLite for local development and PostgreSQL 18 for production
+The selected initial AWS deployment direction is recorded in
+[`ADR-0044-production-aws-topology.md`](architecture/ADR-0044-production-aws-topology.md):
 
-This approach improves maintainability without introducing distributed-system cost or complexity prematurely.
+- one ARM64 EC2 application host;
+- one private managed PostgreSQL 18 database;
+- one private encrypted/versioned S3 media bucket;
+- exactly one scheduled worker;
+- explicit migration and deployment-preflight jobs;
+- no NAT Gateway, load balancer, CDN, or second host until justified;
+- Terraform-managed infrastructure with a dated cost gate before apply.
+
+This preserves a low-cost path without weakening the durable-state and security
+boundaries established in Sprint 6.
 
 ## Architecture decision policy
 
-Significant decisions should be recorded under `docs/decisions/` when they affect security, data storage, deployment, operating cost, external services, or major application structure.
+Significant decisions are recorded under `docs/architecture/` when they affect
+security, data storage, deployment, operating cost, external services, or major
+application structure.
