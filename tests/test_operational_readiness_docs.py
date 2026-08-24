@@ -31,11 +31,15 @@ def test_operations_runbook_defines_complete_recovery_boundary():
 def test_cost_estimate_has_date_total_and_first_party_sources():
     estimate = read("docs/deployment-costs.md")
 
-    assert "2026-08-20" in estimate
-    assert "$35.15–$40.15/month" in estimate
-    assert "https://docs.digitalocean.com/products/app-platform/details/pricing/" in estimate
-    assert "https://www.digitalocean.com/pricing/managed-databases" in estimate
-    assert "https://docs.digitalocean.com/products/spaces/details/pricing/" in estimate
+    assert "2026-08-23" in estimate
+    assert "~31–35/month" in estimate
+    assert "EC2 `t4g.small`" in estimate
+    assert "RDS PostgreSQL 18 `db.t4g.micro`" in estimate
+    assert "https://aws.amazon.com/ec2/pricing/on-demand/" in estimate
+    assert "https://aws.amazon.com/vpc/pricing/" in estimate
+    assert "https://aws.amazon.com/rds/postgresql/pricing/" in estimate
+    assert "https://aws.amazon.com/s3/pricing/" in estimate
+    assert "No paid infrastructure is authorized" in estimate
 
 
 def test_local_compose_durable_state_contract_remains_intact():
