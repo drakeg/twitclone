@@ -60,8 +60,6 @@ After the reliability baseline, Ripple expanded deliberately without removing us
 
 Story 6.4 documents the durable-state boundary, recovery objectives, backup and restore rehearsal, rollback decision tree, and a dated low-traffic deployment estimate. Story 6.5 implements the selected private S3-compatible adapter while preserving local filesystem-backed Compose. Story 6.6 adds a dry-run-first, repeatable, content-verified command for migrating existing filesystem media to the configured private bucket. Story 6.7 adds a production-only deployment preflight that proves database connectivity, migration currency, and private media read/write/delete access before traffic is enabled. Story 6.8 supplies standard release-readiness and restore-rehearsal evidence records so every launch gate has an owner, timestamp, result, and reviewable disposition.
 
-Actual AWS infrastructure provisioning remains separate future work. Issue #16 is the current infrastructure tracker and must be re-evaluated against the present application architecture and current AWS pricing before implementation.
-
 ## Priority design sprint — UI cleanup and visual refresh
 
 **Goal:** Make Ripple feel polished, welcoming, and easy to navigate.
@@ -76,18 +74,24 @@ Actual AWS infrastructure provisioning remains separate future work. Issue #16 i
 
 Story 7.1 establishes the shared keyboard-focus, semantic navigation, decorative-icon, dynamic-control-state, and reduced-motion foundation. Story 7.2 connects authentication errors to invalid fields, adds shared polite status announcements for asynchronous follow actions and composer feedback, and removes duplicate follow-button request handlers. Story 7.3 audits representative creation, discovery, messaging, account, and moderation-adjacent templates for heading structure, control names, decorative content, table relationships, dynamic focus, and core text-token contrast. Story 7.4 adds deterministic reflow safeguards for narrow/zoomed layouts, removes remaining decorative timeline icon noise, maps current evidence to representative WCAG 2.2 criteria, and defines the explicit NVDA/VoiceOver and 200%/400% zoom evidence gate that must be completed before any conformance claim.
 
-## Candidate Sprint 8 — Production launch path
+## Sprint 8 — Production launch path
 
-Sprint 8 should be selected only after the manual Sprint 7 evidence gate is dispositioned and the infrastructure plan is refreshed against current requirements and costs.
+**Goal:** Turn the completed application/operations contracts into a low-cost, reproducible production deployment without provisioning unnecessary infrastructure.
 
-**Candidate outcomes:**
+**Status:** Active. Infrastructure remains planning-only until explicit spend authorization.
 
-- Reassess issue #16 and select the lowest-cost production architecture that satisfies current PostgreSQL/private-media/worker requirements
-- Update Terraform/deployment design before provisioning any paid AWS resources
-- Preserve separate Terraform `main.tf`, `variables.tf`, and `outputs.tf` responsibilities
-- Keep optional paid infrastructure disabled until explicitly authorized
-- Exercise the existing release-readiness, preflight, backup/restore, rollback, and destroy procedures against the selected environment
-- Document actual recurring cost before apply
+**Planned outcomes:**
+
+- Select and record the production AWS topology from current requirements and prices
+- Implement version-pinned Terraform under `infra/terraform` with separate `main.tf`, `variables.tf`, and `outputs.tf`
+- Keep load balancers, NAT Gateways, Multi-AZ database, CDN, and additional application hosts disabled unless separately justified and approved
+- Define secure bootstrap/secrets/deployment behavior for the application host
+- Exercise migrations, deployment preflight, media migration, health checks, Stripe webhook reachability, backup/restore, rollback, and release evidence against the provisioned environment
+- Document actual recurring cost before apply and maintain an explicit destroy procedure
+
+Story 8.1 selects a low-traffic AWS topology in ADR-0044: one `t4g.small` EC2 application host, one private Single-AZ RDS PostgreSQL 18 `db.t4g.micro`, private encrypted/versioned S3 media, no NAT Gateway or load balancer, and optional Route 53 DNS. The planning estimate is approximately $31-$35/month before backups, domain, observability, email, and overages. Story 8.1 does **not** authorize an AWS apply or recurring spend.
+
+The manual Sprint 7 NVDA/VoiceOver and zoom evidence remains a public-launch gate even while Sprint 8 infrastructure work proceeds.
 
 ## Future backlog
 
