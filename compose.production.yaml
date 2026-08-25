@@ -1,0 +1,63 @@
+x-ripple-app: &ripple-app
+  image: ${RIPPLE_IMAGE:?Set RIPPLE_IMAGE to an immutable Ripple image reference}
+  env_file:
+    - ${RIPPLE_ENV_FILE:-.env.production}
+  restart: "no"
+
+services:
+  migrate:
+    <<: *ripple-app
+    command: flask --app application db upgrade
+
+  preflight:
+    <<: *ripple-app
+    command: flask --app application deployment-preflight
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    <<: *ripple-app
+    command: gunicorn --bind 0.0.0.0:8000 --workers ${RIPPLE_GUNICORN_WORKERS:-1} --threads ${RIPPLE_GUNICORN_THREADS:-4} --timeout 30 application:application
+    restart: unless-stopped
+    depends_on:
+      preflight:
+        condition: service_completed_successfully
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
+
+  worker:
+    <<: *ripple-app
+    command: python -m twitclone.scheduled_worker
+    restart: unless-stopped
+    depends_on:
+      preflight:
+        condition: service_completed_successfully
+
+  proxy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      RIPPLE_DOMAIN: ${RIPPLE_DOMAIN:?Set RIPPLE_DOMAIN to the public hostname}
+      RIPPLE_TLS_EMAIL: ${RIPPLE_TLS_EMAIL:?Set RIPPLE_TLS_EMAIL for certificate notices}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
