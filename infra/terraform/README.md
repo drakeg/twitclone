@@ -13,12 +13,15 @@ This directory implements Sprint 8 ADR-0044's low-cost AWS topology. It is infra
 - optional Route 53 DNS;
 - no NAT Gateway, load balancer, CDN, second app host, or Multi-AZ database by default.
 
-Application bootstrap, reverse-proxy/TLS configuration, container deployment, and secret delivery are later Sprint 8 stories. This story establishes the network and durable-service boundary only.
+The EC2 resource is wired to the same container-first deployment artifacts used outside AWS. First-boot user data runs `deploy/bootstrap-host.sh`, which installs Docker, installs and checksum-verifies a pinned Docker Compose release, creates the Ripple runtime directories, and copies `compose.production.yaml`, Caddy configuration, the production environment example, and deployment wrapper from an exact Git commit SHA.
 
 ## Toolchain
 
 - Terraform `>= 1.15.0, < 1.16.0`
 - HashiCorp AWS provider `6.60.0`
+- Amazon Linux 2023 ARM64 application host
+- Docker from the Amazon Linux 2023 package repository
+- Docker Compose `5.4.0`, checksum-verified during host bootstrap
 
 ## Authentication
 
@@ -55,6 +58,8 @@ Do not save a binary plan containing secrets unless its storage and retention ar
 
 Copy `terraform.tfvars.example` to an untracked `terraform.tfvars` only for non-secret customization. The committed example intentionally contains no credentials.
 
+Before any future apply, `host_bootstrap_ref` must be set to the exact 40-character Git commit SHA containing the deployment artifacts to install on EC2. Terraform intentionally blocks EC2 creation when that value is missing. This prevents a production host from booting against mutable `main` or an unknown deployment definition.
+
 Notable defaults:
 
 - `us-east-1`
@@ -68,6 +73,20 @@ Notable defaults:
 - Route 53 disabled
 - Multi-AZ RDS disabled
 
+## Host bootstrap boundary
+
+`deploy/bootstrap-host.sh` is designed for Amazon Linux 2023 and runs as EC2 user data. It is idempotent at the operating-system/runtime level and performs only host preparation:
+
+1. installs Docker and starts/enables the Docker service;
+2. installs Docker Compose `5.4.0` for ARM64 and verifies the published SHA-256 checksum;
+3. prepares `/opt/ripple`, `/var/lib/ripple`, and locked-down `/etc/ripple` paths;
+4. downloads deployment files from the exact `host_bootstrap_ref` Git commit;
+5. records the installed deployment ref and Compose version under `/var/lib/ripple`.
+
+It does **not** create application secrets, a production environment file, database credentials, Stripe credentials, AWS access keys, DNS records, container registries, or application containers. `/etc/ripple/ripple.env` must be populated separately before `scripts/deploy-production.sh deploy` is used.
+
+No AWS resource is required to review or test this contract. The bootstrap script and Terraform references are covered by repository regression tests, while Terraform CI continues to run formatting and validation without an apply.
+
 ## State
 
 This story intentionally starts with local Terraform state because no shared/team backend has been authorized. State files and local tfvars are ignored by Git.
@@ -76,9 +95,9 @@ Before any production apply, decide where the state will be kept, how it will be
 
 ## Secrets boundary
 
-Terraform does not create or output Flask, Stripe, or application secrets in this story. The RDS master password is supplied as the sensitive `db_password` input and must come from a secure runtime source such as an environment variable.
+Terraform does not create or output Flask, Stripe, or application secrets. The RDS master password is supplied as the sensitive `db_password` input and must come from a secure runtime source such as an environment variable.
 
-A later deployment story must define how the application receives `DATABASE_URL`, `SECRET_KEY`, Stripe credentials, and any other runtime secrets without committing them or exposing them through Terraform outputs.
+The EC2 bootstrap user data contains only the deployment Git SHA and the checked-in bootstrap script. It does not embed `DATABASE_URL`, `SECRET_KEY`, Stripe credentials, AWS access keys, or the contents of `/etc/ripple/ripple.env`.
 
 ## Destroy safety
 
