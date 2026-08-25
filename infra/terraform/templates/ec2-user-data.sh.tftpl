@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+install -m 0700 /dev/null /tmp/ripple-bootstrap-host.sh
+base64 --decode > /tmp/ripple-bootstrap-host.sh <<'RIPPLE_BOOTSTRAP_B64'
+${bootstrap_script_b64}
+RIPPLE_BOOTSTRAP_B64
+
+RIPPLE_DEPLOYMENT_REF='${deployment_ref}' /tmp/ripple-bootstrap-host.sh
+rm -f /tmp/ripple-bootstrap-host.sh
