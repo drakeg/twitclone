@@ -1,0 +1,16 @@
+aws_region   = "us-east-1"
+environment  = "production"
+name_prefix = "ripple"
+
+# Optional: restrict SSH to one trusted administration source. Leave null to disable.
+ssh_admin_cidr = null
+
+# Optional DNS. Domain registration is not managed by this Terraform.
+enable_route53 = false
+domain_name    = null
+
+# Cost-increasing options remain disabled by default.
+enable_multi_az_rds = false
+
+# Supply the database password at runtime instead of committing it:
+# export TF_VAR_db_password='use-a-long-random-secret'

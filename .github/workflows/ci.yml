@@ -47,3 +47,31 @@ jobs:
 
       - name: Run tests
         run: python -m pytest --strict-markers --maxfail=1
+
+  terraform:
+    name: Terraform validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: infra/terraform
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4.0.1
+        with:
+          terraform_version: "1.15.9"
+          terraform_wrapper: false
+
+      - name: Initialize providers without backend
+        run: terraform init -backend=false
+
+      - name: Check formatting
+        run: terraform fmt -check
+
+      - name: Validate configuration
+        run: terraform validate

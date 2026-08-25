@@ -78,7 +78,7 @@ Story 7.1 establishes the shared keyboard-focus, semantic navigation, decorative
 
 **Goal:** Turn the completed application/operations contracts into a low-cost, reproducible production deployment without provisioning unnecessary infrastructure.
 
-**Status:** Active. Infrastructure remains planning-only until explicit spend authorization.
+**Status:** Active. Infrastructure remains plan/validate-only until explicit spend authorization.
 
 **Planned outcomes:**
 
@@ -90,6 +90,8 @@ Story 7.1 establishes the shared keyboard-focus, semantic navigation, decorative
 - Document actual recurring cost before apply and maintain an explicit destroy procedure
 
 Story 8.1 selects a low-traffic AWS topology in ADR-0044: one `t4g.small` EC2 application host, one private Single-AZ RDS PostgreSQL 18 `db.t4g.micro`, private encrypted/versioned S3 media, no NAT Gateway or load balancer, and optional Route 53 DNS. The planning estimate is approximately $31-$35/month before backups, domain, observability, email, and overages. Story 8.1 does **not** authorize an AWS apply or recurring spend.
+
+Story 8.2 implements that topology as version-pinned Terraform under `infra/terraform`. Resource declarations, variables, and outputs remain separated; the application host uses an IAM instance role for private media; RDS and S3 remain private durable boundaries; optional Route 53 and Multi-AZ RDS are disabled by default; Terraform state/local inputs are excluded from source control; and production destroy paths are deliberately protected. Story 8.2 remains **plan/validate-only** and does not authorize `terraform apply` or recurring spend.
 
 The manual Sprint 7 NVDA/VoiceOver and zoom evidence remains a public-launch gate even while Sprint 8 infrastructure work proceeds.
 
