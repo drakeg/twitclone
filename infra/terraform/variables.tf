@@ -52,6 +52,18 @@ variable "ec2_root_volume_gib" {
   default     = 20
 }
 
+variable "host_bootstrap_ref" {
+  description = "Immutable 40-character Git commit SHA containing the production Compose/deployment artifacts copied onto the EC2 host at first boot. Required before apply."
+  type        = string
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.host_bootstrap_ref == null || can(regex("^[0-9a-fA-F]{40}$", var.host_bootstrap_ref))
+    error_message = "host_bootstrap_ref must be null or an immutable 40-character Git commit SHA."
+  }
+}
+
 variable "ssh_admin_cidr" {
   description = "Optional CIDR allowed to SSH to the application host. Leave null to disable SSH ingress."
   type        = string
