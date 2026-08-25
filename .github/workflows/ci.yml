@@ -48,6 +48,24 @@ jobs:
       - name: Run tests
         run: python -m pytest --strict-markers --maxfail=1
 
+  release-image:
+    name: Release image validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Build immutable local release image
+        env:
+          RIPPLE_BUILD_PLATFORM: linux/amd64
+          RIPPLE_IMAGE_REPOSITORY: ripple-ci
+        run: bash scripts/build-release-image.sh
+
+      - name: Verify image starts with production entry point available
+        run: docker run --rm ripple-ci:${GITHUB_SHA::12} python -c "import application; print('release image import OK')"
+
   terraform:
     name: Terraform validation
     runs-on: ubuntu-latest
