@@ -2,6 +2,10 @@ aws_region   = "us-east-1"
 environment  = "production"
 name_prefix = "ripple"
 
+# Required before any future apply: use the exact merged Git commit whose
+# compose.production.yaml and deploy scripts should be installed on the host.
+# host_bootstrap_ref = "0123456789abcdef0123456789abcdef01234567"
+
 # Optional: restrict SSH to one trusted administration source. Leave null to disable.
 ssh_admin_cidr = null
 
