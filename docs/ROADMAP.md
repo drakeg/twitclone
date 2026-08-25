@@ -97,6 +97,8 @@ Story 8.3 defines a container-first production release contract without changing
 
 Story 8.4 defines immutable release-image provenance without requiring a registry or AWS account. A clean checkout can build a SHA-tagged ARM64 image locally, the Docker image records OCI source/revision/creation labels, the build script verifies the revision label, `:latest` is rejected, and registry publication remains opt-in. CI validates the same image contract without pushing package artifacts. This closes the image-selection gap in Story 8.3 while preserving the zero-spend development path.
 
+Story 8.5 prepares the future EC2 container host automatically while preserving the no-spend boundary. A checked-in Amazon Linux 2023 bootstrap installs Docker, installs checksum-verified Docker Compose, prepares locked-down Ripple runtime paths, and copies production deployment artifacts from an exact immutable Git commit. Terraform embeds that script as EC2 user data and blocks EC2 creation unless a 40-character `host_bootstrap_ref` is deliberately supplied. No application secrets, registry credentials, AWS access keys, or application containers are created by the bootstrap itself.
+
 The manual Sprint 7 NVDA/VoiceOver and zoom evidence remains a public-launch gate even while Sprint 8 infrastructure work proceeds.
 
 ## Future backlog
