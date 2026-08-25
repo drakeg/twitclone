@@ -39,8 +39,8 @@ deploy() {
   require_release_inputs
   compose config --quiet
   compose pull
-  compose run --rm migrate
-  compose run --rm preflight
+  compose run --rm --no-deps migrate
+  compose run --rm --no-deps preflight
   compose up -d --no-deps web worker
   compose up -d proxy
   compose ps
