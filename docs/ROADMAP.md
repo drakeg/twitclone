@@ -95,6 +95,8 @@ Story 8.2 implements that topology as version-pinned Terraform under `infra/terr
 
 Story 8.3 defines a container-first production release contract without changing Ripple's everyday local workflow. `compose.production.yaml` separates one-shot migration and preflight jobs from Gunicorn, exactly one scheduled worker, and a Caddy TLS proxy; production secrets live in a host-only environment file; an immutable-image deployment wrapper provides validate/deploy/rollback actions; and the release script explicitly never runs Terraform. This keeps Ripple ready for a later push-button AWS path while requiring no AWS resources or recurring spend today.
 
+Story 8.4 defines immutable release-image provenance without requiring a registry or AWS account. A clean checkout can build a SHA-tagged ARM64 image locally, the Docker image records OCI source/revision/creation labels, the build script verifies the revision label, `:latest` is rejected, and registry publication remains opt-in. CI validates the same image contract without pushing package artifacts. This closes the image-selection gap in Story 8.3 while preserving the zero-spend development path.
+
 The manual Sprint 7 NVDA/VoiceOver and zoom evidence remains a public-launch gate even while Sprint 8 infrastructure work proceeds.
 
 ## Future backlog
