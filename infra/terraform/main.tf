@@ -287,6 +287,15 @@ resource "aws_instance" "app" {
   iam_instance_profile        = aws_iam_instance_profile.app.name
   associate_public_ip_address = true
 
+  user_data = var.host_bootstrap_ref == null ? null : templatefile(
+    "${path.module}/templates/ec2-user-data.sh.tftpl",
+    {
+      deployment_ref      = var.host_bootstrap_ref
+      bootstrap_script_b64 = base64encode(file("${path.module}/../../deploy/bootstrap-host.sh"))
+    }
+  )
+  user_data_replace_on_change = true
+
   root_block_device {
     encrypted   = true
     volume_type = "gp3"
@@ -296,6 +305,13 @@ resource "aws_instance" "app" {
   metadata_options {
     http_endpoint = "enabled"
     http_tokens   = "required"
+  }
+
+  lifecycle {
+    precondition {
+      condition     = var.host_bootstrap_ref != null
+      error_message = "host_bootstrap_ref must be set to the exact merged Git commit SHA before an EC2 apply is allowed."
+    }
   }
 
   tags = {
@@ -333,9 +349,9 @@ resource "aws_db_instance" "main" {
   publicly_accessible    = false
   multi_az               = var.enable_multi_az_rds
 
-  backup_retention_period = var.db_backup_retention_days
-  deletion_protection     = var.db_deletion_protection
-  skip_final_snapshot     = var.db_skip_final_snapshot
+  backup_retention_period   = var.db_backup_retention_days
+  deletion_protection       = var.db_deletion_protection
+  skip_final_snapshot       = var.db_skip_final_snapshot
   final_snapshot_identifier = var.db_skip_final_snapshot ? null : "${local.name}-postgres-final"
 
   auto_minor_version_upgrade = true
