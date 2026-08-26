@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Python 3.12 validation
@@ -22,6 +26,7 @@ jobs:
       UPLOAD_FOLDER: /tmp/twitclone-ci-uploads
       SCHEDULER_ENABLED: "false"
       SCHEDULER_INTERVAL_SECONDS: "60"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
 
     steps:
       - name: Check out repository
@@ -32,9 +37,9 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-
-      - name: Upgrade pip
-        run: python -m pip install --upgrade pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
 
       - name: Install dependencies
         run: python -m pip install -r requirements-dev.txt
@@ -57,10 +62,14 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Build immutable local release image
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build immutable local release image with shared layer cache
         env:
           RIPPLE_BUILD_PLATFORM: linux/amd64
           RIPPLE_IMAGE_REPOSITORY: ripple-ci
+          RIPPLE_USE_BUILDX: "true"
         run: bash scripts/build-release-image.sh
 
       - name: Verify image starts with production entry point available
@@ -70,6 +79,9 @@ jobs:
     name: Terraform validation
     runs-on: ubuntu-latest
     timeout-minutes: 10
+
+    env:
+      TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.terraform-plugin-cache
 
     defaults:
       run:
@@ -84,6 +96,16 @@ jobs:
         with:
           terraform_version: "1.15.9"
           terraform_wrapper: false
+
+      - name: Restore Terraform provider cache
+        uses: actions/cache@v5
+        with:
+          path: .terraform-plugin-cache
+          key: terraform-${{ runner.os }}-${{ hashFiles('infra/terraform/versions.tf') }}
+
+      - name: Create Terraform provider cache directory
+        working-directory: ${{ github.workspace }}
+        run: mkdir -p .terraform-plugin-cache
 
       - name: Initialize providers without backend
         run: terraform init -backend=false

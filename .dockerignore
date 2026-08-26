@@ -1,7 +1,11 @@
 .git
+.github
 .venv
 __pycache__
 .pytest_cache
 *.db
 .env
 static/uploads
+docs
+infra
+tests
