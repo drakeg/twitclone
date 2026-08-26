@@ -25,7 +25,7 @@ WTForms==3.2.2
 # validate this complete lock set in CI before future cleanup.
 alembic==1.19.1
 blinker==1.9.0
-click==8.4.2
+click==8.5.0
 colorama==0.4.6
 greenlet==3.5.5
 itsdangerous==2.2.0
