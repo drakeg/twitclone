@@ -98,7 +98,7 @@ jobs:
           terraform_wrapper: false
 
       - name: Restore Terraform provider cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: .terraform-plugin-cache
           key: terraform-${{ runner.os }}-${{ hashFiles('infra/terraform/versions.tf') }}
