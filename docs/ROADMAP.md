@@ -103,6 +103,8 @@ Story 8.6 defines the production runtime-configuration handoff without provision
 
 Story 8.7 ties the release contracts together with a zero-spend operator dry run. `scripts/dry-run-production-release.sh` selects an immutable image, renders and validates a temporary production configuration, validates the production Compose model, and prints the exact migration/preflight/start/verification and rollback sequence. It deliberately does not pull images, start containers, execute migrations or deployment preflight, invoke Terraform, contact AWS, or create resources. This lets the future production release procedure be rehearsed while Ripple remains entirely container-first locally.
 
+Story 8.8 adds the final repository-side pre-apply gate. `scripts/check-aws-launch-readiness.sh structure` validates Terraform formatting/schema, required deployment artifacts, the zero-spend release dry run, and the absence of infrastructure-creation commands. A stricter future `launch` mode additionally requires a clean `main`, immutable release/bootstrap identifiers, a dated cost review, successful restore rehearsal, completed Sprint 7 accessibility evidence, a tested backup-alert path, and a prepared release record. Neither mode runs `terraform plan` or `terraform apply`, and neither authorizes AWS spend.
+
 The manual Sprint 7 NVDA/VoiceOver and zoom evidence remains a public-launch gate even while Sprint 8 infrastructure work proceeds.
 
 ## Future backlog
