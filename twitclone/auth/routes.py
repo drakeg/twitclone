@@ -188,6 +188,14 @@ def logout():
     return redirect(url_for("login"))
 
 
+@auth_blueprint.app_context_processor
+def inject_email_verification_state():
+    verified = True
+    if current_user.is_authenticated:
+        verified = is_email_verified(current_user)
+    return {"current_user_email_verified": verified}
+
+
 @auth_blueprint.record_once
 def register_authentication_routes(state):
     """Register routes while retaining the legacy endpoint names."""
