@@ -188,6 +188,18 @@ def logout():
     return redirect(url_for("login"))
 
 
+@auth_blueprint.before_app_request
+def require_verified_email_for_identity_verification():
+    if (
+        request.endpoint == "admin.apply_verification"
+        and current_user.is_authenticated
+        and not is_email_verified(current_user)
+    ):
+        flash("Verify your email address before requesting a verified identity badge.", "warning")
+        return redirect(url_for("profile", username=current_user.username))
+    return None
+
+
 @auth_blueprint.app_context_processor
 def inject_email_verification_state():
     verified = True
