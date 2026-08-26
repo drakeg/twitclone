@@ -99,6 +99,8 @@ Story 8.4 defines immutable release-image provenance without requiring a registr
 
 Story 8.5 prepares the future EC2 container host automatically while preserving the no-spend boundary. A checked-in Amazon Linux 2023 bootstrap installs Docker, installs checksum-verified Docker Compose, prepares locked-down Ripple runtime paths, and copies production deployment artifacts from an exact immutable Git commit. Terraform embeds that script as EC2 user data and blocks EC2 creation unless a 40-character `host_bootstrap_ref` is deliberately supplied. No application secrets, registry credentials, AWS access keys, or application containers are created by the bootstrap itself.
 
+Story 8.6 defines the production runtime-configuration handoff without provisioning a secrets service. A renderer validates required settings and writes the host-only environment file atomically with mode `0600`; the default source is the operator shell so the complete mechanism is testable today with zero AWS spend. A future opt-in SSM Parameter Store source reads the same named settings with decryption after AWS deployment is explicitly authorized. Stripe credentials are required only when billing is enabled, no secret values are embedded in Terraform or Compose, and the renderer never creates AWS parameters or invokes Terraform.
+
 The manual Sprint 7 NVDA/VoiceOver and zoom evidence remains a public-launch gate even while Sprint 8 infrastructure work proceeds.
 
 ## Future backlog
