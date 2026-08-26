@@ -1,13 +1,81 @@
 {% extends "base.html" %}
 {% block title %}{{ user.username }} · Ripple{% endblock %}
 {% block content %}
+<style>
+.profile-toolbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    margin-top: -58px;
+}
+.profile-toolbar .profile-avatar {
+    flex: 0 0 auto;
+    margin-top: 0;
+}
+.profile-toolbar .profile-actions {
+    flex: 1 1 auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+    min-height: 48px;
+    margin-top: 66px;
+}
+.profile-toolbar .profile-actions .btn {
+    white-space: nowrap;
+}
+.profile-name {
+    margin-top: 18px;
+}
+@media (max-width: 520px) {
+    .profile-toolbar {
+        display: grid;
+        grid-template-columns: 96px minmax(0, 1fr);
+        align-items: start;
+        gap: 12px;
+        margin-top: -48px;
+    }
+    .profile-toolbar .profile-avatar {
+        width: 96px;
+        height: 96px;
+        margin-top: 0;
+    }
+    .profile-toolbar .profile-actions {
+        width: 100%;
+        margin-top: 56px;
+        gap: 6px;
+    }
+    .profile-toolbar .profile-actions .btn {
+        padding-inline: .75rem;
+        font-size: .875rem;
+    }
+}
+@media (max-width: 390px) {
+    .profile-toolbar {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .profile-toolbar .profile-actions {
+        justify-content: flex-start;
+        margin-top: 0;
+    }
+}
+</style>
 {% set active_theme = user.profile_theme if premium_profile_active else 'ripple' %}
 {% if active_theme == 'sunset' %}{% set cover_style = 'background: linear-gradient(135deg, #f97316, #db2777);' %}{% elif active_theme == 'forest' %}{% set cover_style = 'background: linear-gradient(135deg, #166534, #0f766e);' %}{% elif active_theme == 'violet' %}{% set cover_style = 'background: linear-gradient(135deg, #6d28d9, #a21caf);' %}{% elif active_theme == 'slate' %}{% set cover_style = 'background: linear-gradient(135deg, #334155, #0f172a);' %}{% else %}{% set cover_style = 'background: linear-gradient(135deg, #2563eb, #06b6d4);' %}{% endif %}
 <header class="page-header"><div><h1>{{ user.username }}{% if user.verified_badge_active %} <span title="Verified identity" aria-label="Verified identity"><i class="fa-solid fa-circle-check text-primary"></i></span>{% endif %}</h1><small>Profile</small></div></header>
 <section class="profile-hero">
 {% if premium_profile_active and user.profile_banner %}<div class="profile-cover" style="background-image: linear-gradient(rgba(0,0,0,.08), rgba(0,0,0,.08)), url('{{ url_for('uploaded_file', filename=user.profile_banner) }}'); background-size: cover; background-position: center;"></div>{% else %}<div class="profile-cover" style="{{ cover_style }}"></div>{% endif %}
-<div class="profile-details"><img src="{{ gravatar(user.email, size=200) }}" alt="{{ user.username }}'s avatar" class="profile-avatar"><div class="profile-actions">
+<div class="profile-details">
+<div class="profile-toolbar">
+<img src="{{ gravatar(user.email, size=200) }}" alt="{{ user.username }}'s avatar" class="profile-avatar">
+<div class="profile-actions">
 {% if current_user.id != user.id %}<a href="{{ url_for('new_message', to=user.username) }}" class="btn btn-secondary">Message</a><button id="follow-btn" class="btn follow-btn {% if is_following %}is-following{% endif %}" data-username="{{ user.username }}" data-action="{% if is_following %}unfollow{% else %}follow{% endif %}" aria-pressed="{{ 'true' if is_following else 'false' }}">{% if is_following %}Following{% else %}Follow{% endif %}</button>{% endif %}
 {% if current_user.id == user.id %}<a href="{{ url_for('edit_profile') }}" class="btn btn-secondary">Edit profile</a><a href="{{ url_for('admin.apply_verification') }}" class="btn btn-secondary">{% if user.identity_verified %}Verification status{% else %}Get verified{% endif %}</a><a href="{{ url_for('payments.membership_home') }}" class="btn btn-secondary">Membership</a><a href="{{ url_for('payments.billing_home') }}" class="btn btn-secondary">Plans & Pricing</a>{% if user.has_entitlement('ripple_plus') %}<a href="{{ url_for('analytics') }}" class="btn btn-primary">Analytics</a>{% endif %}{% if user.has_entitlement('creator_pro') %}<a href="{{ url_for('creator_analytics') }}" class="btn btn-dark">Creator Pro Analytics</a>{% endif %}{% if current_user.is_admin or current_user.is_super_admin %}<a href="{{ url_for('admin.admin_dashboard') }}" class="btn btn-dark">Admin</a>{% endif %}{% endif %}
-</div><h2 class="profile-name">{{ user.username }}{% if user.verified_badge_active %} <span title="Verified identity"><i class="fa-solid fa-circle-check text-primary"></i></span>{% endif %}</h2><div class="profile-handle">@{{ user.username }}</div>{% if user.verified_badge_active %}<div class="mb-2"><span class="badge text-bg-light"><i class="fa-solid fa-circle-check text-primary"></i> Verified identity{% if user.verification_type %} · {{ user.verification_type|title }}{% endif %}</span></div>{% elif current_user.id == user.id and user.identity_verified %}<div class="mb-2"><span class="badge text-bg-light">Identity approved · badge inactive</span></div>{% endif %}{% if premium_profile_active %}<div class="mb-2"><span class="badge text-bg-primary">Ripple+</span></div>{% endif %}{% if user.has_entitlement('creator_pro') %}<div class="mb-2"><span class="badge text-bg-dark">Creator Pro</span></div>{% endif %}<p class="profile-bio">{{ user.bio or 'No bio yet — the story is still being written.' }}</p><div class="profile-links"><a href="{{ url_for('following', username=user.username) }}"><strong>View</strong> Following</a><a href="{{ url_for('followers', username=user.username) }}"><strong>View</strong> Followers</a></div></div></section>
+</div>
+</div>
+<h2 class="profile-name">{{ user.username }}{% if user.verified_badge_active %} <span title="Verified identity"><i class="fa-solid fa-circle-check text-primary"></i></span>{% endif %}</h2><div class="profile-handle">@{{ user.username }}</div>{% if user.verified_badge_active %}<div class="mb-2"><span class="badge text-bg-light"><i class="fa-solid fa-circle-check text-primary"></i> Verified identity{% if user.verification_type %} · {{ user.verification_type|title }}{% endif %}</span></div>{% elif current_user.id == user.id and user.identity_verified %}<div class="mb-2"><span class="badge text-bg-light">Identity approved · badge inactive</span></div>{% endif %}{% if premium_profile_active %}<div class="mb-2"><span class="badge text-bg-primary">Ripple+</span></div>{% endif %}{% if user.has_entitlement('creator_pro') %}<div class="mb-2"><span class="badge text-bg-dark">Creator Pro</span></div>{% endif %}<p class="profile-bio">{{ user.bio or 'No bio yet — the story is still being written.' }}</p><div class="profile-links"><a href="{{ url_for('following', username=user.username) }}"><strong>View</strong> Following</a><a href="{{ url_for('followers', username=user.username) }}"><strong>View</strong> Followers</a></div></div></section>
 {% endblock %}
