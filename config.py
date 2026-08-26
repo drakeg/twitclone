@@ -45,6 +45,7 @@ class Config:
     TESTING = ENVIRONMENT == "testing"
 
     PASSWORD_RESET_MAX_AGE_SECONDS = int(os.getenv("PASSWORD_RESET_MAX_AGE_SECONDS", "3600"))
+    EMAIL_VERIFICATION_MAX_AGE_SECONDS = int(os.getenv("EMAIL_VERIFICATION_MAX_AGE_SECONDS", "86400"))
     MAIL_SERVER = os.getenv("MAIL_SERVER", "localhost")
     MAIL_PORT = int(os.getenv("MAIL_PORT", "1025"))
     MAIL_USERNAME = os.getenv("MAIL_USERNAME")
@@ -68,6 +69,8 @@ class Config:
             raise RuntimeError("SCHEDULER_INTERVAL_SECONDS must be at least 1")
         if cls.PASSWORD_RESET_MAX_AGE_SECONDS < 60:
             raise RuntimeError("PASSWORD_RESET_MAX_AGE_SECONDS must be at least 60")
+        if cls.EMAIL_VERIFICATION_MAX_AGE_SECONDS < 300:
+            raise RuntimeError("EMAIL_VERIFICATION_MAX_AGE_SECONDS must be at least 300")
         if cls.MAIL_USE_TLS and cls.MAIL_USE_SSL:
             raise RuntimeError("MAIL_USE_TLS and MAIL_USE_SSL cannot both be enabled")
         if cls.STRIPE_BILLING_ENABLED and (not cls.STRIPE_SECRET_KEY or not cls.STRIPE_WEBHOOK_SECRET):
@@ -81,7 +84,7 @@ class Config:
         if cls.ENVIRONMENT == "production" and cls.SQLALCHEMY_DATABASE_URI.startswith("sqlite:"):
             raise RuntimeError("Production requires PostgreSQL. Set DATABASE_URL to a PostgreSQL connection URL before starting TwitClone.")
         if cls.ENVIRONMENT == "production" and cls.MAIL_SUPPRESS_SEND:
-            raise RuntimeError("Production account recovery requires MAIL_SUPPRESS_SEND=false")
+            raise RuntimeError("Production account recovery and email verification require MAIL_SUPPRESS_SEND=false")
 
 
 Config.validate()
