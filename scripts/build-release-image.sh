@@ -22,6 +22,7 @@ IMAGE_REF="${RIPPLE_IMAGE_REF:-${IMAGE_REPOSITORY}:${SHORT_SHA}}"
 CREATED="${RIPPLE_BUILD_CREATED:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
 PUSH="${RIPPLE_PUSH_IMAGE:-false}"
 PLATFORM="${RIPPLE_BUILD_PLATFORM:-linux/arm64}"
+USE_BUILDX="${RIPPLE_USE_BUILDX:-false}"
 
 if [[ "${IMAGE_REF}" == *":latest" ]]; then
   echo "Release image must be immutable; :latest is not allowed." >&2
@@ -30,6 +31,7 @@ fi
 
 BUILD_ARGS=(
   --platform "${PLATFORM}"
+  --target runtime
   --build-arg "RIPPLE_BUILD_REVISION=${GIT_SHA}"
   --build-arg "RIPPLE_BUILD_SOURCE=${SOURCE_URL}"
   --build-arg "RIPPLE_BUILD_CREATED=${CREATED}"
@@ -37,8 +39,17 @@ BUILD_ARGS=(
   .
 )
 
-echo "Building ${IMAGE_REF} for ${PLATFORM} from ${GIT_SHA}"
-docker build "${BUILD_ARGS[@]}"
+if [[ "${USE_BUILDX}" == "true" ]]; then
+  if ! docker buildx version >/dev/null 2>&1; then
+    echo "RIPPLE_USE_BUILDX=true requires Docker Buildx." >&2
+    exit 1
+  fi
+  echo "Building ${IMAGE_REF} for ${PLATFORM} from ${GIT_SHA} with Buildx cache"
+  docker buildx build --load --cache-from type=gha --cache-to type=gha,mode=max "${BUILD_ARGS[@]}"
+else
+  echo "Building ${IMAGE_REF} for ${PLATFORM} from ${GIT_SHA}"
+  docker build "${BUILD_ARGS[@]}"
+fi
 
 actual_revision="$(docker image inspect "${IMAGE_REF}" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')"
 if [[ "${actual_revision}" != "${GIT_SHA}" ]]; then
