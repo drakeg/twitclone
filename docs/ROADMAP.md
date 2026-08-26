@@ -101,6 +101,8 @@ Story 8.5 prepares the future EC2 container host automatically while preserving 
 
 Story 8.6 defines the production runtime-configuration handoff without provisioning a secrets service. A renderer validates required settings and writes the host-only environment file atomically with mode `0600`; the default source is the operator shell so the complete mechanism is testable today with zero AWS spend. A future opt-in SSM Parameter Store source reads the same named settings with decryption after AWS deployment is explicitly authorized. Stripe credentials are required only when billing is enabled, no secret values are embedded in Terraform or Compose, and the renderer never creates AWS parameters or invokes Terraform.
 
+Story 8.7 ties the release contracts together with a zero-spend operator dry run. `scripts/dry-run-production-release.sh` selects an immutable image, renders and validates a temporary production configuration, validates the production Compose model, and prints the exact migration/preflight/start/verification and rollback sequence. It deliberately does not pull images, start containers, execute migrations or deployment preflight, invoke Terraform, contact AWS, or create resources. This lets the future production release procedure be rehearsed while Ripple remains entirely container-first locally.
+
 The manual Sprint 7 NVDA/VoiceOver and zoom evidence remains a public-launch gate even while Sprint 8 infrastructure work proceeds.
 
 ## Future backlog
