@@ -1,6 +1,6 @@
 """Profile and social graph routes."""
 
-from flask import flash, jsonify, redirect, render_template, request, url_for
+from flask import Response, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from twitclone.analytics_tracking import record_profile_visit, snapshot_followers
@@ -11,6 +11,7 @@ from twitclone.auth.recovery import (
 from twitclone.auth.verification import mark_email_unverified
 from twitclone.creator_analytics import build_creator_dashboard
 from twitclone.creator_audience import build_audience_conversion
+from twitclone.creator_export import build_creator_csv
 from twitclone.creator_trends import build_daily_trends
 from twitclone.extensions import db
 from twitclone.models import Notification, Quote, Retweet, Tweet, User
@@ -73,20 +74,28 @@ def analytics():
     return render_template('analytics.html', stats=stats)
 
 
+def _creator_dashboard_for_current_user():
+    dashboard = build_creator_dashboard(current_user, request.args.get('days'))
+    dashboard['daily_trends'] = build_daily_trends(current_user.id, dashboard['range_start'], dashboard['range_end'])
+    dashboard['audience_conversion'] = build_audience_conversion(stats=dashboard['stats'], follower_growth=dashboard['follower_growth'], days=dashboard['days'])
+    return dashboard
+
+
 @login_required
 def creator_analytics():
     if not current_user.has_entitlement('creator_pro'):
         flash('Advanced creator analytics are included with Creator Pro.', 'info'); return redirect(url_for('payments.billing_home'))
-    dashboard = build_creator_dashboard(current_user, request.args.get('days'))
-    dashboard['daily_trends'] = build_daily_trends(
-        current_user.id, dashboard['range_start'], dashboard['range_end']
-    )
-    dashboard['audience_conversion'] = build_audience_conversion(
-        stats=dashboard['stats'],
-        follower_growth=dashboard['follower_growth'],
-        days=dashboard['days'],
-    )
-    return render_template('creator_analytics.html', **dashboard)
+    return render_template('creator_analytics.html', **_creator_dashboard_for_current_user())
+
+
+@login_required
+def creator_analytics_export():
+    if not current_user.has_entitlement('creator_pro'):
+        flash('Analytics export is included with Creator Pro.', 'info'); return redirect(url_for('payments.billing_home'))
+    dashboard = _creator_dashboard_for_current_user()
+    payload = build_creator_csv(dashboard=dashboard, daily_trends=dashboard['daily_trends'])
+    filename = f"ripple-creator-analytics-{dashboard['range_start'].isoformat()}-{dashboard['range_end'].isoformat()}.csv"
+    return Response(payload, mimetype='text/csv; charset=utf-8', headers={'Content-Disposition': f'attachment; filename="{filename}"', 'Cache-Control': 'private, no-store'})
 
 
 @login_required
@@ -95,13 +104,9 @@ def edit_profile():
     if request.method == 'POST':
         requested_email = request.form['email'].strip()
         email_changed = requested_email.casefold() != current_user.email.casefold()
-        if email_changed and User.query.filter(
-            db.func.lower(User.email) == requested_email.lower(),
-            User.id != current_user.id,
-        ).first():
+        if email_changed and User.query.filter(db.func.lower(User.email) == requested_email.lower(), User.id != current_user.id).first():
             flash('That email address is already registered to another Ripple account.', 'danger')
             return render_template('edit_profile.html', user=current_user, ripple_plus=ripple_plus, profile_themes=PROFILE_THEMES)
-
         current_user.username=request.form['username']; current_user.email=requested_email; current_user.bio=request.form['bio']
         if ripple_plus:
             requested_theme=(request.form.get('profile_theme') or 'ripple').strip().lower()
@@ -113,14 +118,11 @@ def edit_profile():
                 error,banner_name=_store_profile_banner(banner)
                 if error: flash(error,'danger'); return render_template('edit_profile.html',user=current_user,ripple_plus=True,profile_themes=PROFILE_THEMES)
                 current_user.profile_banner=banner_name
-        if email_changed:
-            mark_email_unverified(current_user.id)
+        if email_changed: mark_email_unverified(current_user.id)
         db.session.commit()
         if email_changed:
-            _send_email_change_verification(current_user)
-            flash('Your profile was updated. Please verify your new email address.', 'warning')
-        else:
-            flash('Your profile has been updated!','success')
+            _send_email_change_verification(current_user); flash('Your profile was updated. Please verify your new email address.', 'warning')
+        else: flash('Your profile has been updated!','success')
         return redirect(url_for('profile',username=current_user.username))
     return render_template('edit_profile.html',user=current_user,ripple_plus=ripple_plus,profile_themes=PROFILE_THEMES)
 
@@ -140,4 +142,4 @@ def unfollow_from_list(user_id):
 
 @profiles_blueprint.record_once
 def register_profile_routes(state):
-    state.app.add_url_rule('/follow/<username>',endpoint='follow',view_func=follow,methods=['POST']); state.app.add_url_rule('/unfollow/<username>',endpoint='unfollow',view_func=unfollow,methods=['POST']); state.app.add_url_rule('/profile/<username>',endpoint='profile',view_func=profile); state.app.add_url_rule('/analytics',endpoint='analytics',view_func=analytics); state.app.add_url_rule('/creator/analytics',endpoint='creator_analytics',view_func=creator_analytics); state.app.add_url_rule('/profile/edit',endpoint='edit_profile',view_func=edit_profile,methods=['GET','POST']); state.app.add_url_rule('/followers/<username>',endpoint='followers',view_func=followers); state.app.add_url_rule('/following/<username>',endpoint='following',view_func=following); state.app.add_url_rule('/unfollow_from_list/<int:user_id>',endpoint='unfollow_from_list',view_func=unfollow_from_list)
+    state.app.add_url_rule('/follow/<username>',endpoint='follow',view_func=follow,methods=['POST']); state.app.add_url_rule('/unfollow/<username>',endpoint='unfollow',view_func=unfollow,methods=['POST']); state.app.add_url_rule('/profile/<username>',endpoint='profile',view_func=profile); state.app.add_url_rule('/analytics',endpoint='analytics',view_func=analytics); state.app.add_url_rule('/creator/analytics',endpoint='creator_analytics',view_func=creator_analytics); state.app.add_url_rule('/creator/analytics/export.csv',endpoint='creator_analytics_export',view_func=creator_analytics_export); state.app.add_url_rule('/profile/edit',endpoint='edit_profile',view_func=edit_profile,methods=['GET','POST']); state.app.add_url_rule('/followers/<username>',endpoint='followers',view_func=followers); state.app.add_url_rule('/following/<username>',endpoint='following',view_func=following); state.app.add_url_rule('/unfollow_from_list/<int:user_id>',endpoint='unfollow_from_list',view_func=unfollow_from_list)
