@@ -20,57 +20,51 @@ A social network can produce better conversations when participants understand t
 
 **Status:** Completed.
 
-Authors may optionally label a post as:
-
-- Open conversation
-- Looking for answers
-- Advice wanted
-- Support wanted
-- Respectful debate welcome
-- Just sharing
-
-Existing posts default to Open conversation. The selected intent is visible in the timeline and post-detail view. Unknown or missing form values safely fall back to Open conversation.
-
-### Acceptance criteria
-
-- Posting remains as easy as before; Open conversation is the default.
-- Intent is persisted separately from the mature tweet schema.
-- Existing posts require no backfill and render as Open conversation.
-- Reposts preserve the original post's intent cue.
-- Quotes do not inherit the original author's intent as though it belonged to the quoting user.
-- Automated tests cover persistence, fallback, timeline/detail rendering, and composer choices.
+Authors may optionally label a post as Open conversation, Looking for answers, Advice wanted, Support wanted, Respectful debate welcome, or Just sharing. Existing posts default to Open conversation.
 
 ## Story 9.2 — Respectful response expectations
 
-**Status:** In implementation.
+**Status:** Completed.
 
-Add lightweight pre-response context so people quoting a post see the author's stated intent at the moment they respond. Higher-boundary intents such as Support wanted or Just sharing receive a stronger reminder of the author's expectation, while Open conversation, Questions, Advice, and Debate receive context appropriate to that intent.
-
-Ripple's current public response mechanism is Quote. The repository contains a legacy `reply.html` template but no registered public threaded-reply route, so Story 9.2 does not pretend threaded replies exist or silently add a new response model. Threaded replies remain a separate future product capability.
-
-### Acceptance criteria
-
-- The Quote screen visibly repeats the original author's intent before the response field.
-- Support wanted and Just sharing clearly call out the stronger conversational boundary.
-- Open conversation remains permissive and does not imply extra restrictions.
-- Advice, Question, and Respectful debate intents receive useful response guidance.
-- Intent guidance remains visible after quote validation errors.
-- The guidance is associated with the response field for assistive technology.
-- No intent label hard-blocks a respectful quote response.
+The Quote flow repeats the original author's intent and gives response guidance appropriate to that intent without hard-blocking respectful participation. Ripple currently has no registered public threaded-reply route; threaded replies remain a separate future capability.
 
 ## Story 9.3 — Constructive contribution signals
 
-**Status:** Next.
+**Status:** In implementation.
 
-Introduce positive feedback that is meaningfully different from a generic Like. Candidate signals include Helpful, Thoughtful, and Useful context. The implementation must resist becoming another popularity counter and should emphasize contribution quality over follower size.
+Introduce positive feedback that is meaningfully different from a generic Like: Helpful, Thoughtful, and Useful context.
 
-## Story 9.4 — Conversation health controls
+### Acceptance criteria
 
-Give authors understandable controls for managing their own discussion after publication, such as closing a conversation to new responses or marking that the original question has been answered. These controls must not erase existing replies or bypass moderation/audit requirements.
+- A signed-in user can add or remove each constructive signal on another user's post.
+- Authors cannot award constructive signals to their own posts.
+- A user may award more than one distinct signal when appropriate, but cannot duplicate the same signal on the same post.
+- Signals remain separate categories rather than being collapsed into a single engagement/popularity score.
+- Post detail explains the purpose of the signals.
+- Database constraints enforce valid signal values and per-user/per-post/per-signal uniqueness.
+- Automated tests cover toggling, self-signaling, invalid signals, and presentation.
+
+## Story 9.4 — Community fact checks and context
+
+**Status:** Planned.
+
+Add a visible Check facts / Add context action to posts. A submission is a request for evidence-backed community context, not an immediate declaration that the post is false.
+
+### Product direction
+
+- Context submissions identify the claim being checked, explain the proposed context/correction, and cite supporting source links.
+- Candidate outcomes should support nuance such as Additional context, Disputed claim, Outdated information, and Supported correction rather than forcing every claim into True/False.
+- A single submitter cannot unilaterally place a false-information label on another user's post.
+- Review/publishing rules must be explicit and auditable before community context is displayed as accepted context.
+- Accepted context should remain visually distinct from moderation actions and from the original author's words.
+- Future work may notify people who previously reposted/interacted with a post when meaningful accepted context is later attached.
+- Initial implementation should remain self-hosted/container-friendly and must not require paid fact-checking APIs, AI services, or AWS infrastructure.
+
+## Story 9.5 — Conversation health controls
+
+Give authors understandable controls for managing their own discussion after publication, such as closing a conversation to new responses or marking that the original question has been answered. These controls must not erase existing responses or bypass moderation/audit requirements.
 
 ## Later differentiation candidates
-
-These are candidates for future sprints rather than commitments inside Sprint 9:
 
 - Topic-based reputation earned from constructive contributions rather than raw follower count
 - Collaborative resource posts that communities can maintain over time
