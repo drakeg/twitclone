@@ -30,35 +30,36 @@ The Quote flow repeats the original author's intent and gives response guidance 
 
 ## Story 9.3 — Constructive contribution signals
 
-**Status:** In implementation.
+**Status:** Completed.
 
-Introduce positive feedback that is meaningfully different from a generic Like: Helpful, Thoughtful, and Useful context.
-
-### Acceptance criteria
-
-- A signed-in user can add or remove each constructive signal on another user's post.
-- Authors cannot award constructive signals to their own posts.
-- A user may award more than one distinct signal when appropriate, but cannot duplicate the same signal on the same post.
-- Signals remain separate categories rather than being collapsed into a single engagement/popularity score.
-- Post detail explains the purpose of the signals.
-- Database constraints enforce valid signal values and per-user/per-post/per-signal uniqueness.
-- Automated tests cover toggling, self-signaling, invalid signals, and presentation.
+Helpful, Thoughtful, and Useful context signals recognize contribution quality without collapsing participation into a single popularity score. Users can toggle distinct signals on other people's posts, while database constraints prevent duplicate same-signal awards.
 
 ## Story 9.4 — Community fact checks and context
 
-**Status:** Planned.
+**Status:** In implementation.
 
 Add a visible Check facts / Add context action to posts. A submission is a request for evidence-backed community context, not an immediate declaration that the post is false.
 
-### Product direction
+### Foundation acceptance criteria
 
-- Context submissions identify the claim being checked, explain the proposed context/correction, and cite supporting source links.
-- Candidate outcomes should support nuance such as Additional context, Disputed claim, Outdated information, and Supported correction rather than forcing every claim into True/False.
-- A single submitter cannot unilaterally place a false-information label on another user's post.
-- Review/publishing rules must be explicit and auditable before community context is displayed as accepted context.
-- Accepted context should remain visually distinct from moderation actions and from the original author's words.
-- Future work may notify people who previously reposted/interacted with a post when meaningful accepted context is later attached.
-- Initial implementation should remain self-hosted/container-friendly and must not require paid fact-checking APIs, AI services, or AWS infrastructure.
+- Signed-in users can open Check facts / Add context from a post detail page.
+- A submission identifies the specific claim, explains proposed context/correction, and includes a valid http/https supporting source URL.
+- New submissions remain pending and are not shown publicly as accepted context.
+- Fact context is reviewed separately from Community Standards moderation.
+- Admins see pending fact-context work from the main Admin page and can review a dedicated queue.
+- Approval requires an explicit nuanced outcome: Additional context, Disputed claim, Outdated information, or Supported correction.
+- Accepted context appears visually separate from the author's words and includes a link to the supporting source.
+- Submitters are notified of approval/rejection; the original author is notified when reviewed context is published on their post.
+- Reviewer identity, review time, notes, status, and outcome remain auditable in persistence.
+- A single submitter cannot unilaterally publish a false-information label.
+- No paid fact-checking API, AI moderation service, external analytics service, or AWS infrastructure is required.
+
+### Follow-on work
+
+- Define community-review eligibility and consensus rules so accepted context need not depend permanently on administrators alone.
+- Add source-quality and duplicate/context-merging controls based on actual usage.
+- Consider notifying prior reposters/interactors when meaningful accepted context is attached later.
+- Consider an author-visible correction/update workflow that complements rather than replaces community context.
 
 ## Story 9.5 — Conversation health controls
 
