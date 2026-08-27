@@ -10,6 +10,7 @@ from twitclone.auth.recovery import (
 )
 from twitclone.auth.verification import mark_email_unverified
 from twitclone.creator_analytics import build_creator_dashboard
+from twitclone.creator_trends import build_daily_trends
 from twitclone.extensions import db
 from twitclone.models import Notification, Quote, Retweet, Tweet, User
 from twitclone.media_storage import get_media_storage
@@ -76,6 +77,9 @@ def creator_analytics():
     if not current_user.has_entitlement('creator_pro'):
         flash('Advanced creator analytics are included with Creator Pro.', 'info'); return redirect(url_for('payments.billing_home'))
     dashboard = build_creator_dashboard(current_user, request.args.get('days'))
+    dashboard['daily_trends'] = build_daily_trends(
+        current_user.id, dashboard['range_start'], dashboard['range_end']
+    )
     return render_template('creator_analytics.html', **dashboard)
 
 
