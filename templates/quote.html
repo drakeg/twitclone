@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Quote post</h1>
+<header class="page-header"><div><h1>Quote post</h1><small>Respond with the original author's intent in view</small></div></header>
 <div class="card mb-3">
     <div class="card-body">
         <h2 class="h5 card-title">
@@ -10,10 +10,20 @@
         <p class="card-text"><small class="text-muted">{{ tweet.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></p>
     </div>
 </div>
+<section class="alert {% if conversation_intent.key in ['support', 'sharing'] %}alert-warning{% else %}alert-info{% endif %}" aria-labelledby="response-intent-heading">
+    <div class="d-flex gap-2 align-items-start">
+        <i class="fa-solid fa-comments" aria-hidden="true"></i>
+        <div>
+            <h2 id="response-intent-heading" class="h6 mb-1">Before you respond: {{ conversation_intent.label }}</h2>
+            <p class="mb-1">{{ conversation_intent.short }}</p>
+            {% if conversation_intent.key == 'support' %}<p class="mb-0 small"><strong>Keep the author's boundary in mind:</strong> support is being requested, not a debate.</p>{% elif conversation_intent.key == 'sharing' %}<p class="mb-0 small"><strong>Keep the author's boundary in mind:</strong> they are sharing, not asking for advice or debate.</p>{% elif conversation_intent.key == 'question' %}<p class="mb-0 small">Aim to answer the question, clarify uncertainty, or add useful context.</p>{% elif conversation_intent.key == 'advice' %}<p class="mb-0 small">Practical experience and actionable suggestions are especially useful here.</p>{% elif conversation_intent.key == 'debate' %}<p class="mb-0 small">Disagreement is welcome. Address the idea rather than the person.</p>{% else %}<p class="mb-0 small">All respectful perspectives remain welcome under Ripple Community Standards.</p>{% endif %}
+        </div>
+    </div>
+</section>
 <form method="POST" action="{{ url_for('quote', tweet_id=tweet.id) }}">
     <div class="mb-3">
         <label for="content" class="form-label">Add your comment</label>
-        <textarea class="form-control" id="content" name="content" rows="3" maxlength="144" required></textarea>
+        <textarea class="form-control" id="content" name="content" rows="3" maxlength="144" required aria-describedby="response-intent-heading"></textarea>
     </div>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <button type="submit" class="btn btn-primary">Quote</button>

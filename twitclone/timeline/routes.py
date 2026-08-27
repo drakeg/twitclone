@@ -23,6 +23,11 @@ from twitclone.timeline.validation import validate_post_content
 from twitclone.utils import get_newest_users, get_trending_hashtags
 
 
+def _tweet_conversation_intent(tweet):
+    stored_intent = tweet.conversation_intent_record.intent if tweet.conversation_intent_record else None
+    return conversation_intent_metadata(stored_intent)
+
+
 def index():
     now = datetime.now(UTC).replace(tzinfo=None)
     current_time = now.strftime("%Y-%m-%d %H:%M:%S")
@@ -47,11 +52,10 @@ def post_detail(tweet_id):
     if tweet.is_removed or (tweet.scheduled_at is not None and tweet.scheduled_at > now):
         abort(404)
     record_post_impression(tweet)
-    stored_intent = tweet.conversation_intent_record.intent if tweet.conversation_intent_record else None
     return render_template(
         "post_detail.html",
         tweet=tweet,
-        conversation_intent=conversation_intent_metadata(stored_intent),
+        conversation_intent=_tweet_conversation_intent(tweet),
     )
 
 
@@ -135,15 +139,16 @@ def retweet(tweet_id):
 def quote(tweet_id):
     original_tweet = db.get_or_404(Tweet, tweet_id)
     if original_tweet.is_removed: abort(404)
+    conversation_intent = _tweet_conversation_intent(original_tweet)
     if request.method == "POST":
         content = request.form.get("content"); validation_error = validate_post_content(content, post_type="Quote")
         if validation_error:
-            flash(validation_error, "danger"); return render_template("quote.html", tweet=original_tweet)
+            flash(validation_error, "danger"); return render_template("quote.html", tweet=original_tweet, conversation_intent=conversation_intent)
         db.session.add(Quote(user_id=current_user.id, tweet_id=original_tweet.id, content=content))
         if original_tweet.user_id != current_user.id:
             db.session.add(Notification(user_id=original_tweet.user_id, message=f"{current_user.username} quoted your post", tweet_id=original_tweet.id))
         db.session.commit(); flash("You have quoted this tweet!", "success"); return redirect(url_for("index"))
-    return render_template("quote.html", tweet=original_tweet)
+    return render_template("quote.html", tweet=original_tweet, conversation_intent=conversation_intent)
 
 
 @timeline_blueprint.record_once
