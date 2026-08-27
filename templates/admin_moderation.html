@@ -6,11 +6,29 @@
     <a class="btn btn-secondary btn-sm" href="{{ url_for('admin.admin_dashboard') }}">Admin dashboard</a>
 </header>
 
-{% for report, content, preview in reports %}
+<section class="surface-card mb-3" aria-labelledby="moderation-summary-heading">
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+        <div><h2 class="h5 mb-1" id="moderation-summary-heading">Queue summary</h2><p class="text-muted mb-0">Use the filters to focus on the reports that need attention now.</p></div>
+        <span class="badge text-bg-light">{{ total_reports }} total report{% if total_reports != 1 %}s{% endif %}</span>
+    </div>
+    <div class="d-flex gap-2 flex-wrap mb-3" aria-label="Moderation status counts">
+        <span class="badge text-bg-warning">Pending {{ summary_counts.get('pending', 0) }}</span>
+        <span class="badge text-bg-secondary">Dismissed {{ summary_counts.get('dismissed', 0) }}</span>
+        <span class="badge text-bg-danger">Removed {{ summary_counts.get('removed', 0) }}</span>
+    </div>
+    <form method="GET" action="{{ url_for('admin.moderation_queue') }}" class="row g-2 align-items-end">
+        <div class="col-md-4"><label for="status-filter" class="form-label">Status</label><select class="form-select" id="status-filter" name="status"><option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option><option value="dismissed" {% if status_filter == 'dismissed' %}selected{% endif %}>Dismissed</option><option value="removed" {% if status_filter == 'removed' %}selected{% endif %}>Removed</option><option value="all" {% if status_filter == 'all' %}selected{% endif %}>All statuses</option></select></div>
+        <div class="col-md-4"><label for="category-filter" class="form-label">Category</label><select class="form-select" id="category-filter" name="category"><option value="">All categories</option>{% for key, label in categories.items() %}<option value="{{ key }}" {% if category_filter == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label for="content-type-filter" class="form-label">Content type</label><select class="form-select" id="content-type-filter" name="content_type"><option value="">All types</option>{% for value in ['tweet', 'quote', 'poll'] %}<option value="{{ value }}" {% if content_type_filter == value %}selected{% endif %}>{{ value|title }}</option>{% endfor %}</select></div>
+        <div class="col-md-1 d-grid"><button class="btn btn-primary" type="submit">Filter</button></div>
+    </form>
+</section>
+
+{% for report, content, preview, report_count in reports %}
 <section id="report-{{ report.id }}" class="surface-card {% if report.status == 'pending' %}border border-warning{% endif %}">
     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
         <div>
-            <span class="badge {% if report.status == 'pending' %}text-bg-warning{% elif report.status == 'removed' %}text-bg-danger{% else %}text-bg-secondary{% endif %}">{{ report.status|title }}</span>
+            <div class="d-flex gap-2 flex-wrap align-items-center"><span class="badge {% if report.status == 'pending' %}text-bg-warning{% elif report.status == 'removed' %}text-bg-danger{% else %}text-bg-secondary{% endif %}">{{ report.status|title }}</span>{% if report_count > 1 %}<span class="badge text-bg-dark">{{ report_count }} reports on this content</span>{% endif %}</div>
             <h2 class="h5 mt-2 mb-1">{{ categories.get(report.category, report.category|replace('_', ' ')|title) }} · @{{ report.author.username }}</h2>
             <small class="text-muted">Reported by @{{ report.reporter.username }} on {{ report.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
         </div>
@@ -21,15 +39,15 @@
     {% if report.status == 'pending' %}
     <form method="POST" action="{{ url_for('admin.review_report', report_id=report.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="mb-3"><label class="form-label" for="notes-{{ report.id }}">Moderator notes</label><textarea class="form-control" id="notes-{{ report.id }}" name="resolution_notes" rows="2" maxlength="1000"></textarea></div>
+        <div class="mb-3"><label class="form-label" for="notes-{{ report.id }}">Moderator notes</label><textarea class="form-control" id="notes-{{ report.id }}" name="resolution_notes" rows="2" maxlength="1000" placeholder="Optional internal context for this decision"></textarea></div>
         <button class="btn btn-secondary" name="action" value="dismiss" type="submit">Dismiss report</button>
-        <button class="btn btn-danger" name="action" value="remove" type="submit" onclick="return confirm('Remove this content from Ripple?');">Remove content</button>
+        <button class="btn btn-danger" name="action" value="remove" type="submit" onclick="return confirm('Remove this content from Ripple? Any other pending reports on the same content will also be resolved.');">Remove content</button>
     </form>
     {% else %}
     <p class="small text-muted mb-0">Reviewed by @{{ report.reviewed_by.username if report.reviewed_by else 'unknown' }}{% if report.reviewed_at %} on {{ report.reviewed_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}{% if report.resolution_notes %} · {{ report.resolution_notes }}{% endif %}</p>
     {% endif %}
 </section>
 {% else %}
-<section class="surface-card"><h2>No reports yet</h2><p class="text-muted mb-0">When community members report content, it will appear here for admin review.</p></section>
+<section class="surface-card"><h2>No matching reports</h2><p class="text-muted mb-0">There are no reports matching the selected filters.</p></section>
 {% endfor %}
 {% endblock %}
