@@ -6,6 +6,12 @@ from flask import abort, flash, redirect, render_template, request, send_file, u
 from io import BytesIO
 from flask_login import current_user, login_required
 from twitclone.analytics_tracking import record_post_impression, record_post_impressions
+from twitclone.conversation_intent import (
+    CONVERSATION_INTENTS,
+    conversation_intent_metadata,
+    normalize_conversation_intent,
+)
+from twitclone.conversation_models import TweetConversationIntent
 from twitclone.extensions import db
 from twitclone.mentions import add_mention_notifications
 from twitclone.media_storage import MediaNotFound, get_media_storage
@@ -24,7 +30,15 @@ def index():
     page = request.args.get("page", default=1, type=int) or 1
     timeline_page = paginate_timeline_posts(posts, page=page)
     record_post_impressions(timeline_page.items)
-    return render_template("index.html", posts=timeline_page.items, timeline_page=timeline_page, current_time=current_time, trending_hashtags=get_trending_hashtags(), newest_users=get_newest_users())
+    return render_template(
+        "index.html",
+        posts=timeline_page.items,
+        timeline_page=timeline_page,
+        current_time=current_time,
+        trending_hashtags=get_trending_hashtags(),
+        newest_users=get_newest_users(),
+        conversation_intents=CONVERSATION_INTENTS,
+    )
 
 
 def post_detail(tweet_id):
@@ -33,7 +47,12 @@ def post_detail(tweet_id):
     if tweet.is_removed or (tweet.scheduled_at is not None and tweet.scheduled_at > now):
         abort(404)
     record_post_impression(tweet)
-    return render_template("post_detail.html", tweet=tweet)
+    stored_intent = tweet.conversation_intent_record.intent if tweet.conversation_intent_record else None
+    return render_template(
+        "post_detail.html",
+        tweet=tweet,
+        conversation_intent=conversation_intent_metadata(stored_intent),
+    )
 
 
 def _scheduled_at_from_form():
@@ -80,8 +99,10 @@ def tweet():
                 db.session.add_all([DirectMessage(content=message, sender_id=current_user.id, receiver_id=user.id), Notification(user_id=user.id, message=f"{current_user.username} sent you a message")]); db.session.commit(); flash("Your direct message has been sent!", "success")
             else: flash("User not found.", "danger")
     else:
+        intent = normalize_conversation_intent(request.form.get("conversation_intent"))
         new_tweet = Tweet(content=content, user_id=current_user.id, image=image_filename, original_image=original_image_filename, scheduled_at=scheduled_at)
         db.session.add(new_tweet); db.session.flush()
+        db.session.add(TweetConversationIntent(tweet_id=new_tweet.id, intent=intent))
         if scheduled_at is None: add_mention_notifications(content=content, author=current_user, tweet_id=new_tweet.id)
         db.session.commit(); flash("Your tweet has been scheduled!" if scheduled_at else "Your tweet has been posted!", "success")
     return redirect(url_for("index"))
