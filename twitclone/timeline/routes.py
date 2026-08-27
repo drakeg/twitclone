@@ -6,6 +6,7 @@ from flask import abort, flash, redirect, render_template, request, send_file, u
 from io import BytesIO
 from flask_login import current_user, login_required
 from twitclone.analytics_tracking import record_post_impression, record_post_impressions
+from twitclone.contribution_models import ConstructiveContribution
 from twitclone.conversation_intent import (
     CONVERSATION_INTENTS,
     conversation_intent_metadata,
@@ -22,10 +23,30 @@ from twitclone.timeline.service import build_timeline_posts, paginate_timeline_p
 from twitclone.timeline.validation import validate_post_content
 from twitclone.utils import get_newest_users, get_trending_hashtags
 
+CONTRIBUTION_SIGNALS = {
+    "helpful": "Helpful",
+    "thoughtful": "Thoughtful",
+    "context": "Useful context",
+}
+
 
 def _tweet_conversation_intent(tweet):
     stored_intent = tweet.conversation_intent_record.intent if tweet.conversation_intent_record else None
     return conversation_intent_metadata(stored_intent)
+
+
+def _tweet_contribution_state(tweet):
+    rows = ConstructiveContribution.query.filter_by(tweet_id=tweet.id).all()
+    return {
+        key: {
+            "label": label,
+            "count": sum(row.signal == key for row in rows),
+            "selected": current_user.is_authenticated and any(
+                row.signal == key and row.user_id == current_user.id for row in rows
+            ),
+        }
+        for key, label in CONTRIBUTION_SIGNALS.items()
+    }
 
 
 def index():
@@ -56,6 +77,7 @@ def post_detail(tweet_id):
         "post_detail.html",
         tweet=tweet,
         conversation_intent=_tweet_conversation_intent(tweet),
+        contribution_signals=_tweet_contribution_state(tweet),
     )
 
 
@@ -136,6 +158,25 @@ def retweet(tweet_id):
 
 
 @login_required
+def contribution(tweet_id, signal):
+    tweet = db.get_or_404(Tweet, tweet_id)
+    if tweet.is_removed or signal not in CONTRIBUTION_SIGNALS:
+        abort(404)
+    if tweet.user_id == current_user.id:
+        flash("Constructive signals are for recognizing someone else's contribution.", "info")
+        return redirect(url_for("post_detail", tweet_id=tweet.id))
+    existing = ConstructiveContribution.query.filter_by(
+        user_id=current_user.id, tweet_id=tweet.id, signal=signal
+    ).first()
+    if existing is None:
+        db.session.add(ConstructiveContribution(user_id=current_user.id, tweet_id=tweet.id, signal=signal))
+    else:
+        db.session.delete(existing)
+    db.session.commit()
+    return redirect(request.referrer or url_for("post_detail", tweet_id=tweet.id))
+
+
+@login_required
 def quote(tweet_id):
     original_tweet = db.get_or_404(Tweet, tweet_id)
     if original_tweet.is_removed: abort(404)
@@ -158,4 +199,5 @@ def register_timeline_routes(state):
     state.app.add_url_rule("/tweet", endpoint="tweet", view_func=tweet, methods=["POST"])
     state.app.add_url_rule("/uploads/<filename>", endpoint="uploaded_file", view_func=uploaded_file)
     state.app.add_url_rule("/retweet/<int:tweet_id>", endpoint="retweet", view_func=retweet, methods=["POST"])
+    state.app.add_url_rule("/post/<int:tweet_id>/contribution/<signal>", endpoint="contribution", view_func=contribution, methods=["POST"])
     state.app.add_url_rule("/quote/<int:tweet_id>", endpoint="quote", view_func=quote, methods=["GET", "POST"])
