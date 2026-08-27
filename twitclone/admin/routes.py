@@ -10,6 +10,7 @@ from flask_login import current_user, login_required
 from twitclone.admin import admin_blueprint
 from twitclone.community.routes import REPORT_CATEGORIES
 from twitclone.extensions import db
+from twitclone.fact_context_models import FactContextSubmission
 from twitclone.models import Notification, Poll, PostReport, Quote, Tweet, User, VerificationRequest
 
 
@@ -70,9 +71,8 @@ def apply_verification():
 @admin_required
 def admin_dashboard():
     pending = VerificationRequest.query.filter_by(status='pending').order_by(VerificationRequest.submitted_at.asc()).all()
-    pending_reports = PostReport.query.filter_by(status='pending').order_by(
-        PostReport.created_at.desc()
-    ).all()
+    pending_reports = PostReport.query.filter_by(status='pending').order_by(PostReport.created_at.desc()).all()
+    pending_context = FactContextSubmission.query.filter_by(status='pending').order_by(FactContextSubmission.submitted_at.desc()).limit(5).all()
     moderation_rows = []
     for report in pending_reports:
         content = _reported_content(report)
@@ -81,10 +81,12 @@ def admin_dashboard():
     return render_template(
         'admin_dashboard.html', pending_requests=pending,
         moderation_reports=moderation_rows,
+        fact_context_submissions=pending_context,
         total_users=User.query.count(),
         verified_users=User.query.filter_by(identity_verified=True).count(),
         admin_users=User.query.filter(db.or_(User.is_admin.is_(True), User.is_super_admin.is_(True))).count(),
         moderation_count=len(pending_reports),
+        fact_context_count=FactContextSubmission.query.filter_by(status='pending').count(),
     )
 
 
@@ -104,9 +106,7 @@ def moderation_queue():
 
     all_reports = PostReport.query.order_by(PostReport.created_at.desc()).all()
     summary_counts = Counter(report.status for report in all_reports)
-    content_report_counts = Counter(
-        (report.content_type, report.content_id) for report in all_reports
-    )
+    content_report_counts = Counter((report.content_type, report.content_id) for report in all_reports)
 
     query = PostReport.query
     if status_filter != 'all':
@@ -120,22 +120,11 @@ def moderation_queue():
     rows = []
     for report in reports:
         content = _reported_content(report)
-        rows.append(
-            (
-                report,
-                content,
-                _content_preview(report, content),
-                content_report_counts[(report.content_type, report.content_id)],
-            )
-        )
+        rows.append((report, content, _content_preview(report, content), content_report_counts[(report.content_type, report.content_id)]))
     return render_template(
-        'admin_moderation.html',
-        reports=rows,
-        categories=REPORT_CATEGORIES,
-        status_filter=status_filter,
-        category_filter=category_filter,
-        content_type_filter=content_type_filter,
-        summary_counts=summary_counts,
+        'admin_moderation.html', reports=rows, categories=REPORT_CATEGORIES,
+        status_filter=status_filter, category_filter=category_filter,
+        content_type_filter=content_type_filter, summary_counts=summary_counts,
         total_reports=len(all_reports),
     )
 
@@ -153,55 +142,18 @@ def review_report(report_id):
         abort(400)
     reviewed_at = _utcnow()
     if action == 'dismiss':
-        report.status = 'dismissed'
-        report.reviewed_at = reviewed_at
-        report.reviewed_by_id = current_user.id
-        report.resolution_notes = notes
-        db.session.add(
-            Notification(
-                user_id=report.reporter_id,
-                message=(
-                    "We reviewed your report. The content will remain on Ripple because "
-                    "it was not found to violate the Community Standards."
-                ),
-            )
-        )
+        report.status = 'dismissed'; report.reviewed_at = reviewed_at; report.reviewed_by_id = current_user.id; report.resolution_notes = notes
+        db.session.add(Notification(user_id=report.reporter_id, message="We reviewed your report. The content will remain on Ripple because it was not found to violate the Community Standards."))
         flash('Report dismissed. No content was removed.', 'success')
     else:
         content = _reported_content(report)
         if content is not None:
-            content.is_removed = True
-            content.removed_at = reviewed_at
-            content.removed_by_id = current_user.id
-            content.removal_reason = notes or 'Removed for violating Ripple Community Standards.'
-            db.session.add(
-                Notification(
-                    user_id=report.author_id,
-                    message=(
-                        'A Ripple admin removed content from your account for violating '
-                        'the Community Standards.'
-                    ),
-                )
-            )
-        related_reports = PostReport.query.filter_by(
-            content_type=report.content_type,
-            content_id=report.content_id,
-            status='pending',
-        ).all()
+            content.is_removed = True; content.removed_at = reviewed_at; content.removed_by_id = current_user.id; content.removal_reason = notes or 'Removed for violating Ripple Community Standards.'
+            db.session.add(Notification(user_id=report.author_id, message='A Ripple admin removed content from your account for violating the Community Standards.'))
+        related_reports = PostReport.query.filter_by(content_type=report.content_type, content_id=report.content_id, status='pending').all()
         for related in related_reports:
-            related.status = 'removed'
-            related.reviewed_at = reviewed_at
-            related.reviewed_by_id = current_user.id
-            related.resolution_notes = notes
-            db.session.add(
-                Notification(
-                    user_id=related.reporter_id,
-                    message=(
-                        'We reviewed your report. The reported content was removed for '
-                        'violating the Ripple Community Standards.'
-                    ),
-                )
-            )
+            related.status = 'removed'; related.reviewed_at = reviewed_at; related.reviewed_by_id = current_user.id; related.resolution_notes = notes
+            db.session.add(Notification(user_id=related.reporter_id, message='We reviewed your report. The reported content was removed for violating the Ripple Community Standards.'))
         flash(f'Content removed and {len(related_reports)} related report(s) resolved.', 'success')
     db.session.commit()
     return redirect(url_for('admin.moderation_queue'))
@@ -216,9 +168,7 @@ def review_verification(request_id):
         notes = (request.form.get('review_notes') or '').strip() or None
         if action not in {'approve', 'reject', 'revoke'}:
             abort(400)
-        verification.reviewed_at = _utcnow()
-        verification.reviewed_by_id = current_user.id
-        verification.review_notes = notes
+        verification.reviewed_at = _utcnow(); verification.reviewed_by_id = current_user.id; verification.review_notes = notes
         user = verification.user
         if action == 'approve':
             verification.status = 'approved'; user.identity_verified = True; user.verification_type = verification.verification_type; user.verified_at = verification.reviewed_at

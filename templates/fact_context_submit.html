@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Check facts / Add context · Ripple{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Check facts / Add context</h1><small>Add evidence-backed community context</small></div><a class="btn btn-secondary btn-sm" href="{{ url_for('post_detail', tweet_id=tweet.id) }}">Back to post</a></header>
+<section class="surface-card">
+  <span class="auth-kicker">Original post</span>
+  <p class="mb-1"><strong>@{{ tweet.user.username }}</strong></p>
+  <p class="mb-0">{{ tweet.content }}</p>
+</section>
+<section class="surface-card">
+  <h2>Submit context for review</h2>
+  <p class="text-muted">Submitting this does not label the post false. Ripple reviews the claim, explanation, and cited source before any accepted context appears publicly.</p>
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="mb-3"><label class="form-label" for="claim">What claim are you checking?</label><textarea class="form-control" id="claim" name="claim" maxlength="300" rows="2" required>{{ request.form.get('claim', '') }}</textarea><div class="form-text">Be specific about the factual statement that needs context.</div></div>
+    <div class="mb-3"><label class="form-label" for="context">What context or correction should readers know?</label><textarea class="form-control" id="context" name="context" rows="5" required>{{ request.form.get('context', '') }}</textarea></div>
+    <div class="mb-3"><label class="form-label" for="source_url">Supporting source URL</label><input class="form-control" id="source_url" name="source_url" type="url" maxlength="1000" placeholder="https://…" value="{{ request.form.get('source_url', '') }}" required><div class="form-text">Use a source readers can open and evaluate themselves.</div></div>
+    <button class="btn btn-primary" type="submit">Submit for review</button>
+  </form>
+</section>
+{% endblock %}
