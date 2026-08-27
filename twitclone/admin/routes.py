@@ -1,5 +1,6 @@
 """Verification application, administration, and moderation routes."""
 
+from collections import Counter
 from datetime import UTC, datetime
 from functools import wraps
 
@@ -90,15 +91,53 @@ def admin_dashboard():
 @admin_blueprint.route('/admin/moderation')
 @admin_required
 def moderation_queue():
-    reports = PostReport.query.order_by(
-        db.case((PostReport.status == 'pending', 0), else_=1),
-        PostReport.created_at.desc(),
-    ).all()
+    status_filter = (request.args.get('status') or 'pending').strip().lower()
+    category_filter = (request.args.get('category') or '').strip().lower()
+    content_type_filter = (request.args.get('content_type') or '').strip().lower()
+
+    if status_filter not in {'pending', 'dismissed', 'removed', 'all'}:
+        status_filter = 'pending'
+    if category_filter not in REPORT_CATEGORIES:
+        category_filter = ''
+    if content_type_filter not in {'tweet', 'quote', 'poll'}:
+        content_type_filter = ''
+
+    all_reports = PostReport.query.order_by(PostReport.created_at.desc()).all()
+    summary_counts = Counter(report.status for report in all_reports)
+    content_report_counts = Counter(
+        (report.content_type, report.content_id) for report in all_reports
+    )
+
+    query = PostReport.query
+    if status_filter != 'all':
+        query = query.filter_by(status=status_filter)
+    if category_filter:
+        query = query.filter_by(category=category_filter)
+    if content_type_filter:
+        query = query.filter_by(content_type=content_type_filter)
+
+    reports = query.order_by(PostReport.created_at.desc()).all()
     rows = []
     for report in reports:
         content = _reported_content(report)
-        rows.append((report, content, _content_preview(report, content)))
-    return render_template('admin_moderation.html', reports=rows, categories=REPORT_CATEGORIES)
+        rows.append(
+            (
+                report,
+                content,
+                _content_preview(report, content),
+                content_report_counts[(report.content_type, report.content_id)],
+            )
+        )
+    return render_template(
+        'admin_moderation.html',
+        reports=rows,
+        categories=REPORT_CATEGORIES,
+        status_filter=status_filter,
+        category_filter=category_filter,
+        content_type_filter=content_type_filter,
+        summary_counts=summary_counts,
+        total_reports=len(all_reports),
+    )
 
 
 @admin_blueprint.route('/admin/moderation/<int:report_id>', methods=['POST'])
