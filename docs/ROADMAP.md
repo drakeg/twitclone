@@ -51,6 +51,7 @@ After the reliability baseline, Ripple expanded deliberately without removing us
 - Plans & Pricing storefront and Membership/account-status management
 - Restrained contextual premium-feature discovery
 - Demo/sample content for first-time visitors
+- Email ownership verification, resend support, expiring signed verification links, and recovery-token hardening
 
 ## Sprint 6 — Deployment and operations readiness
 
@@ -78,42 +79,39 @@ Story 7.1 establishes the shared keyboard-focus, semantic navigation, decorative
 
 **Goal:** Turn the completed application/operations contracts into a low-cost, reproducible production deployment without provisioning unnecessary infrastructure.
 
-**Status:** Active. Infrastructure remains plan/validate-only until explicit spend authorization. Ripple continues to run normally through the existing local Docker Compose stack.
-
-**Planned outcomes:**
-
-- Select and record the production AWS topology from current requirements and prices
-- Implement version-pinned Terraform under `infra/terraform` with separate `main.tf`, `variables.tf`, and `outputs.tf`
-- Keep load balancers, NAT Gateways, Multi-AZ database, CDN, and additional application hosts disabled unless separately justified and approved
-- Define secure bootstrap/secrets/deployment behavior for the application host
-- Exercise migrations, deployment preflight, media migration, health checks, Stripe webhook reachability, backup/restore, rollback, and release evidence against the provisioned environment
-- Document actual recurring cost before apply and maintain an explicit destroy procedure
+**Status:** Repository-side zero-spend implementation completed through Story 8.8. Infrastructure remains plan/validate-only until explicit spend authorization. Ripple continues to run normally through the existing local Docker Compose stack.
 
 Story 8.1 selects a low-traffic AWS topology in ADR-0044: one `t4g.small` EC2 application host, one private Single-AZ RDS PostgreSQL 18 `db.t4g.micro`, private encrypted/versioned S3 media, no NAT Gateway or load balancer, and optional Route 53 DNS. The planning estimate is approximately $31-$35/month before backups, domain, observability, email, and overages. Story 8.1 does **not** authorize an AWS apply or recurring spend.
 
 Story 8.2 implements that topology as version-pinned Terraform under `infra/terraform`. Resource declarations, variables, and outputs remain separated; the application host uses an IAM instance role for private media; RDS and S3 remain private durable boundaries; optional Route 53 and Multi-AZ RDS are disabled by default; Terraform state/local inputs are excluded from source control; and production destroy paths are deliberately protected. Story 8.2 remains **plan/validate-only** and does not authorize `terraform apply` or recurring spend.
 
-Story 8.3 defines a container-first production release contract without changing Ripple's everyday local workflow. `compose.production.yaml` separates one-shot migration and preflight jobs from Gunicorn, exactly one scheduled worker, and a Caddy TLS proxy; production secrets live in a host-only environment file; an immutable-image deployment wrapper provides validate/deploy/rollback actions; and the release script explicitly never runs Terraform. This keeps Ripple ready for a later push-button AWS path while requiring no AWS resources or recurring spend today.
+Story 8.3 defines a container-first production release contract without changing Ripple's everyday local workflow. `compose.production.yaml` separates one-shot migration and preflight jobs from Gunicorn, exactly one scheduled worker, and a Caddy TLS proxy; production secrets live in a host-only environment file; an immutable-image deployment wrapper provides validate/deploy/rollback actions; and the release script explicitly never runs Terraform.
 
-Story 8.4 defines immutable release-image provenance without requiring a registry or AWS account. A clean checkout can build a SHA-tagged ARM64 image locally, the Docker image records OCI source/revision/creation labels, the build script verifies the revision label, `:latest` is rejected, and registry publication remains opt-in. CI validates the same image contract without pushing package artifacts. This closes the image-selection gap in Story 8.3 while preserving the zero-spend development path.
+Story 8.4 defines immutable release-image provenance without requiring a registry or AWS account. A clean checkout can build a SHA-tagged ARM64 image locally, the Docker image records OCI source/revision/creation labels, the build script verifies the revision label, `:latest` is rejected, and registry publication remains opt-in.
 
-Story 8.5 prepares the future EC2 container host automatically while preserving the no-spend boundary. A checked-in Amazon Linux 2023 bootstrap installs Docker, installs checksum-verified Docker Compose, prepares locked-down Ripple runtime paths, and copies production deployment artifacts from an exact immutable Git commit. Terraform embeds that script as EC2 user data and blocks EC2 creation unless a 40-character `host_bootstrap_ref` is deliberately supplied. No application secrets, registry credentials, AWS access keys, or application containers are created by the bootstrap itself.
+Story 8.5 prepares the future EC2 container host automatically while preserving the no-spend boundary. A checked-in Amazon Linux 2023 bootstrap installs Docker, installs checksum-verified Docker Compose, prepares locked-down Ripple runtime paths, and copies production deployment artifacts from an exact immutable Git commit. Terraform embeds that script as EC2 user data and blocks EC2 creation unless a 40-character `host_bootstrap_ref` is deliberately supplied.
 
-Story 8.6 defines the production runtime-configuration handoff without provisioning a secrets service. A renderer validates required settings and writes the host-only environment file atomically with mode `0600`; the default source is the operator shell so the complete mechanism is testable today with zero AWS spend. A future opt-in SSM Parameter Store source reads the same named settings with decryption after AWS deployment is explicitly authorized. Stripe credentials are required only when billing is enabled, no secret values are embedded in Terraform or Compose, and the renderer never creates AWS parameters or invokes Terraform.
+Story 8.6 defines the production runtime-configuration handoff without provisioning a secrets service. A renderer validates required settings and writes the host-only environment file atomically with mode `0600`; the default source is the operator shell so the complete mechanism is testable today with zero AWS spend. A future opt-in SSM Parameter Store source reads the same named settings with decryption after AWS deployment is explicitly authorized.
 
-Story 8.7 ties the release contracts together with a zero-spend operator dry run. `scripts/dry-run-production-release.sh` selects an immutable image, renders and validates a temporary production configuration, validates the production Compose model, and prints the exact migration/preflight/start/verification and rollback sequence. It deliberately does not pull images, start containers, execute migrations or deployment preflight, invoke Terraform, contact AWS, or create resources. This lets the future production release procedure be rehearsed while Ripple remains entirely container-first locally.
+Story 8.7 ties the release contracts together with a zero-spend operator dry run. `scripts/dry-run-production-release.sh` selects an immutable image, renders and validates a temporary production configuration, validates the production Compose model, and prints the exact migration/preflight/start/verification and rollback sequence without starting containers or contacting AWS.
 
 Story 8.8 adds the final repository-side pre-apply gate. `scripts/check-aws-launch-readiness.sh structure` validates Terraform formatting/schema, required deployment artifacts, the zero-spend release dry run, and the absence of infrastructure-creation commands. A stricter future `launch` mode additionally requires a clean `main`, immutable release/bootstrap identifiers, a dated cost review, successful restore rehearsal, completed Sprint 7 accessibility evidence, a tested backup-alert path, and a prepared release record. Neither mode runs `terraform plan` or `terraform apply`, and neither authorizes AWS spend.
 
-The manual Sprint 7 NVDA/VoiceOver and zoom evidence remains a public-launch gate even while Sprint 8 infrastructure work proceeds.
+The manual Sprint 7 NVDA/VoiceOver and zoom evidence remains a public-launch gate even while Sprint 8 infrastructure work is otherwise ready.
+
+## Product iteration after Sprint 8
+
+With the zero-spend production path prepared, current development returns to user-facing Ripple improvements while AWS provisioning remains deferred.
+
+- Email ownership verification and recovery hardening — completed.
+- Search/discovery refresh — active. Search should find usernames, profile bios, normal post text, and explicit `@username`/`#hashtag` queries while keeping removed content out of results and presenting clearer empty/result states.
 
 ## Future backlog
 
 Potential work after stabilization:
 
-- Email ownership verification and further account-recovery hardening
 - API design
-- Search/discovery improvements
+- Additional search/discovery improvements based on usage
 - Additional moderation tooling based on real community needs
 - Theme and responsive UI refinement
 - Creator/business product refinement based on measured usage
