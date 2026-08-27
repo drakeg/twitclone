@@ -4,6 +4,11 @@ from flask import flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from twitclone.analytics_tracking import record_profile_visit, snapshot_followers
+from twitclone.auth.recovery import (
+    generate_email_verification_token,
+    send_email_verification_email,
+)
+from twitclone.auth.verification import mark_email_unverified
 from twitclone.creator_analytics import build_creator_dashboard
 from twitclone.extensions import db
 from twitclone.models import Notification, Quote, Retweet, Tweet, User
@@ -16,6 +21,15 @@ PROFILE_THEMES = {'ripple':'Ripple Blue','sunset':'Sunset','forest':'Forest','vi
 
 def _store_profile_banner(upload):
     return store_profile_banner(upload, get_media_storage())
+
+
+def _send_email_change_verification(user):
+    token = generate_email_verification_token(user.email, user.password)
+    send_email_verification_email(
+        recipient=user.email,
+        username=user.username,
+        verification_url=url_for('verify_email', token=token, _external=True),
+    )
 
 
 @login_required
@@ -69,7 +83,16 @@ def creator_analytics():
 def edit_profile():
     ripple_plus = current_user.has_entitlement('ripple_plus')
     if request.method == 'POST':
-        current_user.username=request.form['username']; current_user.email=request.form['email']; current_user.bio=request.form['bio']
+        requested_email = request.form['email'].strip()
+        email_changed = requested_email.casefold() != current_user.email.casefold()
+        if email_changed and User.query.filter(
+            db.func.lower(User.email) == requested_email.lower(),
+            User.id != current_user.id,
+        ).first():
+            flash('That email address is already registered to another Ripple account.', 'danger')
+            return render_template('edit_profile.html', user=current_user, ripple_plus=ripple_plus, profile_themes=PROFILE_THEMES)
+
+        current_user.username=request.form['username']; current_user.email=requested_email; current_user.bio=request.form['bio']
         if ripple_plus:
             requested_theme=(request.form.get('profile_theme') or 'ripple').strip().lower()
             if requested_theme not in PROFILE_THEMES: flash('Choose one of the available Ripple+ profile themes.','danger'); return render_template('edit_profile.html',user=current_user,ripple_plus=True,profile_themes=PROFILE_THEMES)
@@ -80,7 +103,15 @@ def edit_profile():
                 error,banner_name=_store_profile_banner(banner)
                 if error: flash(error,'danger'); return render_template('edit_profile.html',user=current_user,ripple_plus=True,profile_themes=PROFILE_THEMES)
                 current_user.profile_banner=banner_name
-        db.session.commit(); flash('Your profile has been updated!','success'); return redirect(url_for('profile',username=current_user.username))
+        if email_changed:
+            mark_email_unverified(current_user.id)
+        db.session.commit()
+        if email_changed:
+            _send_email_change_verification(current_user)
+            flash('Your profile was updated. Please verify your new email address.', 'warning')
+        else:
+            flash('Your profile has been updated!','success')
+        return redirect(url_for('profile',username=current_user.username))
     return render_template('edit_profile.html',user=current_user,ripple_plus=ripple_plus,profile_themes=PROFILE_THEMES)
 
 
