@@ -1,6 +1,28 @@
 {% extends "base.html" %}
+{% block title %}Search{% if search_query %}: {{ search_query }}{% endif %} · Ripple{% endblock %}
 {% block content %}
-<h1>Search Results for "{{ search_query }}"</h1>
-<div class="search-results"><h2>Users</h2><ul class="list-group" id="user-results">{% for user in user_results %}<li class="list-group-item d-flex justify-content-between align-items-center" id="user-{{ user.id }}"><div><img src="{{ gravatar(user.email, size=40) }}" alt="" class="rounded-circle me-2"><a href="{{ url_for('profile', username=user.username) }}">{{ user.username }}</a></div>{% if current_user.is_authenticated %}<button class="btn btn-sm follow-btn {% if user in current_user.followed %}is-following{% endif %}" data-username="{{ user.username }}" data-action="{% if user in current_user.followed %}unfollow{% else %}follow{% endif %}" aria-pressed="{{ 'true' if user in current_user.followed else 'false' }}">{% if user in current_user.followed %}Following{% else %}Follow{% endif %}</button>{% endif %}</li>{% endfor %}</ul></div>
-<div class="search-results"><h2>Posts</h2><ul class="list-group" id="tweet-results">{% for tweet in tweet_results %}<li class="list-group-item"><div class="d-flex justify-content-between align-items-center gap-3"><div><h3 class="h5 card-title"><a href="{{ url_for('profile', username=tweet.user.username) }}">{{ tweet.user.username }}</a></h3><p class="card-text">{{ tweet.content | make_clickable | safe }}</p><p class="card-text"><small class="text-muted">{{ tweet.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></p></div><div class="d-flex gap-1"><form method="POST" action="{{ url_for('retweet', tweet_id=tweet.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn btn-outline-primary btn-sm" aria-label="Repost"><i class="fas fa-retweet" aria-hidden="true"></i></button></form>{% if current_user.id != tweet.user_id %}<a class="btn btn-outline-secondary btn-sm" href="{{ url_for('community.report_content', content_type='tweet', content_id=tweet.id) }}" aria-label="Report"><i class="fa-regular fa-flag" aria-hidden="true"></i></a>{% endif %}</div></div></li>{% endfor %}</ul></div>
+<section class="page-section search-page" aria-labelledby="search-results-heading">
+    <div class="section-heading">
+        <div>
+            <span class="eyebrow">Discover Ripple</span>
+            <h1 id="search-results-heading">{% if search_query %}Results for “{{ search_query }}”{% else %}Search Ripple{% endif %}</h1>
+            <p class="text-muted mb-0">Find people, conversations, and hashtags from one search.</p>
+        </div>
+        {% if hashtag_name %}<a class="btn btn-outline-primary" href="{{ url_for('hashtag', hashtag=hashtag_name) }}">Open #{{ hashtag_name }}</a>{% endif %}
+    </div>
+
+    {% if not search_query %}
+    <div class="empty-state mt-4"><h2 class="h4">Enter something to search for</h2><p>Try a username, a word from a post, or a hashtag such as <strong>#travel</strong>.</p></div>
+    {% else %}
+    <section class="search-results mt-4" aria-labelledby="people-results-heading">
+        <div class="d-flex justify-content-between align-items-center gap-3 mb-3"><h2 class="h4 mb-0" id="people-results-heading">People</h2><span class="text-muted">{{ user_results|length }} result{% if user_results|length != 1 %}s{% endif %}</span></div>
+        {% if user_results %}<div class="list-group" id="user-results">{% for user in user_results %}<div class="list-group-item d-flex justify-content-between align-items-center gap-3" id="user-{{ user.id }}"><div class="d-flex align-items-center gap-3"><img src="{{ gravatar(user.email, size=48) }}" alt="" class="rounded-circle" width="48" height="48"><div><a class="fw-semibold text-decoration-none" href="{{ url_for('profile', username=user.username) }}">{{ user.username }}</a><div class="text-muted small">@{{ user.username }}{% if user.identity_verified %} · Verified identity{% endif %}</div>{% if user.bio %}<div class="small mt-1">{{ user.bio }}</div>{% endif %}</div></div>{% if user != current_user %}<button class="btn btn-sm follow-btn {% if user in current_user.followed %}is-following{% endif %}" data-username="{{ user.username }}" data-action="{% if user in current_user.followed %}unfollow{% else %}follow{% endif %}" aria-pressed="{{ 'true' if user in current_user.followed else 'false' }}">{% if user in current_user.followed %}Following{% else %}Follow{% endif %}</button>{% endif %}</div>{% endfor %}</div>{% else %}<p class="empty-state">No people matched this search.</p>{% endif %}
+    </section>
+
+    <section class="search-results mt-4" aria-labelledby="post-results-heading">
+        <div class="d-flex justify-content-between align-items-center gap-3 mb-3"><h2 class="h4 mb-0" id="post-results-heading">Posts</h2><span class="text-muted">{{ tweet_results|length }} result{% if tweet_results|length != 1 %}s{% endif %}</span></div>
+        {% if tweet_results %}<div class="list-group" id="tweet-results">{% for tweet in tweet_results %}<article class="list-group-item"><div class="d-flex justify-content-between align-items-start gap-3"><div><h3 class="h5 card-title mb-1"><a href="{{ url_for('profile', username=tweet.user.username) }}">{{ tweet.user.username }}</a> <span class="text-muted fw-normal small">@{{ tweet.user.username }}</span></h3><p class="card-text mb-2">{{ tweet.content | make_clickable | safe }}</p><p class="card-text mb-0"><small class="text-muted">{{ tweet.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</small></p></div><div class="d-flex gap-1"><form method="POST" action="{{ url_for('retweet', tweet_id=tweet.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn btn-outline-primary btn-sm" aria-label="Repost"><i class="fas fa-retweet" aria-hidden="true"></i></button></form>{% if current_user.id != tweet.user_id %}<a class="btn btn-outline-secondary btn-sm" href="{{ url_for('community.report_content', content_type='tweet', content_id=tweet.id) }}" aria-label="Report"><i class="fa-regular fa-flag" aria-hidden="true"></i></a>{% endif %}</div></div></article>{% endfor %}</div>{% else %}<p class="empty-state">No posts matched this search.</p>{% endif %}
+    </section>
+    {% endif %}
+</section>
 {% endblock %}
