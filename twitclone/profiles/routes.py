@@ -10,6 +10,7 @@ from twitclone.auth.recovery import (
 )
 from twitclone.auth.verification import mark_email_unverified
 from twitclone.creator_analytics import build_creator_dashboard
+from twitclone.creator_audience import build_audience_conversion
 from twitclone.creator_trends import build_daily_trends
 from twitclone.extensions import db
 from twitclone.models import Notification, Quote, Retweet, Tweet, User
@@ -79,6 +80,11 @@ def creator_analytics():
     dashboard = build_creator_dashboard(current_user, request.args.get('days'))
     dashboard['daily_trends'] = build_daily_trends(
         current_user.id, dashboard['range_start'], dashboard['range_end']
+    )
+    dashboard['audience_conversion'] = build_audience_conversion(
+        stats=dashboard['stats'],
+        follower_growth=dashboard['follower_growth'],
+        days=dashboard['days'],
     )
     return render_template('creator_analytics.html', **dashboard)
 

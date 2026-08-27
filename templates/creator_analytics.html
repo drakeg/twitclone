@@ -13,6 +13,9 @@
 .creator-trend-label { font-size:.68rem; color:var(--bs-secondary-color); text-align:center; white-space:nowrap; margin-top:4px; }
 .creator-trend-legend { display:flex; flex-wrap:wrap; gap:16px; font-size:.875rem; }
 .creator-trend-key::before { content:""; display:inline-block; width:.8rem; height:.8rem; margin-right:.35rem; border-radius:3px; vertical-align:-.08rem; background:var(--key-color); }
+.creator-conversion-step { position:relative; }
+.creator-conversion-step:not(:last-child)::after { content:"→"; position:absolute; right:-.8rem; top:50%; transform:translateY(-50%); color:var(--bs-secondary-color); font-size:1.25rem; }
+@media (max-width: 767.98px) { .creator-conversion-step:not(:last-child)::after { content:"↓"; right:auto; left:50%; top:auto; bottom:-1.15rem; transform:translateX(-50%); } }
 @media (min-width: 768px) { .creator-trend-day { flex-basis:28px; min-width:28px; } }
 </style>
 <header class="page-header">
@@ -34,6 +37,17 @@
 {% for label, value, suffix in [('Impressions', stats.impressions, ''),('Profile visits', stats.profile_visits, ''),('Engagements', stats.engagements, ''),('Engagement rate', stats.engagement_rate, '%'),('Followers', stats.followers, ''),('Follower growth', follower_growth.growth, '')] %}
 <div class="col-6 col-lg-4"><div class="border rounded p-3 h-100"><small class="text-muted">{{ label }}</small><h2 class="mb-0">{{ value }}{{ suffix }}</h2>{% if label == 'Follower growth' and not follower_growth.complete %}<small class="text-muted">Since first observed snapshot{% if follower_growth.baseline_date %} ({{ follower_growth.baseline_date.strftime('%Y-%m-%d') }}){% endif %}</small>{% endif %}</div></div>{% endfor %}
 </div><p class="text-muted small mt-3 mb-0">Engagement rate = reposts + quotes during the selected period divided by measured impressions during that period.</p></section>
+
+<section class="surface-card" aria-labelledby="audience-path-heading">
+  <span class="auth-kicker">Audience path</span><h2 id="audience-path-heading">From post views to profile interest</h2>
+  <p class="text-muted">This is a measured funnel-style summary, not user-level attribution. Ripple does not claim that a specific impression caused a profile visit or follow.</p>
+  <div class="row g-4 mt-1">
+    <div class="col-md-4 creator-conversion-step"><div class="border rounded p-3 h-100"><small class="text-muted">Measured impressions</small><div class="fs-3 fw-semibold">{{ stats.impressions }}</div><small>Daily-unique post views</small></div></div>
+    <div class="col-md-4 creator-conversion-step"><div class="border rounded p-3 h-100"><small class="text-muted">Profile visits</small><div class="fs-3 fw-semibold">{{ stats.profile_visits }}</div>{% if audience_conversion.visit_rate is not none %}<small>{{ audience_conversion.visit_rate }}% of measured impressions</small>{% else %}<small>Rate unavailable</small>{% endif %}</div></div>
+    <div class="col-md-4 creator-conversion-step"><div class="border rounded p-3 h-100"><small class="text-muted">Net follower growth</small><div class="fs-3 fw-semibold">{% if audience_conversion.net_follower_growth > 0 %}+{% endif %}{{ audience_conversion.net_follower_growth }}</div>{% if audience_conversion.follow_rate is not none %}<small>{{ audience_conversion.follow_rate }}% of measured profile visits</small>{% elif not audience_conversion.follower_baseline_complete %}<small>Complete baseline not available</small>{% else %}<small>No positive follow-conversion ratio</small>{% endif %}</div></div>
+  </div>
+  <ul class="mt-3 mb-0">{% for observation in audience_conversion.observations %}<li>{{ observation }}</li>{% endfor %}</ul>
+</section>
 
 <section class="surface-card" aria-labelledby="daily-trends-heading">
   <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
