@@ -2,15 +2,18 @@
 {% block title %}Creator Pro Analytics · Ripple{% endblock %}
 {% block content %}
 <style>
-.creator-trend-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(18px,1fr)); gap:6px; align-items:end; min-height:180px; }
-.creator-trend-day { display:flex; flex-direction:column; justify-content:flex-end; gap:3px; min-width:0; height:150px; }
-.creator-trend-bar { width:100%; min-height:2px; border-radius:4px 4px 0 0; }
+.creator-trend-scroll { overflow-x:auto; padding-bottom:.35rem; }
+.creator-trend-grid { display:flex; gap:5px; align-items:flex-end; min-width:max-content; }
+.creator-trend-day { flex:1 0 22px; min-width:22px; }
+.creator-trend-bars { display:flex; align-items:flex-end; gap:2px; height:130px; }
+.creator-trend-bar { flex:1 1 0; border-radius:4px 4px 0 0; }
 .creator-trend-impressions { background:var(--bs-primary); }
 .creator-trend-visits { background:var(--bs-info); }
 .creator-trend-engagements { background:var(--bs-dark); }
-.creator-trend-label { font-size:.68rem; color:var(--bs-secondary-color); text-align:center; white-space:nowrap; overflow:hidden; }
+.creator-trend-label { font-size:.68rem; color:var(--bs-secondary-color); text-align:center; white-space:nowrap; margin-top:4px; }
 .creator-trend-legend { display:flex; flex-wrap:wrap; gap:16px; font-size:.875rem; }
 .creator-trend-key::before { content:""; display:inline-block; width:.8rem; height:.8rem; margin-right:.35rem; border-radius:3px; vertical-align:-.08rem; background:var(--key-color); }
+@media (min-width: 768px) { .creator-trend-day { flex-basis:28px; min-width:28px; } }
 </style>
 <header class="page-header">
   <div><h1>Creator Pro Analytics</h1><small>Measured performance from {{ range_start.strftime('%Y-%m-%d') }} through {{ range_end.strftime('%Y-%m-%d') }}</small></div>
@@ -37,16 +40,14 @@
     <div><span class="auth-kicker">Measured over time</span><h2 id="daily-trends-heading">Daily activity trend</h2><p class="text-muted mb-0">Each series is scaled to its own highest day so changes in pattern are easy to see. Exact counts are in the table below.</p></div>
     <div class="creator-trend-legend" aria-hidden="true"><span class="creator-trend-key" style="--key-color:var(--bs-primary)">Impressions</span><span class="creator-trend-key" style="--key-color:var(--bs-info)">Profile visits</span><span class="creator-trend-key" style="--key-color:var(--bs-dark)">Engagements</span></div>
   </div>
-  <div class="creator-trend-grid mt-4" aria-hidden="true">
+  <div class="creator-trend-scroll mt-4" aria-hidden="true"><div class="creator-trend-grid">
     {% for item in daily_trends.rows %}
     <div class="creator-trend-day" title="{{ item.date.strftime('%Y-%m-%d') }}: {{ item.impressions }} impressions, {{ item.profile_visits }} profile visits, {{ item.engagements }} engagements">
-      <div class="creator-trend-bar creator-trend-impressions" style="height:{{ item.impressions_pct }}%"></div>
-      <div class="creator-trend-bar creator-trend-visits" style="height:{{ item.profile_visits_pct }}%"></div>
-      <div class="creator-trend-bar creator-trend-engagements" style="height:{{ item.engagements_pct }}%"></div>
+      <div class="creator-trend-bars"><div class="creator-trend-bar creator-trend-impressions" style="height:{{ item.impressions_pct }}%"></div><div class="creator-trend-bar creator-trend-visits" style="height:{{ item.profile_visits_pct }}%"></div><div class="creator-trend-bar creator-trend-engagements" style="height:{{ item.engagements_pct }}%"></div></div>
       {% if days <= 7 or loop.first or loop.last %}<div class="creator-trend-label">{{ item.date.strftime('%m/%d') }}</div>{% endif %}
     </div>
     {% endfor %}
-  </div>
+  </div></div>
   <details class="mt-3"><summary class="fw-semibold">View exact daily counts</summary><div class="table-responsive mt-2"><table class="table table-sm mb-0"><thead><tr><th>Date</th><th>Impressions</th><th>Profile visits</th><th>Engagements</th></tr></thead><tbody>{% for item in daily_trends.rows %}<tr><td>{{ item.date.strftime('%Y-%m-%d') }}</td><td>{{ item.impressions }}</td><td>{{ item.profile_visits }}</td><td>{{ item.engagements }}</td></tr>{% endfor %}</tbody></table></div></details>
 </section>
 
