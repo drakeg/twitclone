@@ -1,12 +1,14 @@
-"""Community standards acknowledgement and post reporting routes."""
+"""Community standards acknowledgement, reporting, and fact-context routes."""
 
 from datetime import UTC, datetime
+from urllib.parse import urlparse
 
 from flask import current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from twitclone.community import community_blueprint
 from twitclone.extensions import db
+from twitclone.fact_context_models import FactContextSubmission
 from twitclone.models import Notification, Poll, PostReport, Quote, Tweet
 
 COMMUNITY_GUIDELINES_VERSION = "2026-08-18"
@@ -31,6 +33,14 @@ def _resolve_content(content_type, content_id):
     if model is None:
         return None
     return db.session.get(model, content_id)
+
+
+def _valid_source_url(value):
+    try:
+        parsed = urlparse(value)
+    except ValueError:
+        return False
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
 
 
 @community_blueprint.before_app_request
@@ -83,6 +93,49 @@ def accept_guidelines():
         guidelines_version=COMMUNITY_GUIDELINES_VERSION,
         requires_acceptance=True,
     )
+
+
+@community_blueprint.route("/post/<int:tweet_id>/context", methods=["GET", "POST"])
+@login_required
+def add_fact_context(tweet_id):
+    tweet = db.get_or_404(Tweet, tweet_id)
+    if tweet.is_removed:
+        flash("That post is no longer available.", "warning")
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        claim = (request.form.get("claim") or "").strip()
+        context = (request.form.get("context") or "").strip()
+        source_url = (request.form.get("source_url") or "").strip()
+
+        if not claim or not context or not source_url:
+            flash("Identify the claim, explain the proposed context, and provide a source URL.", "danger")
+        elif len(claim) > 300:
+            flash("Keep the claim description to 300 characters or fewer.", "danger")
+        elif not _valid_source_url(source_url):
+            flash("Provide a valid http or https source URL.", "danger")
+        else:
+            db.session.add(
+                FactContextSubmission(
+                    tweet_id=tweet.id,
+                    submitter_id=current_user.id,
+                    claim=claim,
+                    context=context,
+                    source_url=source_url,
+                )
+            )
+            db.session.add(
+                Notification(
+                    user_id=current_user.id,
+                    message="Your community context submission was received for review.",
+                    tweet_id=tweet.id,
+                )
+            )
+            db.session.commit()
+            flash("Context submitted. It will not appear as accepted fact context until reviewed.", "success")
+            return redirect(url_for("post_detail", tweet_id=tweet.id))
+
+    return render_template("fact_context_submit.html", tweet=tweet)
 
 
 @community_blueprint.route("/report/<content_type>/<int:content_id>", methods=["GET", "POST"])
