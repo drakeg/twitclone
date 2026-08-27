@@ -1,4 +1,4 @@
-"""add conversation intent to posts
+"""add conversation intent metadata
 
 Revision ID: 20260826_0017
 Revises: 20260826_0016
@@ -15,22 +15,21 @@ depends_on = None
 
 
 def upgrade():
-    with op.batch_alter_table("tweet") as batch_op:
-        batch_op.add_column(
-            sa.Column(
-                "conversation_intent",
-                sa.String(length=20),
-                nullable=False,
-                server_default="open",
-            )
-        )
-        batch_op.create_check_constraint(
-            "ck_tweet_conversation_intent",
-            "conversation_intent in ('open', 'question', 'advice', 'support', 'debate', 'sharing')",
-        )
+    op.create_table(
+        "tweet_conversation_intent",
+        sa.Column(
+            "tweet_id",
+            sa.Integer(),
+            sa.ForeignKey("tweet.id", ondelete="CASCADE"),
+            primary_key=True,
+        ),
+        sa.Column("intent", sa.String(length=20), nullable=False, server_default="open"),
+        sa.CheckConstraint(
+            "intent in ('open', 'question', 'advice', 'support', 'debate', 'sharing')",
+            name="ck_tweet_conversation_intent_value",
+        ),
+    )
 
 
 def downgrade():
-    with op.batch_alter_table("tweet") as batch_op:
-        batch_op.drop_constraint("ck_tweet_conversation_intent", type_="check")
-        batch_op.drop_column("conversation_intent")
+    op.drop_table("tweet_conversation_intent")
