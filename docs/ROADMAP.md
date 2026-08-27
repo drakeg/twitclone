@@ -51,7 +51,7 @@ After the reliability baseline, Ripple expanded deliberately without removing us
 - Plans & Pricing storefront and Membership/account-status management
 - Restrained contextual premium-feature discovery
 - Demo/sample content for first-time visitors
-- Email ownership verification, resend support, expiring signed verification links, and recovery-token hardening
+- Email ownership verification, resend support, expiring signed verification links, recovery-token hardening, and reverification after an email change
 
 ## Sprint 6 — Deployment and operations readiness
 
@@ -103,8 +103,10 @@ The manual Sprint 7 NVDA/VoiceOver and zoom evidence remains a public-launch gat
 
 With the zero-spend production path prepared, current development returns to user-facing Ripple improvements while AWS provisioning remains deferred.
 
-- Email ownership verification and recovery hardening — completed.
-- Search/discovery refresh — active. Search should find usernames, profile bios, normal post text, and explicit `@username`/`#hashtag` queries while keeping removed content out of results and presenting clearer empty/result states.
+- Email ownership verification and recovery hardening — completed, including reverification after a registered email address changes.
+- Search/discovery refresh — completed. Search now covers usernames, profile bios, normal post text, `@username`, and `#hashtag` queries while excluding removed posts and presenting clearer result states.
+- Moderation queue triage — completed. Admins can prioritize pending reports, filter the queue, see status counts, and identify content with repeated reports while preserving individual reporter outcomes.
+- Ripple+ profile/theme refinement — active. Curated themes should be easier to preview and understand without changing the entitlement model or removing free profile functionality.
 
 ## Future backlog
 
@@ -113,6 +115,6 @@ Potential work after stabilization:
 - API design
 - Additional search/discovery improvements based on usage
 - Additional moderation tooling based on real community needs
-- Theme and responsive UI refinement
+- Additional theme and responsive UI refinement based on usage
 - Creator/business product refinement based on measured usage
 - Optional federation feasibility study

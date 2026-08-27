@@ -1,6 +1,27 @@
 {% extends "base.html" %}
 {% block title %}Edit profile · Ripple{% endblock %}
 {% block content %}
+<style>
+.theme-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.theme-option { position: relative; }
+.theme-option input { position: absolute; opacity: 0; pointer-events: none; }
+.theme-card { display: block; border: 2px solid var(--bs-border-color); border-radius: 14px; padding: 10px; cursor: pointer; background: var(--bs-body-bg); transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+.theme-card:hover { transform: translateY(-1px); }
+.theme-option input:focus-visible + .theme-card { outline: 3px solid rgba(99, 91, 255, .35); outline-offset: 2px; }
+.theme-option input:checked + .theme-card { border-color: #635bff; box-shadow: 0 0 0 3px rgba(99, 91, 255, .12); }
+.theme-swatch { display: block; height: 72px; border-radius: 10px; margin-bottom: 8px; }
+.theme-card strong { display: block; }
+.theme-card small { color: var(--bs-secondary-color); }
+.theme-ripple { background: linear-gradient(135deg, #2563eb, #06b6d4); }
+.theme-sunset { background: linear-gradient(135deg, #f97316, #db2777); }
+.theme-forest { background: linear-gradient(135deg, #166534, #0f766e); }
+.theme-violet { background: linear-gradient(135deg, #6d28d9, #a21caf); }
+.theme-slate { background: linear-gradient(135deg, #334155, #0f172a); }
+.profile-theme-preview { border-radius: 16px; overflow: hidden; border: 1px solid var(--bs-border-color); }
+.profile-theme-preview-cover { height: 110px; background: linear-gradient(135deg, #2563eb, #06b6d4); transition: background .15s ease; }
+.profile-theme-preview-body { padding: 14px; background: var(--bs-body-bg); }
+@media (prefers-reduced-motion: reduce) { .theme-card, .profile-theme-preview-cover { transition: none; } }
+</style>
 <header class="page-header"><div><h1>Edit profile</h1><small>Update your public Ripple profile</small></div></header>
 <section class="surface-card">
 <form method="POST" action="{{ url_for('edit_profile') }}" enctype="multipart/form-data">
@@ -9,11 +30,30 @@
     <div class="mb-3"><label for="email" class="form-label">Email</label><input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required><div class="form-text">Changing your email address requires you to verify the new address before identity-sensitive actions are available.</div></div>
     <div class="mb-3"><label for="bio" class="form-label">Bio</label><textarea class="form-control" id="bio" name="bio" rows="3">{{ user.bio or '' }}</textarea></div>
     <div class="border-top pt-4 mt-4">
-        <div class="d-flex justify-content-between align-items-start gap-3 mb-3"><div><h2 class="h5 mb-1">Profile customization</h2><p class="text-muted mb-0">Make your profile more distinctive with a theme and header image.</p></div>{% if ripple_plus %}<span class="badge text-bg-primary">Ripple+</span>{% else %}<span class="badge text-bg-light"><i class="fa-solid fa-lock"></i> Ripple+</span>{% endif %}</div>
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-3"><div><h2 class="h5 mb-1">Profile customization</h2><p class="text-muted mb-0">Make your profile more distinctive with a theme and header image.</p></div>{% if ripple_plus %}<span class="badge text-bg-primary">Ripple+</span>{% else %}<span class="badge text-bg-light"><i class="fa-solid fa-lock" aria-hidden="true"></i> Ripple+</span>{% endif %}</div>
         {% if ripple_plus %}
-        <div class="mb-3"><label for="profile_theme" class="form-label">Profile theme</label><select class="form-select" id="profile_theme" name="profile_theme">{% for key, label in profile_themes.items() %}<option value="{{ key }}" {% if user.profile_theme == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-        <div class="mb-3"><label for="profile_banner" class="form-label">Profile banner</label><input class="form-control" type="file" id="profile_banner" name="profile_banner" accept="image/png,image/jpeg,image/gif"><div class="form-text">PNG, JPEG, or GIF; maximum 5 MB.</div></div>
-        {% if user.profile_banner %}<div class="form-check mb-3"><input class="form-check-input" type="checkbox" value="1" id="remove_banner" name="remove_banner"><label class="form-check-label" for="remove_banner">Remove current banner</label></div>{% endif %}
+        <fieldset class="mb-4">
+            <legend class="form-label mb-2">Profile theme</legend>
+            <p class="form-text mt-0">Choose a curated look. The preview updates immediately; changes are saved only when you update your profile.</p>
+            <div class="theme-grid" id="profile-theme-grid">
+                {% for key, label in profile_themes.items() %}
+                <div class="theme-option">
+                    <input type="radio" id="profile-theme-{{ key }}" name="profile_theme" value="{{ key }}" {% if user.profile_theme == key %}checked{% endif %}>
+                    <label class="theme-card" for="profile-theme-{{ key }}">
+                        <span class="theme-swatch theme-{{ key }}" aria-hidden="true"></span>
+                        <strong>{{ label }}</strong>
+                        <small>{% if key == 'ripple' %}Bright and classic{% elif key == 'sunset' %}Warm and energetic{% elif key == 'forest' %}Calm and grounded{% elif key == 'violet' %}Bold and creative{% else %}Dark and understated{% endif %}</small>
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+        </fieldset>
+        <div class="profile-theme-preview mb-4" aria-live="polite">
+            <div class="profile-theme-preview-cover theme-{{ user.profile_theme }}" id="profile-theme-preview-cover"></div>
+            <div class="profile-theme-preview-body"><strong id="profile-theme-preview-name">{{ profile_themes.get(user.profile_theme, 'Ripple Blue') }}</strong><div class="text-muted small">Preview of your profile header theme</div></div>
+        </div>
+        <div class="mb-3"><label for="profile_banner" class="form-label">Profile banner</label><input class="form-control" type="file" id="profile_banner" name="profile_banner" accept="image/png,image/jpeg,image/gif"><div class="form-text">PNG, JPEG, or GIF; maximum 5 MB. A custom banner replaces the theme gradient while Ripple+ is active.</div></div>
+        {% if user.profile_banner %}<div class="form-check mb-3"><input class="form-check-input" type="checkbox" value="1" id="remove_banner" name="remove_banner"><label class="form-check-label" for="remove_banner">Remove current banner and use my selected theme instead</label></div>{% endif %}
         {% else %}
         <div class="border rounded p-3 bg-light"><strong>Included with Ripple+</strong><p class="text-muted mt-2 mb-2">Unlock five curated profile themes and your own banner image. Your normal profile, bio, and avatar stay free.</p><a class="btn btn-sm btn-primary" href="{{ url_for('payments.billing_home') }}">See Ripple+ options</a></div>
         {% endif %}
@@ -21,4 +61,22 @@
     <button type="submit" class="btn btn-primary mt-4">Update Profile</button>
 </form>
 </section>
+{% endblock %}
+{% block scripts %}
+{% if ripple_plus %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const preview = document.getElementById('profile-theme-preview-cover');
+    const previewName = document.getElementById('profile-theme-preview-name');
+    const labels = {{ profile_themes | tojson }};
+    document.querySelectorAll('input[name="profile_theme"]').forEach(input => {
+        input.addEventListener('change', () => {
+            if (!input.checked) return;
+            preview.className = `profile-theme-preview-cover theme-${input.value}`;
+            previewName.textContent = labels[input.value] || input.value;
+        });
+    });
+});
+</script>
+{% endif %}
 {% endblock %}
