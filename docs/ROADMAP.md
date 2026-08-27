@@ -107,7 +107,7 @@ With the zero-spend production path prepared, current development returns to use
 - Search/discovery refresh — completed. Search now covers usernames, profile bios, normal post text, `@username`, and `#hashtag` queries while excluding removed posts and presenting clearer result states.
 - Moderation queue triage — completed. Admins can prioritize pending reports, filter the queue, see status counts, and identify content with repeated reports while preserving individual reporter outcomes.
 - Ripple+ profile/theme refinement — completed. Ripple+ members can visually preview curated themes, see the active theme on their public profile, and preserve the existing free-profile fallback.
-- Creator/business refinement — active. Creator Pro should turn persisted measurement data into useful trend and comparison views without presenting unmeasured reach, causation, or estimated performance as fact.
+- Creator/business refinement — active. Creator Pro now includes daily measured trends and a measured audience-path summary from impressions to profile visits to net follower growth. These ratios remain aggregate observations rather than user-level attribution or causation claims.
 
 ## Future backlog
 
