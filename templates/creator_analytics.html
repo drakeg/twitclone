@@ -20,7 +20,7 @@
 </style>
 <header class="page-header">
   <div><h1>Creator Pro Analytics</h1><small>Measured performance from {{ range_start.strftime('%Y-%m-%d') }} through {{ range_end.strftime('%Y-%m-%d') }}</small></div>
-  <span class="badge text-bg-dark">Creator Pro</span>
+  <div class="d-flex flex-wrap gap-2 align-items-center"><a class="btn btn-outline-secondary btn-sm" href="{{ url_for('creator_analytics_export', days=days) }}"><i class="fa-solid fa-download" aria-hidden="true"></i> Export CSV</a><span class="badge text-bg-dark">Creator Pro</span></div>
 </header>
 
 <section class="surface-card">
