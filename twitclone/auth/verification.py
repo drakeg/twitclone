@@ -35,3 +35,13 @@ def mark_email_verified(user_id: int) -> EmailVerificationStatus:
     if status.verified_at is None:
         status.verified_at = _utcnow()
     return status
+
+
+def mark_email_unverified(user_id: int) -> EmailVerificationStatus:
+    """Require ownership verification again after the registered email changes."""
+    status = email_verification_status(user_id)
+    if status is None:
+        status = EmailVerificationStatus(user_id=user_id)
+        db.session.add(status)
+    status.verified_at = None
+    return status
