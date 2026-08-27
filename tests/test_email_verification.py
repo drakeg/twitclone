@@ -1,5 +1,7 @@
 """Regression coverage for email ownership verification."""
 
+from datetime import UTC, datetime
+
 from twitclone.auth.recovery import generate_email_verification_token
 from twitclone.auth.verification import EmailVerificationStatus, is_email_verified
 from twitclone.extensions import bcrypt, db
@@ -124,3 +126,61 @@ def test_legacy_user_without_status_row_remains_verified(client, app):
 
     response = client.get("/verification/apply")
     assert response.status_code == 200
+
+
+def test_changing_verified_email_requires_reverification(client, app):
+    verified_at = datetime.now(UTC).replace(tzinfo=None)
+    user_id = _create_user(app, verified_status=verified_at)
+    _login(client, user_id)
+
+    response = client.post(
+        "/profile/edit",
+        data={"username": "alice", "email": "new@example.com", "bio": "updated"},
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"] == "/profile/alice"
+    with app.app_context():
+        user = db.session.get(User, user_id)
+        status = db.session.get(EmailVerificationStatus, user_id)
+        assert user.email == "new@example.com"
+        assert status.verified_at is None
+        assert is_email_verified(user) is False
+
+
+def test_profile_edit_with_same_email_preserves_verification(client, app):
+    verified_at = datetime.now(UTC).replace(tzinfo=None)
+    user_id = _create_user(app, verified_status=verified_at)
+    _login(client, user_id)
+
+    response = client.post(
+        "/profile/edit",
+        data={"username": "alice", "email": "alice@example.com", "bio": "updated"},
+    )
+
+    assert response.status_code == 302
+    with app.app_context():
+        status = db.session.get(EmailVerificationStatus, user_id)
+        assert status.verified_at == verified_at
+
+
+def test_profile_email_cannot_change_to_another_accounts_address(client, app):
+    verified_at = datetime.now(UTC).replace(tzinfo=None)
+    user_id = _create_user(app, verified_status=verified_at)
+    with app.app_context():
+        db.session.add(User(username="bob", email="bob@example.com", password="hash"))
+        db.session.commit()
+    _login(client, user_id)
+
+    response = client.post(
+        "/profile/edit",
+        data={"username": "alice", "email": "bob@example.com", "bio": "updated"},
+    )
+
+    assert response.status_code == 200
+    assert b"already registered to another Ripple account" in response.data
+    with app.app_context():
+        user = db.session.get(User, user_id)
+        status = db.session.get(EmailVerificationStatus, user_id)
+        assert user.email == "alice@example.com"
+        assert status.verified_at == verified_at
