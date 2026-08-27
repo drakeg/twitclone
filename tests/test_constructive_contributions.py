@@ -1,16 +1,21 @@
 from twitclone.contribution_models import ConstructiveContribution
-from twitclone.extensions import db
-from twitclone.models import Tweet
+from twitclone.models import Tweet, User
 
 
 def _login(client, username="testuser", password="password"):
     return client.post("/login", data={"username": username, "password": password}, follow_redirects=True)
 
 
-def test_user_can_toggle_constructive_signal(client, app, second_user):
+def _other_users_tweet(app):
     with app.app_context():
-        tweet = Tweet.query.filter(Tweet.user_id == second_user.id).first()
-        tweet_id = tweet.id
+        current = User.query.filter_by(username="testuser").first()
+        tweet = Tweet.query.filter(Tweet.user_id != current.id).first()
+        assert tweet is not None
+        return tweet.id
+
+
+def test_user_can_toggle_constructive_signal(client, app):
+    tweet_id = _other_users_tweet(app)
     _login(client)
     response = client.post(f"/post/{tweet_id}/contribution/helpful", follow_redirects=True)
     assert response.status_code == 200
@@ -24,7 +29,9 @@ def test_user_can_toggle_constructive_signal(client, app, second_user):
 def test_user_cannot_signal_own_post(client, app):
     _login(client)
     with app.app_context():
-        tweet = Tweet.query.filter_by(user_id=1).first()
+        current = User.query.filter_by(username="testuser").first()
+        tweet = Tweet.query.filter_by(user_id=current.id).first()
+        assert tweet is not None
         tweet_id = tweet.id
     response = client.post(f"/post/{tweet_id}/contribution/thoughtful", follow_redirects=True)
     assert b"for recognizing someone else" in response.data
@@ -32,16 +39,14 @@ def test_user_cannot_signal_own_post(client, app):
         assert ConstructiveContribution.query.filter_by(tweet_id=tweet_id).count() == 0
 
 
-def test_unknown_signal_is_rejected(client, app, second_user):
-    with app.app_context():
-        tweet_id = Tweet.query.filter(Tweet.user_id == second_user.id).first().id
+def test_unknown_signal_is_rejected(client, app):
+    tweet_id = _other_users_tweet(app)
     _login(client)
     assert client.post(f"/post/{tweet_id}/contribution/like").status_code == 404
 
 
-def test_post_detail_explains_constructive_signals(client, app, second_user):
-    with app.app_context():
-        tweet_id = Tweet.query.filter(Tweet.user_id == second_user.id).first().id
+def test_post_detail_explains_constructive_signals(client, app):
+    tweet_id = _other_users_tweet(app)
     _login(client)
     response = client.get(f"/post/{tweet_id}")
     assert b"Helpful" in response.data
