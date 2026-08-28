@@ -38,6 +38,39 @@ class FactContextSubmission(db.Model):
     tweet = db.relationship("Tweet", backref=db.backref("fact_context_submissions", cascade="all, delete-orphan"))
     submitter = db.relationship("User", foreign_keys=[submitter_id])
     reviewed_by = db.relationship("User", foreign_keys=[reviewed_by_id])
+    community_assessments = db.relationship(
+        "FactContextAssessment",
+        back_populates="submission",
+        cascade="all, delete-orphan",
+    )
 
 
-__all__ = ["FactContextSubmission"]
+class FactContextAssessment(db.Model):
+    __tablename__ = "fact_context_assessment"
+    __table_args__ = (
+        db.CheckConstraint(
+            "assessment in ('context', 'disputed', 'outdated', 'correction', 'insufficient')",
+            name="ck_fact_context_assessment_value",
+        ),
+        db.UniqueConstraint(
+            "submission_id", "reviewer_id",
+            name="uq_fact_context_assessment_submission_reviewer",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    submission_id = db.Column(
+        db.Integer,
+        db.ForeignKey("fact_context_submission.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    reviewer_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
+    assessment = db.Column(db.String(20), nullable=False)
+    note = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+
+    submission = db.relationship("FactContextSubmission", back_populates="community_assessments")
+    reviewer = db.relationship("User")
+
+
+__all__ = ["FactContextAssessment", "FactContextSubmission"]
