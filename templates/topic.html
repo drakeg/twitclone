@@ -2,7 +2,7 @@
 {% block title %}{{ topic.name }} · Ripple{% endblock %}
 {% block content %}
 <header class="page-header">
-    <div><h1>{{ topic.name }}</h1><small>Topic contributors</small></div>
+    <div><h1>{{ topic.name }}</h1><small>Topic discovery</small></div>
     <a href="{{ url_for('index') }}" class="btn btn-sm btn-secondary">Back to Home</a>
 </header>
 
@@ -10,7 +10,7 @@
     <span class="auth-kicker">Transparent discovery</span>
     <h2 class="h5" id="topic-discovery-heading">People contributing to {{ topic.name }}</h2>
     <p class="text-muted mb-2">People qualify here by publishing at least one non-removed post where they explicitly selected this topic. Hashtag-only posts do not qualify as expertise evidence.</p>
-    <p class="form-text mb-0">Ordering is visible and deterministic: contribution level first, then unique recognizers, recognized posts, constructive signals, and username for ties. Followers, impressions, paid plans, and verification never affect placement.</p>
+    <p class="form-text mb-0">Contributor ordering is visible and deterministic: contribution level first, then unique recognizers, recognized posts, constructive signals, and username for ties. Followers, impressions, paid plans, and verification never affect placement.</p>
 </section>
 
 <section class="mt-3" aria-label="Topic contributors">
@@ -39,5 +39,19 @@
 {% else %}
 <div class="surface-card text-center"><h2 class="h5">No contributor history yet</h2><p class="text-muted mb-0">This topic exists, but no eligible non-removed posts currently qualify for contributor discovery.</p></div>
 {% endfor %}
+</section>
+
+<section class="surface-card mt-3" aria-labelledby="topic-resources-heading">
+    <span class="auth-kicker">Durable knowledge</span>
+    <h2 class="h5" id="topic-resources-heading">Resources about {{ topic.name }}</h2>
+    <p class="text-muted">Resources appear because their authors explicitly associated them with this topic. They are ordered by most recently updated, then resource ID for deterministic ties. Followers, subscriptions, paid plans, verification, and contributor reputation do not buy placement.</p>
+    {% for resource in resources %}
+    <article class="border-top pt-3 mt-3">
+        <div class="d-flex justify-content-between gap-2 flex-wrap"><div><a class="post-author" href="{{ url_for('resources.resource_detail', resource_id=resource.id) }}">{{ resource.title }}</a><div class="form-text">Started by @{{ resource.owner.username }}{% if resource.current_revision %} · revision {{ resource.current_revision.revision_number }}{% endif %}</div></div><span class="badge rounded-pill text-bg-light border">Updated {{ resource.updated_at.strftime('%b %d, %Y') }}</span></div>
+        {% if resource.current_revision %}<p class="mt-2 mb-0">{{ resource.current_revision.body[:240] }}{% if resource.current_revision.body|length > 240 %}…{% endif %}</p>{% endif %}
+    </article>
+    {% else %}
+    <div class="text-center py-3"><h3 class="h6">No resources yet</h3><p class="text-muted mb-0">This topic has no visible durable resources yet.</p></div>
+    {% endfor %}
 </section>
 {% endblock %}
