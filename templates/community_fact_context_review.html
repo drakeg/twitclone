@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Review Community Context · Ripple{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div><h1>Review Community Context</h1><small>Independent evidence review</small></div>
+    <a class="btn btn-sm btn-secondary" href="{{ url_for('index') }}">Back to Home</a>
+</header>
+
+<section class="surface-card">
+    <span class="auth-kicker">How this works</span>
+    <h2 class="h5">Review the evidence, not the person</h2>
+    <p class="text-muted mb-1">Each eligible reviewer gets one independent assessment. Submitters and post authors cannot review their own item.</p>
+    <p class="text-muted mb-0">At least {{ min_reviews }} independent reviews are required, and a publishable outcome must receive at least two-thirds agreement before context is automatically published. Admin review remains available when consensus is not reached.</p>
+</section>
+
+{% for item in submissions %}
+<article class="surface-card" id="context-{{ item.id }}">
+    <div class="d-flex justify-content-between gap-3 flex-wrap mb-2">
+        <div><strong>Claim to review</strong><div>{{ item.claim }}</div></div>
+        <span class="badge rounded-pill text-bg-secondary">{{ item.community_assessments|length }} review{{ '' if item.community_assessments|length == 1 else 's' }}</span>
+    </div>
+    <div class="mb-3"><strong>Proposed context</strong><p class="mb-0">{{ item.context }}</p></div>
+    <div class="mb-3"><a href="{{ item.source_url }}" target="_blank" rel="noopener noreferrer">Open supporting source <span class="visually-hidden">in a new tab</span></a></div>
+    <div class="small text-muted mb-3">Original post by @{{ item.tweet.user.username }}: “{{ item.tweet.content }}”</div>
+
+    <form method="POST" action="{{ url_for('community.assess_fact_context', submission_id=item.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <fieldset>
+            <legend class="h6">Your independent assessment</legend>
+            <div class="row g-2 mb-3">
+                {% for key, label in assessments.items() %}
+                <div class="col-12 col-md-6">
+                    <div class="form-check border rounded p-3 ps-5 h-100">
+                        <input class="form-check-input" type="radio" name="assessment" id="assessment-{{ item.id }}-{{ key }}" value="{{ key }}" required>
+                        <label class="form-check-label" for="assessment-{{ item.id }}-{{ key }}">{{ label }}</label>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </fieldset>
+        <label class="form-label" for="note-{{ item.id }}">Reviewer note <span class="text-muted">(optional)</span></label>
+        <textarea class="form-control mb-3" id="note-{{ item.id }}" name="note" maxlength="500" rows="2" placeholder="Briefly explain what in the source supports your assessment."></textarea>
+        <button class="btn btn-primary" type="submit">Submit independent assessment</button>
+    </form>
+</article>
+{% else %}
+<section class="surface-card text-center"><h2 class="h5">Nothing waiting for your review</h2><p class="text-muted mb-0">You may have reviewed all currently eligible items, or no fact-context submissions are pending.</p></section>
+{% endfor %}
+{% endblock %}
