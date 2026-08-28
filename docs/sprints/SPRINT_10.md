@@ -23,11 +23,11 @@ Follower count and generic engagement are weak proxies for whether someone is co
 
 ## Story 10.1 — Explicit topic foundation
 
-**Status:** In implementation.
+**Status:** Completed.
 
 **Goal:** Establish the topic vocabulary and association rules on which reputation can safely depend.
 
-### Current implementation slice
+### Completed capabilities
 
 - Adds normalized `Topic` records with duplicate-safe slugs.
 - Adds `TweetTopic` associations without altering the mature `Tweet` table.
@@ -38,33 +38,42 @@ Follower count and generic engagement are weak proxies for whether someone is co
 - Existing posts require no backfill and simply have no topic associations until new topic-aware activity exists.
 - Removed posts do not expose public topic associations.
 - Timeline cards display associated topics for normal posts and reposts; Quote cards do not falsely inherit the original post's topics as if they belonged to the quoter.
-- Adds migration `20260828_0023_topic_foundation.py` and focused tests for normalization, duplicate handling, explicit-vs-hashtag provenance, legacy posts, removed posts, and timeline presentation.
-
-### Acceptance criteria
-
-- Ripple has an explicit topic model suitable for associating posts and future resources with a topic.
-- Topic association comes from explicit content/user actions or deterministic public text such as hashtags; it does not come from sensitive-trait inference.
-- Topic names/slugs are normalized and duplicate-safe.
-- Existing hashtags can inform topic discovery without silently converting every hashtag into an authoritative reputation category.
-- Removed/private/ineligible content does not create public reputation evidence.
-- Tests cover normalization, duplicate prevention, authorization, and legacy-post behavior.
-
-### Follow-on before Story 10.1 closes
-
-- Validate the new schema and focused regression suite through the normal Docker/CI path.
-- Decide whether an explicit topic-management/edit flow is needed immediately or can wait for later topic discovery work; this slice intentionally avoids adding mutable administrator-entered reputation data.
+- Migration `20260828_0023_topic_foundation.py` and focused regression coverage were merged in PR #182.
 
 ## Story 10.2 — Topic contribution evidence
 
+**Status:** In implementation.
+
 **Goal:** Define which existing Ripple activities count as explainable topic contribution evidence.
 
-### Planned acceptance criteria
+### Current implementation slice
+
+- Adds a derived `topic_contribution_evidence()` service rather than persisting a mutable reputation score.
+- Only posts with an **explicit** topic association can create topic-contribution evidence. Hashtag-only associations remain discovery metadata and do not become expertise evidence by themselves.
+- Helpful, Thoughtful, and Useful context signals on eligible posts are counted by signal type.
+- Evidence also records the number of eligible posts, recognized posts, and unique recognizers.
+- Self-signals are excluded even if an invalid historical/database row exists.
+- Removed posts do not contribute.
+- Deleting/toggling off a constructive signal immediately changes the derived evidence because the evidence is recomputed from source records.
+- Followers, impressions, subscriptions, identity badges, and paid status are explicitly excluded from the evidence rules.
+- No score, level, feed-ranking change, moderation weighting, paid boost, or global trust value is introduced in this story.
+
+### Acceptance criteria
 
 - Constructive Helpful, Thoughtful, and Useful context signals can contribute only when attached to eligible topic-associated content.
 - Self-signals never contribute.
 - Community fact-context review history may be shown as a separate evidence dimension where relevant; agreement is not called accuracy.
 - Raw likes, followers, impressions, paid status, and verification payment do not count as reputation evidence.
 - Evidence aggregation is derived and reproducible from source records.
+
+### Explicit evidence rules
+
+- Explicit post-topic association is required for constructive-signal evidence.
+- Hashtag-only topic association does not establish expertise evidence.
+- Removed/ineligible posts do not contribute.
+- Self-recognition does not contribute.
+- Multiple distinct constructive signals remain visible as separate dimensions rather than being silently collapsed into a weighted score.
+- Unique recognizer counts are descriptive only; they are not an accuracy or expertise percentage.
 
 ## Story 10.3 — Explainable topic reputation summary
 
