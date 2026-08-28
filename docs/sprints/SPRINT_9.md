@@ -36,49 +36,23 @@ Helpful, Thoughtful, and Useful context signals recognize contribution quality w
 
 ## Story 9.4 — Community fact checks and context
 
-**Status:** In implementation.
+**Status:** Completed.
 
-Add a visible Check facts / Add context action to posts. A submission is a request for evidence-backed community context, not an immediate declaration that the post is false.
+Ripple now has an evidence-backed community context workflow with admin review, independent community consensus, transparent reviewer history, and an auditable appeal/correction path. A context submission never directly labels the original post false, published context remains visually separate from the author's words, and later revisions or withdrawals preserve the original review history.
 
-### Foundation — completed
+### Completed capabilities
 
-- Signed-in users can open Check facts / Add context from a post detail page.
-- Submissions identify the claim, proposed context/correction, and a valid http/https supporting source URL.
-- New submissions remain pending and unpublished until reviewed.
-- Fact context is separate from Community Standards moderation.
-- Admins have a dedicated auditable review queue.
-- Approval requires Additional context, Disputed claim, Outdated information, or Supported correction.
-- Accepted context is visually separate from the author's words and links to its source.
-- Submitters and post authors receive review notifications.
-- A single submitter cannot unilaterally publish a false-information label.
-
-### Community consensus — completed
-
-- Community reviewers must have a verified email and have accepted the current Community Standards.
-- Submitters and original post authors cannot review the submission.
-- Each eligible reviewer may submit only one independent assessment per context item.
+- Signed-in users can submit a specific claim, proposed context/correction, and supporting http/https source.
+- New submissions remain pending and unpublished until review.
+- Admin review is available separately from Community Standards moderation.
+- Eligible community reviewers can independently assess pending context; submitters and original post authors cannot review their own item.
 - Automatic publication requires at least three independent reviews and at least two-thirds agreement on the same publishable outcome.
-- Lack of consensus leaves the submission pending for additional reviews or admin oversight.
+- Reviewer quality is derived transparently from resolved assessment history and is not based on followers, paid status, popularity, or inferred political viewpoint.
+- Any signed-in user can appeal published context with a reason, new evidence, or suggested revision.
+- Appeal resolution can uphold, revise, or withdraw context without deleting the original submission, assessments, or appeal trail.
+- Published context includes source links and remains separate from the original author's text.
 
-### Reviewer quality — completed
-
-- Reviewer reputation is derived from assessment history rather than stored as a mutable score.
-- The record tracks total assessments, resolved assessments, aligned assessments, and outcome-agreement rate.
-- Reputation is not based on follower count, paid status, popularity, or inferred political viewpoint.
-- Reputation remains informational and does not silently change vote weight.
-
-### Appeals and corrections — in implementation
-
-- Any signed-in user can appeal published community context and provide a reason, new evidence URL, and suggested revised context.
-- A user cannot create duplicate pending appeals for the same context item.
-- Filing an appeal does not immediately hide or alter published context.
-- Admin review can uphold the context, publish a revision, or withdraw it from public display.
-- The original FactContextSubmission remains unchanged so the initial context, source, consensus/admin review history, and appeal history remain auditable.
-- Revised public context is visibly marked as revised after appeal and uses the appeal-approved outcome, wording, and source.
-- Withdrawn context stops rendering publicly without deleting the original submission or appeal record.
-- Appellants and original context submitters receive resolution notifications.
-
-### Follow-on work
+### Follow-on candidates
 
 - Add source-quality and duplicate/context-merging controls based on actual usage.
 - Consider notifying prior reposters/interactors when meaningful accepted context is attached later.
@@ -87,7 +61,27 @@ Add a visible Check facts / Add context action to posts. A submission is a reque
 
 ## Story 9.5 — Conversation health controls
 
-Give authors understandable controls for managing their own discussion after publication, such as closing a conversation to new responses or marking that the original question has been answered. These controls must not erase existing responses or bypass moderation/audit requirements.
+**Status:** In implementation.
+
+Give authors understandable controls for managing the state of their own discussion after publication without erasing prior participation.
+
+### Current slice
+
+- Every post has an effective conversation state of Open / Unresolved unless the author changes it; no backfill is required for existing posts.
+- Authors can close a conversation to new quote responses and later reopen it.
+- Closing a conversation does not delete or hide existing quote responses.
+- Closed state is enforced server-side so old or direct quote URLs cannot bypass the author's choice.
+- Authors can mark a conversation Answered / Resolved and later clear that status.
+- Open/closed and resolved status are visible on post detail.
+- Only the post author can change conversation health state.
+- Repost, bookmark, fact-context, constructive-contribution, and moderation/reporting behavior remain unaffected by closing a conversation.
+
+### Follow-on candidates
+
+- Show health state consistently in timeline cards, profiles, search, and hashtag results.
+- Decide whether resolved questions should optionally suppress response prompts without fully closing the conversation.
+- Add an author-visible history of state changes if real-world use shows a need for a stronger audit trail.
+- Revisit threaded replies separately if Ripple adds a true reply model in a later sprint.
 
 ## Later differentiation candidates
 
