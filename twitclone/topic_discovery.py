@@ -1,5 +1,6 @@
 """Transparent topic contributor discovery for Sprint 10 Story 10.4."""
 
+from twitclone.extensions import db
 from twitclone.models import Tweet, User
 from twitclone.topic_models import Topic, TweetTopic
 from twitclone.topic_reputation import topic_reputation_summary
@@ -40,7 +41,7 @@ def topic_contributors(topic_slug):
 
     contributors = []
     for (user_id,) in user_ids:
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         summary = topic_reputation_summary(user_id, topic.slug)
         if user is None or summary is None:
             continue
