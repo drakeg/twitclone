@@ -1,12 +1,13 @@
-"""Search, hashtag, and public discovery routes."""
+"""Search, hashtag, topic, and public discovery routes."""
 
-from flask import redirect, render_template, request, url_for
+from flask import abort, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from sqlalchemy import or_
 
 from twitclone.discovery import discovery_blueprint
 from twitclone.extensions import db
 from twitclone.models import HashtagFollow, Tweet, User
+from twitclone.topic_discovery import topic_contributors
 
 
 def _normalize_hashtag(value: str) -> str:
@@ -95,6 +96,18 @@ def hashtag(hashtag):
 
 
 @login_required
+def topic(topic_slug):
+    topic_record, contributors = topic_contributors(topic_slug)
+    if topic_record is None:
+        abort(404)
+    return render_template(
+        "topic.html",
+        topic=topic_record,
+        contributors=contributors,
+    )
+
+
+@login_required
 def follow_hashtag(hashtag):
     normalized = _normalize_hashtag(hashtag)
     if normalized and not HashtagFollow.query.filter_by(
@@ -124,6 +137,7 @@ def register_discovery_routes(state):
         "/search", endpoint="search", view_func=search, methods=["GET", "POST"]
     )
     state.app.add_url_rule("/hashtag/<hashtag>", endpoint="hashtag", view_func=hashtag)
+    state.app.add_url_rule("/topic/<topic_slug>", endpoint="topic", view_func=topic)
     state.app.add_url_rule(
         "/hashtag/<hashtag>/follow",
         endpoint="follow_hashtag",

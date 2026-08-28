@@ -70,11 +70,11 @@ Follower count and generic engagement are weak proxies for whether someone is co
 
 ## Story 10.3 — Explainable topic reputation summary
 
-**Status:** In implementation.
+**Status:** Completed.
 
 **Goal:** Present useful topic history without collapsing it into a mysterious score.
 
-### Current implementation slice
+### Completed capabilities
 
 - Adds derived topic summaries for contributor/topic pairs; no reputation value is stored in the database.
 - Uses plain-language levels with published thresholds across multiple visible dimensions:
@@ -82,25 +82,32 @@ Follower count and generic engagement are weak proxies for whether someone is co
   - Emerging contributor — at least 1 constructive signal across at least 1 recognized post from at least 1 unique recognizer.
   - Recognized contributor — at least 3 constructive signals across at least 2 recognized posts from at least 2 unique recognizers.
   - Established contributor — at least 5 constructive signals across at least 3 recognized posts from at least 3 unique recognizers.
-- Displays topic reputation on the user's profile alongside the underlying eligible-post, recognized-post, unique-recognizer, and per-signal counts.
+- Displays topic reputation on the user's profile alongside the underlying eligible-post, recognized-post, unique-recognizer, total-signal, and per-signal counts.
 - The profile explicitly states that topic reputation does not affect feed ranking or moderation authority.
 - The summary explains that followers, impressions, paid plans, and verification do not affect it.
 - Hashtag-only topics do not appear in topic reputation summaries.
 - No schema migration is required because summaries are derived from Story 10.1/10.2 source records.
-
-### Acceptance criteria
-
-- Users can view an explainable summary for a contributor/topic pair.
-- The summary shows underlying dimensions/counts and a plain-language level or status rather than only a magic number.
-- New/low-data contributors are represented honestly rather than negatively.
-- The UI explains what does and does not affect the summary.
-- Reputation remains informational and does not alter feed ranking in this sprint.
+- Profile summaries and threshold regression coverage were merged in PR #184.
 
 ## Story 10.4 — Discovery integration
 
+**Status:** In implementation.
+
 **Goal:** Make topic expertise useful for discovery without turning it into a popularity leaderboard.
 
-### Planned acceptance criteria
+### Current implementation slice
+
+- Adds a dedicated `/topic/<slug>` contributor-discovery page.
+- A contributor qualifies only through at least one non-removed post where that author explicitly selected the topic.
+- Hashtag-only posts remain discovery metadata but do not qualify an author for expertise discovery.
+- Contributor cards show the same plain-language level and underlying eligible-post, recognized-post, unique-recognizer, total-signal, and per-signal evidence used on profiles.
+- Topic names in profile reputation summaries link to the topic discovery page.
+- Ordering is deterministic and explicitly disclosed: contribution level first, then unique recognizers, recognized posts, constructive signals, and username for ties.
+- The ordering rule does not include followers, impressions, subscriptions, paid plans, or verification.
+- Existing topics with no qualifying contributors render an explanatory empty state; unknown topic slugs return 404.
+- No database migration is required because discovery is derived from existing topic/evidence records.
+
+### Acceptance criteria
 
 - Topic pages can surface contributors with demonstrated eligible contribution history.
 - Discovery explains the ordering/qualification rule.
