@@ -7,7 +7,6 @@ from urllib.parse import urlparse
 from flask import current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from twitclone.auth.verification import is_email_verified
 from twitclone.community import community_blueprint
 from twitclone.extensions import db
 from twitclone.fact_context_models import FactContextAssessment, FactContextSubmission
@@ -55,6 +54,10 @@ def _valid_source_url(value):
 
 
 def _eligible_context_reviewer(user):
+    # Import lazily so importing community routes does not initialize auth routes,
+    # which depend on COMMUNITY_GUIDELINES_VERSION from this module.
+    from twitclone.auth.verification import is_email_verified
+
     return (
         user.is_authenticated
         and is_email_verified(user)
