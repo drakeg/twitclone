@@ -28,6 +28,11 @@ def _associate_resource_topics(resource, raw_topics):
         db.session.add(ResourceTopic(resource_id=resource.id, topic_id=topic.id))
 
 
+def _can_publish_revision(resource, user):
+    """Keep publication authority explicit until broader collaboration is reviewed."""
+    return bool(user.is_authenticated and (user.id == resource.owner_id or user.is_admin))
+
+
 def index():
     resources = Resource.query.filter_by(is_removed=False).order_by(Resource.updated_at.desc()).all()
     return render_template("resources/index.html", resources=resources)
@@ -77,7 +82,53 @@ def resource_detail(resource_id):
     resource = db.get_or_404(Resource, resource_id)
     if resource.is_removed:
         abort(404)
-    return render_template("resources/detail.html", resource=resource)
+    return render_template(
+        "resources/detail.html",
+        resource=resource,
+        can_publish_revision=_can_publish_revision(resource, current_user),
+    )
+
+
+@login_required
+def revise_resource(resource_id):
+    resource = db.get_or_404(Resource, resource_id)
+    if resource.is_removed:
+        abort(404)
+    if not _can_publish_revision(resource, current_user):
+        abort(403)
+
+    current = resource.current_revision
+    if request.method == "GET":
+        return render_template("resources/revise.html", resource=resource, current_revision=current)
+
+    body = (request.form.get("body") or "").strip()
+    source_url = (request.form.get("source_url") or "").strip() or None
+    change_note = " ".join((request.form.get("change_note") or "").split())
+    if not body:
+        flash("Resource content is required.", "danger")
+        return render_template("resources/revise.html", resource=resource, current_revision=current), 400
+    if not change_note or len(change_note) > 300:
+        flash("Describe the change in 1 to 300 characters.", "danger")
+        return render_template("resources/revise.html", resource=resource, current_revision=current), 400
+    if not _valid_source_url(source_url):
+        flash("Source links must use http:// or https://.", "danger")
+        return render_template("resources/revise.html", resource=resource, current_revision=current), 400
+
+    next_number = max((revision.revision_number for revision in resource.revisions), default=0) + 1
+    revision = ResourceRevision(
+        resource_id=resource.id,
+        editor_id=current_user.id,
+        revision_number=next_number,
+        body=body,
+        source_url=source_url,
+        change_note=change_note,
+    )
+    db.session.add(revision)
+    db.session.flush()
+    resource.current_revision_id = revision.id
+    db.session.commit()
+    flash(f"Revision {next_number} published with attribution preserved.", "success")
+    return redirect(url_for("resources.resource_detail", resource_id=resource.id))
 
 
 @resources_blueprint.record_once
@@ -85,3 +136,4 @@ def register_resource_routes(state):
     state.app.add_url_rule("/", endpoint="index", view_func=index)
     state.app.add_url_rule("/new", endpoint="create_resource", view_func=create_resource, methods=["GET", "POST"])
     state.app.add_url_rule("/<int:resource_id>", endpoint="resource_detail", view_func=resource_detail)
+    state.app.add_url_rule("/<int:resource_id>/revise", endpoint="revise_resource", view_func=revise_resource, methods=["GET", "POST"])
