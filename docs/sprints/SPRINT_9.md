@@ -65,7 +65,7 @@ Ripple now has an evidence-backed community context workflow with admin review, 
 
 Give authors understandable controls for managing the state of their own discussion after publication without erasing prior participation.
 
-### Current slice
+### Implemented capabilities
 
 - Every post has an effective conversation state of Open / Unresolved unless the author changes it; no backfill is required for existing posts.
 - Authors can close a conversation to new quote responses and later reopen it.
@@ -73,13 +73,15 @@ Give authors understandable controls for managing the state of their own discuss
 - Closed state is enforced server-side so old or direct quote URLs cannot bypass the author's choice.
 - Authors can mark a conversation Answered / Resolved and later clear that status.
 - Open/closed and resolved status are visible on post detail.
+- Closed and resolved badges are also visible on the home timeline, search results, and hashtag results so users can see conversation status before opening a post.
+- Timeline cards suppress the Quote action for closed conversations while preserving repost, bookmark, fact-context, constructive-contribution, and moderation/reporting behavior.
 - Only the post author can change conversation health state.
-- Repost, bookmark, fact-context, constructive-contribution, and moderation/reporting behavior remain unaffected by closing a conversation.
+- The current profile page contains profile metadata/actions but does not render post cards, so no profile-card state treatment is required in this slice.
 
 ### Follow-on candidates
 
-- Show health state consistently in timeline cards, profiles, search, and hashtag results.
 - Decide whether resolved questions should optionally suppress response prompts without fully closing the conversation.
+- Consider showing conversation state in bookmarks or any future user-post/profile feed if those surfaces become part of the primary browsing flow.
 - Add an author-visible history of state changes if real-world use shows a need for a stronger audit trail.
 - Revisit threaded replies separately if Ripple adds a true reply model in a later sprint.
 
