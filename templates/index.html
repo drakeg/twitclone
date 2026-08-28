@@ -8,7 +8,7 @@
 <form class="composer" id="composer" method="POST" action="{{ url_for('tweet') }}" enctype="multipart/form-data">
     {% if current_user.is_authenticated %}<img class="composer-avatar" src="{{ gravatar(current_user.email, size=48) }}" alt="" width="48" height="48">{% else %}<span class="brand-mark composer-avatar" aria-hidden="true"><i class="fa-solid fa-bolt"></i></span>{% endif %}
     <div class="composer-main">
-        <label class="visually-hidden" for="content">Write a post</label><textarea id="content" name="content" rows="3" maxlength="144" required aria-describedby="content-limit conversation-intent-help" placeholder="Share something worth talking about…"></textarea>
+        <label class="visually-hidden" for="content">Write a post</label><textarea id="content" name="content" rows="3" maxlength="144" required aria-describedby="content-limit conversation-intent-help topic-help" placeholder="Share something worth talking about…"></textarea>
         <div class="composer-status"><span id="content-limit" role="status" aria-live="polite" aria-atomic="true">144 characters remaining</span></div>
         <div class="mt-2">
             <label class="form-label small fw-semibold mb-1" for="conversation_intent">What kind of conversation do you want?</label>
@@ -16,6 +16,11 @@
                 {% for key, option in conversation_intents.items() %}<option value="{{ key }}">{{ option.label }} — {{ option.short }}</option>{% endfor %}
             </select>
             <div id="conversation-intent-help" class="form-text">This sets expectations for replies; it does not block respectful participation.</div>
+        </div>
+        <div class="mt-2">
+            <label class="form-label small fw-semibold mb-1" for="topics">Topics <span class="text-muted fw-normal">(optional)</span></label>
+            <input class="form-control form-control-sm" id="topics" name="topics" type="text" maxlength="240" aria-describedby="topic-help" placeholder="RV travel, AWS, fitness">
+            <div id="topic-help" class="form-text">Add up to five comma-separated topics. Hashtags in the post can also create topic associations, but hashtags alone do not establish expertise.</div>
         </div>
         <input class="d-none" type="file" id="image" name="image" accept="image/*"><div id="imagePreview" role="status" aria-live="polite" aria-atomic="true"></div>
         <div id="scheduleOptions" class="schedule-panel d-none"><div><label for="scheduled_date" class="form-label">Date</label><input type="date" class="form-control" id="scheduled_date" name="scheduled_date"></div><div><label for="scheduled_time" class="form-label">Time</label><input type="time" class="form-control" id="scheduled_time" name="scheduled_time"></div>{% if current_user.is_authenticated %}<div class="small text-muted mt-2">{% if current_user.has_entitlement('ripple_plus') %}<i class="fa-solid fa-circle-check text-primary" aria-hidden="true"></i> Ripple+ scheduling: up to 90 days ahead.{% else %}Free accounts can schedule up to 7 days ahead. <a href="{{ url_for('payments.billing_home') }}">Ripple+ extends this to 90 days.</a>{% endif %}</div>{% endif %}</div>
@@ -34,6 +39,7 @@
         <div class="post-meta"><a class="post-author" href="{{ url_for('profile', username=post['user'].username) }}">{{ post['user'].username }}</a><span class="post-handle">@{{ post['user'].username }}</span><span class="post-time">· {{ post.timestamp.strftime('%b %d') }}</span></div>
         {% if post.conversation_intent %}<div class="small mb-2"><span class="badge rounded-pill text-bg-light border">{{ post.conversation_intent.label }}</span> <span class="text-muted">{{ post.conversation_intent.short }}</span></div>{% endif %}
         {% if post.conversation_state and (post.conversation_state.is_closed or post.conversation_state.is_resolved) %}<div class="d-flex flex-wrap gap-1 mb-2" aria-label="Conversation status">{% if post.conversation_state.is_closed %}<span class="badge text-bg-secondary"><i class="fa-solid fa-lock me-1" aria-hidden="true"></i>Conversation closed</span>{% endif %}{% if post.conversation_state.is_resolved %}<span class="badge text-bg-success"><i class="fa-solid fa-circle-check me-1" aria-hidden="true"></i>Answered / resolved</span>{% endif %}</div>{% endif %}
+        {% if post.topics %}<div class="d-flex flex-wrap gap-1 mb-2" aria-label="Post topics">{% for topic in post.topics %}<span class="badge rounded-pill text-bg-light border">{{ topic.name }}</span>{% endfor %}</div>{% endif %}
         <p class="post-text">{{ post.content | make_clickable | safe }}</p>
         {% if post.type == 'quote' %}<div class="quote-context"><strong>@{{ post.original_user.username }}</strong><p class="mb-0 mt-1">{{ post.original_tweet.content | make_clickable | safe }}</p></div>{% endif %}
         {% if post.type in ['tweet', 'retweet'] and post.image %}<img src="{{ url_for('uploaded_file', filename=post.image) }}" class="tweet-image" alt="Image attached to post">{% endif %}

@@ -1,6 +1,6 @@
 # Sprint 10 — Topic Reputation and Expertise
 
-**Status:** Planned; implementation has not started.
+**Status:** In implementation.
 
 ## Goal
 
@@ -23,9 +23,24 @@ Follower count and generic engagement are weak proxies for whether someone is co
 
 ## Story 10.1 — Explicit topic foundation
 
+**Status:** In implementation.
+
 **Goal:** Establish the topic vocabulary and association rules on which reputation can safely depend.
 
-### Planned acceptance criteria
+### Current implementation slice
+
+- Adds normalized `Topic` records with duplicate-safe slugs.
+- Adds `TweetTopic` associations without altering the mature `Tweet` table.
+- Records whether an association came from an explicit composer topic or deterministic hashtag text.
+- Lets authors add up to five comma-separated explicit topics in the post composer.
+- Extracts deterministic hashtag topic candidates from public post text without using AI or sensitive-trait inference.
+- Gives explicit composer choices precedence when the same normalized topic also appears as a hashtag.
+- Existing posts require no backfill and simply have no topic associations until new topic-aware activity exists.
+- Removed posts do not expose public topic associations.
+- Timeline cards display associated topics for normal posts and reposts; Quote cards do not falsely inherit the original post's topics as if they belonged to the quoter.
+- Adds migration `20260828_0023_topic_foundation.py` and focused tests for normalization, duplicate handling, explicit-vs-hashtag provenance, legacy posts, removed posts, and timeline presentation.
+
+### Acceptance criteria
 
 - Ripple has an explicit topic model suitable for associating posts and future resources with a topic.
 - Topic association comes from explicit content/user actions or deterministic public text such as hashtags; it does not come from sensitive-trait inference.
@@ -33,6 +48,11 @@ Follower count and generic engagement are weak proxies for whether someone is co
 - Existing hashtags can inform topic discovery without silently converting every hashtag into an authoritative reputation category.
 - Removed/private/ineligible content does not create public reputation evidence.
 - Tests cover normalization, duplicate prevention, authorization, and legacy-post behavior.
+
+### Follow-on before Story 10.1 closes
+
+- Validate the new schema and focused regression suite through the normal Docker/CI path.
+- Decide whether an explicit topic-management/edit flow is needed immediately or can wait for later topic discovery work; this slice intentionally avoids adding mutable administrator-entered reputation data.
 
 ## Story 10.2 — Topic contribution evidence
 

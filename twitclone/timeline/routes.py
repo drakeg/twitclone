@@ -21,6 +21,7 @@ from twitclone.timeline import timeline_blueprint
 from twitclone.timeline.media import store_image_upload
 from twitclone.timeline.service import build_timeline_posts, paginate_timeline_posts
 from twitclone.timeline.validation import validate_post_content
+from twitclone.topic_models import associate_topics, public_topic_associations
 from twitclone.utils import get_newest_users, get_trending_hashtags
 
 CONTRIBUTION_SIGNALS = {
@@ -78,6 +79,7 @@ def post_detail(tweet_id):
         tweet=tweet,
         conversation_intent=_tweet_conversation_intent(tweet),
         contribution_signals=_tweet_contribution_state(tweet),
+        topic_associations=public_topic_associations(tweet),
     )
 
 
@@ -129,6 +131,7 @@ def tweet():
         new_tweet = Tweet(content=content, user_id=current_user.id, image=image_filename, original_image=original_image_filename, scheduled_at=scheduled_at)
         db.session.add(new_tweet); db.session.flush()
         db.session.add(TweetConversationIntent(tweet_id=new_tweet.id, intent=intent))
+        associate_topics(new_tweet, explicit_raw=request.form.get("topics"), content=content)
         if scheduled_at is None: add_mention_notifications(content=content, author=current_user, tweet_id=new_tweet.id)
         db.session.commit(); flash("Your tweet has been scheduled!" if scheduled_at else "Your tweet has been posted!", "success")
     return redirect(url_for("index"))
