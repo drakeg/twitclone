@@ -25,6 +25,19 @@
                 <form method="POST" action="{{ url_for('community.update_conversation_state', tweet_id=tweet.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% if conversation_state and conversation_state.is_resolved %}<button class="btn btn-sm btn-outline-secondary" type="submit" name="action" value="unresolve">Clear resolved status</button>{% else %}<button class="btn btn-sm btn-outline-primary" type="submit" name="action" value="resolve">Mark answered / resolved</button>{% endif %}</form>
             </div>
         </section>
+        {% set explicit_topics = topic_associations | selectattr('source', 'equalto', 'explicit') | map(attribute='topic.name') | join(', ') %}
+        <section class="border rounded p-3 mt-3" aria-labelledby="topic-controls-heading">
+            <span class="auth-kicker">Reputation integrity</span>
+            <h2 class="h6" id="topic-controls-heading">Correct post topics</h2>
+            <p class="form-text mt-0">Only explicit topics create topic-contribution evidence. Correcting them recalculates topic reputation from source activity; it does not edit a reputation score.</p>
+            <form method="POST" action="{{ url_for('update_post_topics', tweet_id=tweet.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <label class="form-label" for="post-topics">Explicit topics</label>
+                <input class="form-control" id="post-topics" name="topics" value="{{ explicit_topics }}" maxlength="420" aria-describedby="post-topics-help">
+                <div class="form-text" id="post-topics-help">Comma-separated, up to five. Hashtags in the post text remain discovery metadata unless explicitly selected here.</div>
+                <button class="btn btn-sm btn-outline-primary mt-2" type="submit">Update topics</button>
+            </form>
+        </section>
         {% endif %}
 
         {% set approved_context = tweet.fact_context_submissions | selectattr('is_public') | list %}
