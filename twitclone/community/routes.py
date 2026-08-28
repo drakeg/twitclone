@@ -1,14 +1,16 @@
 """Community standards acknowledgement, reporting, and fact-context routes."""
 
+from collections import Counter
 from datetime import UTC, datetime
 from urllib.parse import urlparse
 
 from flask import current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
+from twitclone.auth.verification import is_email_verified
 from twitclone.community import community_blueprint
 from twitclone.extensions import db
-from twitclone.fact_context_models import FactContextSubmission
+from twitclone.fact_context_models import FactContextAssessment, FactContextSubmission
 from twitclone.models import Notification, Poll, PostReport, Quote, Tweet
 
 COMMUNITY_GUIDELINES_VERSION = "2026-08-18"
@@ -22,6 +24,15 @@ REPORT_CATEGORIES = {
     "spam": "Spam, scams, or manipulation",
     "other": "Other community standards concern",
 }
+FACT_CONTEXT_ASSESSMENTS = {
+    "context": "Additional context",
+    "disputed": "Disputed claim",
+    "outdated": "Outdated information",
+    "correction": "Supported correction",
+    "insufficient": "Not enough evidence",
+}
+FACT_CONTEXT_MIN_REVIEWS = 3
+FACT_CONTEXT_MIN_AGREEMENT = 2
 
 
 def _utcnow():
@@ -41,6 +52,51 @@ def _valid_source_url(value):
     except ValueError:
         return False
     return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def _eligible_context_reviewer(user):
+    return (
+        user.is_authenticated
+        and is_email_verified(user)
+        and user.community_guidelines_version == COMMUNITY_GUIDELINES_VERSION
+    )
+
+
+def _apply_context_consensus(submission):
+    assessments = list(submission.community_assessments)
+    if len(assessments) < FACT_CONTEXT_MIN_REVIEWS:
+        return False
+    counts = Counter(item.assessment for item in assessments)
+    publishable = {
+        key: count for key, count in counts.items()
+        if key != "insufficient" and count >= FACT_CONTEXT_MIN_AGREEMENT
+    }
+    if not publishable:
+        return False
+    outcome, votes = max(publishable.items(), key=lambda item: item[1])
+    if votes * 3 < len(assessments) * 2:
+        return False
+
+    submission.status = "approved"
+    submission.outcome = outcome
+    submission.reviewed_at = _utcnow()
+    submission.reviewed_by_id = None
+    submission.review_notes = (
+        f"Published by community consensus: {votes} of {len(assessments)} eligible reviewers "
+        f"selected {FACT_CONTEXT_ASSESSMENTS[outcome]}."
+    )
+    db.session.add(Notification(
+        user_id=submission.submitter_id,
+        message=f"Your community context was approved by reviewer consensus as {FACT_CONTEXT_ASSESSMENTS[outcome].lower()}.",
+        tweet_id=submission.tweet_id,
+    ))
+    if submission.tweet.user_id != submission.submitter_id:
+        db.session.add(Notification(
+            user_id=submission.tweet.user_id,
+            message="Community-reviewed context has been added to one of your posts.",
+            tweet_id=submission.tweet_id,
+        ))
+    return True
 
 
 @community_blueprint.before_app_request
@@ -138,6 +194,76 @@ def add_fact_context(tweet_id):
     return render_template("fact_context_submit.html", tweet=tweet)
 
 
+@community_blueprint.route("/community-context")
+@login_required
+def context_review_queue():
+    if not _eligible_context_reviewer(current_user):
+        flash("Community context reviewers need a verified email and current Community Standards acceptance.", "warning")
+        return redirect(url_for("index"))
+    submissions = FactContextSubmission.query.filter_by(status="pending").order_by(
+        FactContextSubmission.submitted_at.asc()
+    ).all()
+    eligible = [
+        item for item in submissions
+        if item.submitter_id != current_user.id
+        and item.tweet.user_id != current_user.id
+        and not any(review.reviewer_id == current_user.id for review in item.community_assessments)
+    ]
+    return render_template(
+        "community_fact_context_review.html",
+        submissions=eligible,
+        assessments=FACT_CONTEXT_ASSESSMENTS,
+        min_reviews=FACT_CONTEXT_MIN_REVIEWS,
+    )
+
+
+@community_blueprint.route("/community-context/<int:submission_id>/assess", methods=["POST"])
+@login_required
+def assess_fact_context(submission_id):
+    if not _eligible_context_reviewer(current_user):
+        flash("You are not currently eligible to review community context.", "warning")
+        return redirect(url_for("index"))
+    submission = db.get_or_404(FactContextSubmission, submission_id)
+    if submission.status != "pending":
+        flash("That context submission is no longer awaiting review.", "info")
+        return redirect(url_for("community.context_review_queue"))
+    if current_user.id in {submission.submitter_id, submission.tweet.user_id}:
+        flash("Submitters and post authors cannot review this context item.", "warning")
+        return redirect(url_for("community.context_review_queue"))
+    if FactContextAssessment.query.filter_by(
+        submission_id=submission.id,
+        reviewer_id=current_user.id,
+    ).first():
+        flash("You have already reviewed this context item.", "info")
+        return redirect(url_for("community.context_review_queue"))
+
+    assessment = (request.form.get("assessment") or "").strip().lower()
+    note = (request.form.get("note") or "").strip() or None
+    if assessment not in FACT_CONTEXT_ASSESSMENTS:
+        flash("Choose a valid assessment.", "danger")
+        return redirect(url_for("community.context_review_queue"))
+    if note and len(note) > 500:
+        flash("Keep reviewer notes to 500 characters or fewer.", "danger")
+        return redirect(url_for("community.context_review_queue"))
+
+    db.session.add(FactContextAssessment(
+        submission_id=submission.id,
+        reviewer_id=current_user.id,
+        assessment=assessment,
+        note=note,
+    ))
+    db.session.flush()
+    published = _apply_context_consensus(submission)
+    db.session.commit()
+    flash(
+        "Your independent assessment was recorded. The context reached community consensus and is now published."
+        if published else
+        "Your independent assessment was recorded. The item remains pending until consensus or admin review.",
+        "success",
+    )
+    return redirect(url_for("community.context_review_queue"))
+
+
 @community_blueprint.route("/report/<content_type>/<int:content_id>", methods=["GET", "POST"])
 @login_required
 def report_content(content_type, content_id):
@@ -196,4 +322,9 @@ def report_content(content_type, content_id):
     )
 
 
-__all__ = ["COMMUNITY_GUIDELINES_VERSION", "REPORT_CATEGORIES"]
+__all__ = [
+    "COMMUNITY_GUIDELINES_VERSION",
+    "FACT_CONTEXT_ASSESSMENTS",
+    "FACT_CONTEXT_MIN_REVIEWS",
+    "REPORT_CATEGORIES",
+]
