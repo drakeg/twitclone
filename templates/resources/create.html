@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Create resource · Ripple{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Create a resource</h1><small>Publish a durable guide or reference with revision history from the start.</small></div><a class="btn btn-sm btn-secondary" href="{{ url_for('resources.index') }}">Back to resources</a></header>
+<section class="surface-card">
+<form method="POST" class="vstack gap-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div><label class="form-label" for="title">Title</label><input class="form-control" id="title" name="title" maxlength="160" required value="{{ request.form.get('title','') }}"></div>
+    <div><label class="form-label" for="body">Resource content</label><textarea class="form-control" id="body" name="body" rows="12" required>{{ request.form.get('body','') }}</textarea><div class="form-text">This becomes revision 1. Later revisions will remain attributable rather than overwriting history.</div></div>
+    <div><label class="form-label" for="source_url">Supporting source URL <span class="text-muted">(optional)</span></label><input class="form-control" id="source_url" name="source_url" type="url" placeholder="https://example.com/reference" value="{{ request.form.get('source_url','') }}"></div>
+    <div><label class="form-label" for="topics">Topics <span class="text-muted">(optional)</span></label><input class="form-control" id="topics" name="topics" placeholder="AWS, Linux, RV solar" value="{{ request.form.get('topics','') }}"><div class="form-text">Up to five explicit topics. These reuse Ripple's normalized topic vocabulary.</div></div>
+    <div><button class="btn btn-primary" type="submit">Publish resource</button></div>
+</form>
+</section>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Resources · Ripple{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Collaborative resources</h1><small>Durable guides and references that can evolve over time.</small></div>{% if current_user.is_authenticated %}<a class="btn btn-primary" href="{{ url_for('resources.create_resource') }}">Create resource</a>{% endif %}</header>
+<section class="vstack gap-3">
+{% for resource in resources %}
+<article class="surface-card">
+    <div class="d-flex justify-content-between gap-3 flex-wrap"><div><span class="auth-kicker">Resource</span><h2 class="h5 mb-1"><a href="{{ url_for('resources.resource_detail', resource_id=resource.id) }}">{{ resource.title }}</a></h2><div class="form-text">Started by <a href="{{ url_for('profile', username=resource.owner.username) }}">@{{ resource.owner.username }}</a> · {{ resource.revisions|length }} revision{% if resource.revisions|length != 1 %}s{% endif %}</div></div></div>
+    {% if resource.current_revision %}<p class="mt-3 mb-2">{{ resource.current_revision.body[:320] }}{% if resource.current_revision.body|length > 320 %}…{% endif %}</p>{% endif %}
+    {% if resource.topic_associations %}<div class="d-flex flex-wrap gap-2">{% for assoc in resource.topic_associations %}<span class="badge rounded-pill text-bg-light border">{{ assoc.topic.name }}</span>{% endfor %}</div>{% endif %}
+</article>
+{% else %}
+<div class="surface-card"><h2 class="h5">No resources yet</h2><p class="mb-0 text-muted">The resource library will grow as people publish durable guides and references.</p></div>
+{% endfor %}
+</section>
+{% endblock %}
