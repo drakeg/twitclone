@@ -34,44 +34,47 @@ Some useful contributions should be improved over time instead of repeatedly rep
 
 ## Story 11.2 — Attributable collaborative revisions
 
-**Status:** In implementation.
+**Status:** Completed.
 
-**Goal:** Allow controlled improvements to a resource while preserving every prior version and the identity of each editor.
-
-### Current implementation slice
-
-- Resource owners can publish a new revision from resource detail.
-- Administrators can publish a corrective revision when moderation/maintenance requires it; the administrator is recorded as the editor rather than impersonating the owner.
-- Other authenticated users receive `403`; broad community editing is not enabled before a review/proposal model exists.
-- Publishing appends the next revision number and moves `current_revision_id` to that revision.
-- Earlier revisions remain unchanged and continue to display their original editor attribution.
-- Every revision requires a concise change note and may provide a replacement supporting HTTP/HTTPS source.
+- Resource owners and administrators can publish append-only revisions.
+- The account that publishes a revision is always recorded as its editor.
+- Unrelated users cannot directly edit a resource.
+- Every revision requires a retained change note and receives consistent source URL validation.
 - Removed resources cannot receive new revisions.
-- The resource page exposes revision publication only to currently authorized accounts.
-- No schema migration is required because Story 11.1 established the revision model.
-
-### Acceptance criteria
-
-- A revision never overwrites or deletes prior revision content.
-- Current content advances only after a valid new revision is persisted.
-- Editor attribution reflects the account that actually published the revision.
-- Owners and administrators have explicit publication authority; unrelated users do not.
-- A change note is required and retained with history.
-- Source URL validation is applied consistently to revisions.
-- Removed resources cannot be revised.
-- Tests cover owner publication, authorization, administrator attribution, validation, history preservation, and removed-resource behavior.
-
-### Permission decision
-
-Story 11.2 deliberately uses a conservative publication boundary: owner or administrator. Topic reputation, follower count, verification, and paid membership do not grant edit authority. A broader community contribution workflow requires an explicit proposal/review path rather than direct write access and can be layered onto the append-only revision model in a later Story 11 slice.
+- No reputation, follower, verification, or paid entitlement grants edit authority.
+- Story 11.2 merged in PR #189.
 
 ## Story 11.3 — Revision review and comparison
 
-**Status:** Planned.
+**Status:** In implementation.
 
-- Make previous revisions inspectable.
-- Provide an understandable current-vs-previous comparison or change summary.
-- Preserve rejected/superseded history without presenting it as current guidance.
+**Goal:** Let readers inspect exactly what any historical revision said and understand what changed without confusing superseded guidance with the current resource.
+
+### Current implementation slice
+
+- Every revision in resource history links to a stable inspection route: `/resources/<resource_id>/revisions/<revision_number>`.
+- Revision pages show the exact historical body, editor, timestamp, change note, and source that belonged to that revision.
+- Current and historical revisions are labeled explicitly.
+- Each revision after revision 1 includes a deterministic line-level comparison against its immediately preceding revision.
+- Added and removed lines are labeled in plain language rather than silently replacing historical content.
+- Revision 1 clearly states that no earlier comparison exists.
+- Previous/next revision navigation makes the history browsable.
+- Unknown revision numbers and revisions belonging to removed resources return 404.
+- No migration is required; comparison is derived from immutable revision history.
+
+### Acceptance criteria
+
+- Historical revision content remains independently inspectable.
+- The UI distinguishes current guidance from superseded history.
+- Comparison uses persisted revision bodies and does not mutate either revision.
+- Added/removed body lines are understandable without an opaque score or generated interpretation.
+- Revision-specific supporting sources remain visible.
+- Removed resources do not expose historical content publicly.
+- Tests cover history links, exact historical content, current/historical labels, comparison output, revision 1 behavior, missing revisions, and removed resources.
+
+### Comparison decision
+
+Story 11.3 intentionally starts with deterministic text comparison rather than AI-generated summaries. This keeps the historical record reproducible, inexpensive, and auditable. More sophisticated visual diff presentation can be added later without changing the revision model.
 
 ## Story 11.4 — Resource discovery
 
