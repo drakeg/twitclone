@@ -164,14 +164,21 @@ def revise_resource(resource_id):
     return redirect(url_for("resources.resource_detail", resource_id=resource.id))
 
 
-@resources_blueprint.record_once
-def register_resource_routes(state):
-    state.app.add_url_rule("/", endpoint="index", view_func=index)
-    state.app.add_url_rule("/new", endpoint="create_resource", view_func=create_resource, methods=["GET", "POST"])
-    state.app.add_url_rule("/<int:resource_id>", endpoint="resource_detail", view_func=resource_detail)
-    state.app.add_url_rule(
-        "/<int:resource_id>/revisions/<int:revision_number>",
-        endpoint="resource_revision",
-        view_func=resource_revision,
-    )
-    state.app.add_url_rule("/<int:resource_id>/revise", endpoint="revise_resource", view_func=revise_resource, methods=["GET", "POST"])
+resources_blueprint.add_url_rule("/", endpoint="index", view_func=index)
+resources_blueprint.add_url_rule(
+    "/new", endpoint="create_resource", view_func=create_resource, methods=["GET", "POST"]
+)
+resources_blueprint.add_url_rule(
+    "/<int:resource_id>", endpoint="resource_detail", view_func=resource_detail
+)
+resources_blueprint.add_url_rule(
+    "/<int:resource_id>/revisions/<int:revision_number>",
+    endpoint="resource_revision",
+    view_func=resource_revision,
+)
+resources_blueprint.add_url_rule(
+    "/<int:resource_id>/revise",
+    endpoint="revise_resource",
+    view_func=revise_resource,
+    methods=["GET", "POST"],
+)
