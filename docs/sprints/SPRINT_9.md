@@ -52,7 +52,7 @@ Add a visible Check facts / Add context action to posts. A submission is a reque
 - Submitters and post authors receive review notifications.
 - A single submitter cannot unilaterally publish a false-information label.
 
-### Community consensus — in implementation
+### Community consensus — completed
 
 - Community reviewers must have a verified email and have accepted the current Community Standards.
 - Submitters and original post authors cannot review the submission.
@@ -63,9 +63,18 @@ Add a visible Check facts / Add context action to posts. A submission is a reque
 - Consensus publication stores an auditable summary and notifies the submitter and original post author.
 - Admin review remains available for unresolved cases and future appeals.
 
+### Reviewer quality — in implementation
+
+- Reviewer reputation is derived from assessment history rather than stored as a mutable score.
+- The record tracks total assessments, resolved assessments, assessments aligned with the eventual published outcome, and outcome-agreement rate.
+- Only approved submissions with an explicit final outcome count toward agreement metrics; pending work cannot inflate reputation.
+- Reviewers see their own transparent record and a plain-language level such as New reviewer, Developing reviewer, Established reviewer, or Strong review record.
+- Reputation is not based on follower count, paid status, popularity, or inferred political viewpoint.
+- Reputation is informational in this slice and does not silently give a reviewer extra voting weight.
+
 ### Follow-on work
 
-- Add reviewer reputation/quality signals based on review history rather than follower count.
+- Use demonstrated reviewer history for carefully designed anti-brigading safeguards only after the reputation metrics have real-world history and are explainable to users.
 - Add source-quality and duplicate/context-merging controls based on actual usage.
 - Add an appeal/correction path for context that was previously published.
 - Consider notifying prior reposters/interactors when meaningful accepted context is attached later.

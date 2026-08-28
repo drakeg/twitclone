@@ -13,6 +13,25 @@
     <p class="text-muted mb-0">At least {{ min_reviews }} independent reviews are required, and a publishable outcome must receive at least two-thirds agreement before context is automatically published. Admin review remains available when consensus is not reached.</p>
 </section>
 
+{% if current_reviewer_reputation %}
+<section class="surface-card" aria-labelledby="reviewer-record-heading">
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+        <div>
+            <span class="auth-kicker">Your reviewer record</span>
+            <h2 class="h5 mb-1" id="reviewer-record-heading">{{ current_reviewer_reputation.label }}</h2>
+            <p class="text-muted mb-0">{{ current_reviewer_reputation.description }}</p>
+        </div>
+        <span class="badge rounded-pill text-bg-light border">{{ current_reviewer_reputation.total_assessments }} total review{{ '' if current_reviewer_reputation.total_assessments == 1 else 's' }}</span>
+    </div>
+    <div class="row g-2 mt-2" aria-label="Reviewer quality metrics">
+        <div class="col-6 col-md-4"><div class="border rounded p-3 h-100"><small class="text-muted d-block">Resolved</small><strong>{{ current_reviewer_reputation.resolved_assessments }}</strong></div></div>
+        <div class="col-6 col-md-4"><div class="border rounded p-3 h-100"><small class="text-muted d-block">Aligned</small><strong>{{ current_reviewer_reputation.aligned_assessments }}</strong></div></div>
+        <div class="col-12 col-md-4"><div class="border rounded p-3 h-100"><small class="text-muted d-block">Outcome agreement</small><strong>{% if current_reviewer_reputation.agreement_rate is not none %}{{ current_reviewer_reputation.agreement_rate }}%{% else %}Not enough resolved reviews{% endif %}</strong></div></div>
+    </div>
+    <p class="form-text mt-2 mb-0">This record is derived from resolved community-context assessments. It is not based on followers, paid status, popularity, or political viewpoint, and it does not currently give your assessment extra voting weight.</p>
+</section>
+{% endif %}
+
 {% for item in submissions %}
 <article class="surface-card" id="context-{{ item.id }}">
     <div class="d-flex justify-content-between gap-3 flex-wrap mb-2">
