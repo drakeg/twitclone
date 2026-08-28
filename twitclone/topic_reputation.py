@@ -1,5 +1,6 @@
 """Explainable topic reputation summaries for Sprint 10 Story 10.3."""
 
+from twitclone.models import Tweet
 from twitclone.topic_evidence import topic_contribution_evidence
 from twitclone.topic_models import Topic, TweetTopic
 
@@ -47,9 +48,12 @@ def topic_reputation_summaries(user_id):
     """Return summaries for topics the user explicitly associated with eligible posts."""
     topics = (
         Topic.query.join(TweetTopic, TweetTopic.topic_id == Topic.id)
-        .filter(TweetTopic.source == "explicit")
-        .join(TweetTopic.tweet)
-        .filter_by(user_id=user_id, is_removed=False)
+        .join(Tweet, Tweet.id == TweetTopic.tweet_id)
+        .filter(
+            TweetTopic.source == "explicit",
+            Tweet.user_id == user_id,
+            Tweet.is_removed.is_(False),
+        )
         .distinct()
         .order_by(Topic.name.asc())
         .all()
