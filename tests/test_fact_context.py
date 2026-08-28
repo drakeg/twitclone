@@ -2,7 +2,7 @@
 
 from twitclone.community.routes import COMMUNITY_GUIDELINES_VERSION
 from twitclone.extensions import db
-from twitclone.fact_context_models import FactContextSubmission
+from twitclone.fact_context_models import FactContextAssessment, FactContextSubmission
 from twitclone.models import Notification, Tweet, User
 
 
@@ -128,4 +128,67 @@ def test_admin_cannot_approve_without_outcome(client, app):
     response = client.post(f"/admin/fact-context/{submission_id}", data={"action": "approve", "outcome": ""}, follow_redirects=True)
     assert b"Choose an accepted context outcome" in response.data
     with app.app_context():
+        assert db.session.get(FactContextSubmission, submission_id).status == "pending"
+
+
+def test_three_independent_reviews_can_publish_by_two_thirds_consensus(client, app):
+    author_id = _user(app, "author")
+    submitter_id = _user(app, "checker")
+    reviewer_ids = [_user(app, f"reviewer{i}") for i in range(1, 4)]
+    tweet_id = _tweet(app, author_id)
+    with app.app_context():
+        submission = FactContextSubmission(
+            tweet_id=tweet_id,
+            submitter_id=submitter_id,
+            claim="Claim",
+            context="Useful evidence-backed context.",
+            source_url="https://example.com/source",
+        )
+        db.session.add(submission); db.session.commit(); submission_id = submission.id
+
+    for reviewer_id, assessment in zip(reviewer_ids, ["context", "context", "insufficient"]):
+        _login(client, reviewer_id)
+        response = client.post(
+            f"/community-context/{submission_id}/assess",
+            data={"assessment": assessment, "note": "Independent review."},
+        )
+        assert response.status_code == 302
+
+    with app.app_context():
+        submission = db.session.get(FactContextSubmission, submission_id)
+        assert submission.status == "approved"
+        assert submission.outcome == "context"
+        assert submission.reviewed_by_id is None
+        assert FactContextAssessment.query.filter_by(submission_id=submission_id).count() == 3
+        assert "community consensus" in submission.review_notes
+
+
+def test_submitter_author_and_duplicate_reviewer_cannot_game_consensus(client, app):
+    author_id = _user(app, "author")
+    submitter_id = _user(app, "checker")
+    reviewer_id = _user(app, "reviewer")
+    tweet_id = _tweet(app, author_id)
+    with app.app_context():
+        submission = FactContextSubmission(tweet_id=tweet_id, submitter_id=submitter_id, claim="Claim", context="Context", source_url="https://example.com")
+        db.session.add(submission); db.session.commit(); submission_id = submission.id
+
+    for blocked_id in (submitter_id, author_id):
+        _login(client, blocked_id)
+        response = client.post(
+            f"/community-context/{submission_id}/assess",
+            data={"assessment": "correction"},
+            follow_redirects=True,
+        )
+        assert b"cannot review this context item" in response.data
+
+    _login(client, reviewer_id)
+    client.post(f"/community-context/{submission_id}/assess", data={"assessment": "correction"})
+    duplicate = client.post(
+        f"/community-context/{submission_id}/assess",
+        data={"assessment": "correction"},
+        follow_redirects=True,
+    )
+    assert b"already reviewed this context item" in duplicate.data
+    with app.app_context():
+        assert FactContextAssessment.query.filter_by(submission_id=submission_id).count() == 1
         assert db.session.get(FactContextSubmission, submission_id).status == "pending"
