@@ -1,5 +1,6 @@
 """Collaborative resource creation and browsing routes."""
 
+from difflib import ndiff
 from urllib.parse import urlparse
 
 from flask import abort, flash, redirect, render_template, request, url_for
@@ -31,6 +32,18 @@ def _associate_resource_topics(resource, raw_topics):
 def _can_publish_revision(resource, user):
     """Keep publication authority explicit until broader collaboration is reviewed."""
     return bool(user.is_authenticated and (user.id == resource.owner_id or user.is_admin))
+
+
+def _revision_changes(previous, revision):
+    if previous is None:
+        return []
+    changes = []
+    for line in ndiff(previous.body.splitlines(), revision.body.splitlines()):
+        if line.startswith("- "):
+            changes.append(("removed", line[2:]))
+        elif line.startswith("+ "):
+            changes.append(("added", line[2:]))
+    return changes
 
 
 def index():
@@ -89,6 +102,26 @@ def resource_detail(resource_id):
     )
 
 
+def resource_revision(resource_id, revision_number):
+    resource = db.get_or_404(Resource, resource_id)
+    if resource.is_removed:
+        abort(404)
+    revision = ResourceRevision.query.filter_by(
+        resource_id=resource.id, revision_number=revision_number
+    ).first_or_404()
+    previous = ResourceRevision.query.filter_by(
+        resource_id=resource.id, revision_number=revision_number - 1
+    ).first()
+    return render_template(
+        "resources/revision.html",
+        resource=resource,
+        revision=revision,
+        previous_revision=previous,
+        changes=_revision_changes(previous, revision),
+        is_current=resource.current_revision_id == revision.id,
+    )
+
+
 @login_required
 def revise_resource(resource_id):
     resource = db.get_or_404(Resource, resource_id)
@@ -136,4 +169,9 @@ def register_resource_routes(state):
     state.app.add_url_rule("/", endpoint="index", view_func=index)
     state.app.add_url_rule("/new", endpoint="create_resource", view_func=create_resource, methods=["GET", "POST"])
     state.app.add_url_rule("/<int:resource_id>", endpoint="resource_detail", view_func=resource_detail)
+    state.app.add_url_rule(
+        "/<int:resource_id>/revisions/<int:revision_number>",
+        endpoint="resource_revision",
+        view_func=resource_revision,
+    )
     state.app.add_url_rule("/<int:resource_id>/revise", endpoint="revise_resource", view_func=revise_resource, methods=["GET", "POST"])
