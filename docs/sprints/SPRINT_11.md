@@ -23,39 +23,47 @@ Some useful contributions should be improved over time instead of repeatedly rep
 
 ## Story 11.1 — Durable resource foundation
 
-**Status:** In implementation.
+**Status:** Completed.
 
-**Goal:** Establish a separate resource content type with attribution, initial revision history, sources, and explicit topic associations.
-
-### Current implementation slice
-
-- Adds a dedicated `/resources/` library separate from ordinary posts.
-- Authenticated users can publish a resource with a title, body, optional supporting source URL, and up to five explicit topics.
-- A new resource immediately creates revision 1 attributed to the author.
-- The current resource view points to revision history rather than overwriting the original revision.
-- Resource detail shows the current revision, source link, topics, author, and revision-history attribution.
-- Removed resources are excluded from the library and return 404 from public detail.
-- Topics reuse Sprint 10 normalization and duplicate handling.
-- Migration `20260828_0024_resource_foundation.py` creates resources, revisions, and topic associations.
-
-### Acceptance criteria
-
-- Resources are stored separately from timeline posts.
-- Creation requires authentication.
-- A resource has a title and durable body content.
-- Revision 1 is immutable history attributed to its author.
-- Optional source URLs require HTTP or HTTPS.
-- Explicit topics are normalized and duplicate-safe.
-- Removed resources are not publicly listed or viewable.
-- Tests cover creation, attribution, topic association, source validation, authorization, and empty-state behavior.
+- A dedicated `/resources/` library stores durable resources separately from ordinary posts.
+- Authenticated users can publish a title, body, optional HTTP/HTTPS supporting source, and up to five normalized explicit topics.
+- Publication creates immutable revision 1 with author attribution.
+- The resource points to its current revision while preserving historical revisions.
+- Removed resources are excluded from public listing/detail.
+- Migration `20260828_0024_resource_foundation.py` and focused regression coverage merged in PR #188.
 
 ## Story 11.2 — Attributable collaborative revisions
 
-**Status:** Planned.
+**Status:** In implementation.
 
-- Add a controlled revision flow that appends a new revision rather than replacing history.
-- Keep editor attribution and a concise change note.
-- Define who may propose or publish revisions before adding broader collaboration.
+**Goal:** Allow controlled improvements to a resource while preserving every prior version and the identity of each editor.
+
+### Current implementation slice
+
+- Resource owners can publish a new revision from resource detail.
+- Administrators can publish a corrective revision when moderation/maintenance requires it; the administrator is recorded as the editor rather than impersonating the owner.
+- Other authenticated users receive `403`; broad community editing is not enabled before a review/proposal model exists.
+- Publishing appends the next revision number and moves `current_revision_id` to that revision.
+- Earlier revisions remain unchanged and continue to display their original editor attribution.
+- Every revision requires a concise change note and may provide a replacement supporting HTTP/HTTPS source.
+- Removed resources cannot receive new revisions.
+- The resource page exposes revision publication only to currently authorized accounts.
+- No schema migration is required because Story 11.1 established the revision model.
+
+### Acceptance criteria
+
+- A revision never overwrites or deletes prior revision content.
+- Current content advances only after a valid new revision is persisted.
+- Editor attribution reflects the account that actually published the revision.
+- Owners and administrators have explicit publication authority; unrelated users do not.
+- A change note is required and retained with history.
+- Source URL validation is applied consistently to revisions.
+- Removed resources cannot be revised.
+- Tests cover owner publication, authorization, administrator attribution, validation, history preservation, and removed-resource behavior.
+
+### Permission decision
+
+Story 11.2 deliberately uses a conservative publication boundary: owner or administrator. Topic reputation, follower count, verification, and paid membership do not grant edit authority. A broader community contribution workflow requires an explicit proposal/review path rather than direct write access and can be layered onto the append-only revision model in a later Story 11 slice.
 
 ## Story 11.3 — Revision review and comparison
 

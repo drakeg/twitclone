@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Revise {{ resource.title }} · Ripple{% endblock %}
+{% block content %}
+<header class="page-header"><div><span class="auth-kicker">Resource revision</span><h1>Revise {{ resource.title }}</h1><p class="text-muted mb-0">Publishing creates a new attributed revision. Earlier versions remain in history.</p></div><a class="btn btn-sm btn-secondary" href="{{ url_for('resources.resource_detail', resource_id=resource.id) }}">Cancel</a></header>
+<form method="post" class="surface-card">
+    <div class="mb-3"><label class="form-label" for="body">Resource content</label><textarea class="form-control" id="body" name="body" rows="12" required>{{ request.form.get('body', current_revision.body if current_revision else '') }}</textarea></div>
+    <div class="mb-3"><label class="form-label" for="source_url">Supporting source</label><input class="form-control" id="source_url" name="source_url" type="url" value="{{ request.form.get('source_url', current_revision.source_url if current_revision and current_revision.source_url else '') }}" placeholder="https://example.com/reference"><div class="form-text">Optional. HTTP or HTTPS only.</div></div>
+    <div class="mb-3"><label class="form-label" for="change_note">What changed?</label><input class="form-control" id="change_note" name="change_note" maxlength="300" required value="{{ request.form.get('change_note', '') }}"><div class="form-text">Required, 1–300 characters. This note stays with the revision history.</div></div>
+    <button class="btn btn-primary" type="submit">Publish revision</button>
+</form>
+{% endblock %}
