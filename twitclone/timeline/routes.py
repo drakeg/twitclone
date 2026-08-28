@@ -21,7 +21,7 @@ from twitclone.timeline import timeline_blueprint
 from twitclone.timeline.media import store_image_upload
 from twitclone.timeline.service import build_timeline_posts, paginate_timeline_posts
 from twitclone.timeline.validation import validate_post_content
-from twitclone.topic_models import associate_topics, public_topic_associations
+from twitclone.topic_models import associate_topics, public_topic_associations, replace_explicit_topics
 from twitclone.utils import get_newest_users, get_trending_hashtags
 
 CONTRIBUTION_SIGNALS = {
@@ -137,6 +137,19 @@ def tweet():
     return redirect(url_for("index"))
 
 
+@login_required
+def update_post_topics(tweet_id):
+    tweet = db.get_or_404(Tweet, tweet_id)
+    if tweet.is_removed:
+        abort(404)
+    if tweet.user_id != current_user.id:
+        abort(403)
+    replace_explicit_topics(tweet, request.form.get("topics"))
+    db.session.commit()
+    flash("Post topics updated. Topic contribution history is recalculated from the current associations.", "success")
+    return redirect(url_for("post_detail", tweet_id=tweet.id))
+
+
 def uploaded_file(filename):
     if not filename.startswith(("thumb_", "banner_")):
         abort(404)
@@ -200,6 +213,7 @@ def register_timeline_routes(state):
     state.app.add_url_rule("/", endpoint="index", view_func=index)
     state.app.add_url_rule("/post/<int:tweet_id>", endpoint="post_detail", view_func=post_detail)
     state.app.add_url_rule("/tweet", endpoint="tweet", view_func=tweet, methods=["POST"])
+    state.app.add_url_rule("/post/<int:tweet_id>/topics", endpoint="update_post_topics", view_func=update_post_topics, methods=["POST"])
     state.app.add_url_rule("/uploads/<filename>", endpoint="uploaded_file", view_func=uploaded_file)
     state.app.add_url_rule("/retweet/<int:tweet_id>", endpoint="retweet", view_func=retweet, methods=["POST"])
     state.app.add_url_rule("/post/<int:tweet_id>/contribution/<signal>", endpoint="contribution", view_func=contribution, methods=["POST"])
