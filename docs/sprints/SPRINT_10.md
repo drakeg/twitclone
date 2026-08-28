@@ -18,118 +18,102 @@ Follower count and generic engagement are weak proxies for whether someone is co
 - Users must be able to understand why a displayed reputation summary exists.
 - Initial reputation is informational. It must not silently amplify or suppress feed reach.
 - Self-awards and obvious reciprocal/gaming paths must not contribute.
-- Reputation should be derived from auditable activity rather than a mutable administrator-entered score.
-- Existing constructive signals and community-context review history remain meaningful on their own; Sprint 10 must not retroactively mislabel consensus as objective truth.
+- Reputation is derived from auditable activity rather than a mutable administrator-entered score.
+- Existing constructive signals and community-context review history remain meaningful on their own; Sprint 10 does not relabel consensus as objective truth.
 
 ## Story 10.1 — Explicit topic foundation
 
 **Status:** Completed.
 
-**Goal:** Establish the topic vocabulary and association rules on which reputation can safely depend.
-
-### Completed capabilities
-
-- Adds normalized `Topic` records with duplicate-safe slugs.
-- Adds `TweetTopic` associations without altering the mature `Tweet` table.
-- Records whether an association came from an explicit composer topic or deterministic hashtag text.
-- Lets authors add up to five comma-separated explicit topics in the post composer.
-- Extracts deterministic hashtag topic candidates from public post text without using AI or sensitive-trait inference.
-- Gives explicit composer choices precedence when the same normalized topic also appears as a hashtag.
-- Existing posts require no backfill and simply have no topic associations until new topic-aware activity exists.
-- Removed posts do not expose public topic associations.
-- Timeline cards display associated topics for normal posts and reposts; Quote cards do not falsely inherit the original post's topics as if they belonged to the quoter.
-- Migration `20260828_0023_topic_foundation.py` and focused regression coverage were merged in PR #182.
+- Normalized, duplicate-safe `Topic` records and `TweetTopic` associations are in place.
+- Associations record whether the topic came from an explicit author choice or deterministic hashtag text.
+- Authors can select up to five comma-separated explicit topics when composing a post.
+- Hashtags remain deterministic discovery metadata and are not automatically expertise evidence.
+- Existing posts need no backfill; removed posts expose no public topic associations.
+- Timeline presentation preserves original/repost semantics without making Quote cards inherit another author's topics.
+- Migration `20260828_0023_topic_foundation.py` and regression coverage merged in PR #182.
 
 ## Story 10.2 — Topic contribution evidence
 
 **Status:** Completed.
 
-**Goal:** Define which existing Ripple activities count as explainable topic contribution evidence.
-
-### Completed capabilities
-
-- Adds a derived `topic_contribution_evidence()` service rather than persisting a mutable reputation score.
-- Only posts with an **explicit** topic association can create topic-contribution evidence. Hashtag-only associations remain discovery metadata and do not become expertise evidence by themselves.
-- Helpful, Thoughtful, and Useful context signals on eligible posts are counted by signal type.
-- Evidence also records the number of eligible posts, recognized posts, and unique recognizers.
-- Self-signals are excluded even if an invalid historical/database row exists.
-- Removed posts do not contribute.
-- Deleting/toggling off a constructive signal immediately changes the derived evidence because the evidence is recomputed from source records.
-- Followers, impressions, subscriptions, identity badges, and paid status are explicitly excluded from the evidence rules.
-- No score, feed-ranking change, moderation weighting, paid boost, or global trust value is introduced.
-- The evidence service and regression coverage were merged in PR #183.
-
-### Explicit evidence rules
-
-- Explicit post-topic association is required for constructive-signal evidence.
-- Hashtag-only topic association does not establish expertise evidence.
-- Removed/ineligible posts do not contribute.
-- Self-recognition does not contribute.
-- Multiple distinct constructive signals remain visible as separate dimensions rather than being silently collapsed into a weighted score.
-- Unique recognizer counts are descriptive only; they are not an accuracy or expertise percentage.
+- `topic_contribution_evidence()` derives evidence instead of storing a mutable reputation score.
+- Only explicit topic associations qualify for constructive-signal evidence.
+- Helpful, Thoughtful, and Useful context signals are counted separately.
+- Eligible posts, recognized posts, and unique recognizers remain visible dimensions.
+- Self-signals and removed posts are excluded.
+- Toggling/deleting a constructive signal immediately changes derived evidence.
+- Followers, impressions, subscriptions, identity badges, and paid status are excluded.
+- Evidence service and regression coverage merged in PR #183.
 
 ## Story 10.3 — Explainable topic reputation summary
 
 **Status:** Completed.
 
-**Goal:** Present useful topic history without collapsing it into a mysterious score.
-
-### Completed capabilities
-
-- Adds derived topic summaries for contributor/topic pairs; no reputation value is stored in the database.
-- Uses plain-language levels with published thresholds across multiple visible dimensions:
+- Contributor/topic summaries are derived; no reputation value is persisted.
+- Published multi-dimension levels are:
   - Building contribution history — eligible explicit-topic posts exist but recognition thresholds are not yet met.
   - Emerging contributor — at least 1 constructive signal across at least 1 recognized post from at least 1 unique recognizer.
   - Recognized contributor — at least 3 constructive signals across at least 2 recognized posts from at least 2 unique recognizers.
   - Established contributor — at least 5 constructive signals across at least 3 recognized posts from at least 3 unique recognizers.
-- Displays topic reputation on the user's profile alongside the underlying eligible-post, recognized-post, unique-recognizer, total-signal, and per-signal counts.
-- The profile explicitly states that topic reputation does not affect feed ranking or moderation authority.
-- The summary explains that followers, impressions, paid plans, and verification do not affect it.
-- Hashtag-only topics do not appear in topic reputation summaries.
-- No schema migration is required because summaries are derived from Story 10.1/10.2 source records.
-- Profile summaries and threshold regression coverage were merged in PR #184.
+- Profiles show the level plus eligible posts, recognized posts, unique recognizers, total signals, and per-signal counts.
+- Profiles state that topic reputation does not affect feed ranking or moderation authority.
+- Hashtag-only topics do not appear in reputation summaries.
+- Profile summaries and threshold regression coverage merged in PR #184.
 
 ## Story 10.4 — Discovery integration
 
-**Status:** In implementation.
+**Status:** Completed.
 
-**Goal:** Make topic expertise useful for discovery without turning it into a popularity leaderboard.
-
-### Current implementation slice
-
-- Adds a dedicated `/topic/<slug>` contributor-discovery page.
-- A contributor qualifies only through at least one non-removed post where that author explicitly selected the topic.
-- Hashtag-only posts remain discovery metadata but do not qualify an author for expertise discovery.
-- Contributor cards show the same plain-language level and underlying eligible-post, recognized-post, unique-recognizer, total-signal, and per-signal evidence used on profiles.
-- Topic names in profile reputation summaries link to the topic discovery page.
-- Ordering is deterministic and explicitly disclosed: contribution level first, then unique recognizers, recognized posts, constructive signals, and username for ties.
-- The ordering rule does not include followers, impressions, subscriptions, paid plans, or verification.
-- Existing topics with no qualifying contributors render an explanatory empty state; unknown topic slugs return 404.
-- No database migration is required because discovery is derived from existing topic/evidence records.
-
-### Acceptance criteria
-
-- Topic pages can surface contributors with demonstrated eligible contribution history.
-- Discovery explains the ordering/qualification rule.
-- Users are not ranked by a single cross-topic score.
-- Paid products cannot purchase placement in topic reputation discovery.
-- Empty/low-data topics degrade gracefully.
+- `/topic/<slug>` surfaces contributors with eligible explicit-topic contribution history.
+- Hashtag-only posts do not qualify an author for expertise discovery.
+- Contributor cards show the same transparent evidence dimensions used on profiles.
+- Profile topic names link into topic discovery.
+- Ordering is disclosed and deterministic: contribution level, unique recognizers, recognized posts, constructive signals, then username for ties.
+- Followers, impressions, subscriptions, paid plans, and verification do not affect qualification or placement.
+- Existing low-data topics degrade gracefully and unknown topic slugs return 404.
+- Discovery implementation and regression coverage merged in PR #186.
 
 ## Story 10.5 — Integrity and correction controls
 
-**Goal:** Make the reputation system resilient enough to remain understandable and correctable.
+**Status:** In implementation.
 
-### Planned acceptance criteria
+**Goal:** Make the reputation system correctable and resistant to obvious gaming without introducing manually editable scores.
+
+### Current implementation slice
+
+- Post authors can correct the explicit topics on their own non-removed posts from post detail.
+- Topic correction replaces only the author-selected topic associations. Hashtag associations are rebuilt deterministically from unchanged post text.
+- If an explicit topic is removed but still appears as a hashtag, it remains discovery metadata but immediately stops qualifying as expertise evidence.
+- Moving an explicit association from one topic to another immediately moves the post's constructive evidence because summaries are recomputed from source records.
+- Non-authors receive `403` when attempting to change another author's explicit topics; removed posts cannot be corrected through the route.
+- Toggling a constructive signal off immediately removes it from topic evidence.
+- Multiple distinct signal types from one person remain separate signal counts but count as only one unique recognizer, reducing a simple multi-click inflation path.
+- Removed/moderated source posts immediately stop contributing to profile summaries and topic discovery.
+- No administrator or author can directly edit a reputation level or score because no such stored score exists.
+- No schema migration is required for this slice.
+
+### Acceptance criteria
 
 - Deleted/removed/ineligible source activity stops contributing according to documented rules.
-- Duplicate/self/gaming attempts are tested.
-- Corrections to topic association are reflected in derived summaries without manual score editing.
-- The documentation defines what happens when contribution signals are toggled off or source content is moderated.
+- Duplicate/self/obvious multi-signal gaming paths are covered by constraints or regression tests.
+- Corrections to explicit topic association are reflected in derived summaries without manual score editing.
+- Toggled-off constructive signals stop contributing immediately.
+- Hashtag-only associations remain discovery metadata rather than expertise evidence after a correction.
 - Any future use of reputation for elevated permissions requires a separate sprint/decision and is not implied by Sprint 10.
+
+## Integrity behavior reference
+
+- **Constructive signal toggled off:** the source row is deleted; the next evidence calculation no longer counts it.
+- **Post removed/moderated:** the post no longer qualifies as evidence or contributor-discovery input even if historical contribution rows remain for audit/history purposes.
+- **Explicit topic corrected:** evidence follows the current explicit association; no reputation record is manually moved or edited.
+- **Explicit topic cleared but hashtag remains:** the topic remains discoverable from post text but contributes zero expertise evidence from that post.
+- **Multiple signal categories from one recognizer:** categories remain visible separately while unique-recognizer count remains one.
+- **Paid/follower changes:** no reputation evidence or discovery placement changes because those fields are outside the derivation rules.
 
 ## Definition of done
 
-Sprint 10 is complete when Ripple can associate eligible activity with explicit topics, derive explainable topic-specific contribution history, display it transparently, and use it for non-pay-to-win discovery without hidden reach ranking or sensitive-trait inference.
+Sprint 10 is complete when Ripple can associate eligible activity with explicit topics, derive explainable topic-specific contribution history, display it transparently, use it for non-pay-to-win discovery, and correct source associations without hidden ranking, manual reputation editing, or sensitive-trait inference.
 
 ## Explicitly deferred
 
@@ -138,4 +122,5 @@ Sprint 10 is complete when Ripple can associate eligible activity with explicit 
 - Paid reputation boosts
 - Cross-topic/global trust scores
 - AI-inferred expertise or sensitive-interest profiles
+- Elevated permissions based on topic reputation
 - Communities/topic spaces, which are planned for Sprint 13

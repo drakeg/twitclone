@@ -97,6 +97,15 @@ class TweetTopic(db.Model):
     topic = db.relationship("Topic", backref=db.backref("tweet_associations", lazy=True))
 
 
+def _get_or_create_topic(name, slug):
+    topic = Topic.query.filter_by(slug=slug).first()
+    if topic is None:
+        topic = Topic(name=name, slug=slug)
+        db.session.add(topic)
+        db.session.flush()
+    return topic
+
+
 def associate_topics(tweet, *, explicit_raw=None, content=None):
     """Attach explicit and hashtag-derived topics without treating hashtags as authoritative expertise."""
     candidates = [(name, slug, "explicit") for name, slug in explicit_topic_values(explicit_raw)]
@@ -107,12 +116,47 @@ def associate_topics(tweet, *, explicit_raw=None, content=None):
         if slug in seen:
             continue
         seen.add(slug)
-        topic = Topic.query.filter_by(slug=slug).first()
-        if topic is None:
-            topic = Topic(name=name, slug=slug)
-            db.session.add(topic)
-            db.session.flush()
+        topic = _get_or_create_topic(name, slug)
         db.session.add(TweetTopic(tweet_id=tweet.id, topic_id=topic.id, source=source))
+
+
+def replace_explicit_topics(tweet, raw_value):
+    """Replace only author-selected topics while preserving deterministic hashtag associations."""
+    requested = explicit_topic_values(raw_value)
+    requested_by_slug = {slug: name for name, slug in requested}
+
+    existing_rows = TweetTopic.query.filter_by(tweet_id=tweet.id).all()
+    existing_by_slug = {row.topic.slug: row for row in existing_rows}
+
+    for row in existing_rows:
+        if row.source == "explicit" and row.topic.slug not in requested_by_slug:
+            db.session.delete(row)
+
+    for slug, name in requested_by_slug.items():
+        existing = existing_by_slug.get(slug)
+        if existing is not None:
+            if existing.source == "hashtag":
+                existing.source = "explicit"
+            continue
+        topic = _get_or_create_topic(name, slug)
+        db.session.add(TweetTopic(tweet_id=tweet.id, topic_id=topic.id, source="explicit"))
+
+    hashtag_slugs = {slug for _, slug in hashtag_topic_values(tweet.content)}
+    refreshed_rows = TweetTopic.query.filter_by(tweet_id=tweet.id).all()
+    refreshed_by_slug = {row.topic.slug: row for row in refreshed_rows}
+    for name, slug in hashtag_topic_values(tweet.content):
+        if slug in requested_by_slug:
+            continue
+        existing = refreshed_by_slug.get(slug)
+        if existing is None:
+            topic = _get_or_create_topic(name, slug)
+            db.session.add(TweetTopic(tweet_id=tweet.id, topic_id=topic.id, source="hashtag"))
+        elif existing.source == "explicit" and slug not in requested_by_slug:
+            existing.source = "hashtag"
+
+    for row in list(TweetTopic.query.filter_by(tweet_id=tweet.id).all()):
+        if row.source == "hashtag" and row.topic.slug not in hashtag_slugs:
+            db.session.delete(row)
 
 
 def public_topic_associations(tweet):
@@ -131,5 +175,6 @@ __all__ = [
     "hashtag_topic_values",
     "normalize_topic_name",
     "public_topic_associations",
+    "replace_explicit_topics",
     "topic_slug",
 ]
