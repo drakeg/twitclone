@@ -13,9 +13,9 @@ def _user(app, username):
         return user.id
 
 
-def _tweet(app, author_id):
+def _tweet(app, author_id, content="Can anyone help with this?"):
     with app.app_context():
-        tweet = Tweet(content="Can anyone help with this?", user_id=author_id)
+        tweet = Tweet(content=content, user_id=author_id)
         db.session.add(tweet)
         db.session.commit()
         return tweet.id
@@ -129,3 +129,51 @@ def test_non_author_cannot_change_conversation_state(client, app):
     assert response.status_code == 403
     with app.app_context():
         assert db.session.get(TweetConversationState, tweet_id) is None
+
+
+def test_timeline_surfaces_closed_and_resolved_state_and_hides_quote(client, app):
+    author_id = _user(app, "author")
+    tweet_id = _tweet(app, author_id, "A conversation with a final answer")
+    with app.app_context():
+        db.session.add(TweetConversationState(tweet_id=tweet_id, is_closed=True, is_resolved=True))
+        db.session.commit()
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert b"Conversation closed" in response.data
+    assert b"Answered / resolved" in response.data
+    assert f'/quote/{tweet_id}'.encode() not in response.data
+    assert f'/retweet/{tweet_id}'.encode() in response.data
+
+
+def test_search_results_surface_conversation_state(client, app):
+    author_id = _user(app, "author")
+    viewer_id = _user(app, "viewer")
+    tweet_id = _tweet(app, author_id, "Unique status search phrase")
+    with app.app_context():
+        db.session.add(TweetConversationState(tweet_id=tweet_id, is_closed=True, is_resolved=True))
+        db.session.commit()
+    _login(client, viewer_id)
+
+    response = client.post("/search", data={"search_query": "Unique status search phrase"})
+
+    assert response.status_code == 200
+    assert b"Conversation closed" in response.data
+    assert b"Answered / resolved" in response.data
+
+
+def test_hashtag_results_surface_conversation_state(client, app):
+    author_id = _user(app, "author")
+    viewer_id = _user(app, "viewer")
+    tweet_id = _tweet(app, author_id, "Status for #healthstate")
+    with app.app_context():
+        db.session.add(TweetConversationState(tweet_id=tweet_id, is_closed=True, is_resolved=True))
+        db.session.commit()
+    _login(client, viewer_id)
+
+    response = client.get("/hashtag/healthstate")
+
+    assert response.status_code == 200
+    assert b"Conversation closed" in response.data
+    assert b"Answered / resolved" in response.data
