@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ topic.name }} · Ripple{% endblock %}
+{% block content %}
+<header class="page-header">
+    <div><h1>{{ topic.name }}</h1><small>Topic contributors</small></div>
+    <a href="{{ url_for('index') }}" class="btn btn-sm btn-secondary">Back to Home</a>
+</header>
+
+<section class="surface-card" aria-labelledby="topic-discovery-heading">
+    <span class="auth-kicker">Transparent discovery</span>
+    <h2 class="h5" id="topic-discovery-heading">People contributing to {{ topic.name }}</h2>
+    <p class="text-muted mb-2">People qualify here by publishing at least one non-removed post where they explicitly selected this topic. Hashtag-only posts do not qualify as expertise evidence.</p>
+    <p class="form-text mb-0">Ordering is visible and deterministic: contribution level first, then unique recognizers, recognized posts, constructive signals, and username for ties. Followers, impressions, paid plans, and verification never affect placement.</p>
+</section>
+
+<section class="mt-3" aria-label="Topic contributors">
+{% for item in contributors %}
+<article class="surface-card mb-3">
+    <div class="d-flex align-items-start gap-3">
+        <a href="{{ url_for('profile', username=item.user.username) }}" aria-label="View {{ item.user.username }}'s profile"><img class="post-avatar" src="{{ gravatar(item.user.email, size=48) }}" alt="" width="48" height="48"></a>
+        <div class="flex-grow-1 min-w-0">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div><a class="post-author" href="{{ url_for('profile', username=item.user.username) }}">{{ item.user.username }}</a><span class="post-handle ms-1">@{{ item.user.username }}</span></div>
+                <span class="badge rounded-pill text-bg-light border">{{ item.summary.level }}</span>
+            </div>
+            {% if item.user.bio %}<p class="mb-2 mt-1">{{ item.user.bio }}</p>{% endif %}
+            <div class="d-flex flex-wrap gap-3 small">
+                <span><strong>{{ item.summary.evidence.eligible_posts }}</strong> eligible post{% if item.summary.evidence.eligible_posts != 1 %}s{% endif %}</span>
+                <span><strong>{{ item.summary.evidence.recognized_posts }}</strong> recognized post{% if item.summary.evidence.recognized_posts != 1 %}s{% endif %}</span>
+                <span><strong>{{ item.summary.evidence.unique_recognizers }}</strong> unique recognizer{% if item.summary.evidence.unique_recognizers != 1 %}s{% endif %}</span>
+                <span><strong>{{ item.summary.evidence.total_constructive_signals }}</strong> constructive signal{% if item.summary.evidence.total_constructive_signals != 1 %}s{% endif %}</span>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mt-2">
+                {% for signal in item.summary.evidence.signals.values() %}<span class="badge text-bg-secondary">{{ signal.label }} · {{ signal.count }}</span>{% endfor %}
+            </div>
+        </div>
+    </div>
+</article>
+{% else %}
+<div class="surface-card text-center"><h2 class="h5">No contributor history yet</h2><p class="text-muted mb-0">This topic exists, but no eligible non-removed posts currently qualify for contributor discovery.</p></div>
+{% endfor %}
+</section>
+{% endblock %}
