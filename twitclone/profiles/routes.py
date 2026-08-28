@@ -18,6 +18,7 @@ from twitclone.models import Notification, Quote, Retweet, Tweet, User
 from twitclone.media_storage import get_media_storage
 from twitclone.profiles import profiles_blueprint
 from twitclone.timeline.media import store_profile_banner
+from twitclone.topic_reputation import topic_reputation_summaries
 
 PROFILE_THEMES = {'ripple':'Ripple Blue','sunset':'Sunset','forest':'Forest','violet':'Violet','slate':'Slate'}
 
@@ -56,7 +57,7 @@ def unfollow(username):
 @login_required
 def profile(username):
     user = User.query.filter_by(username=username).first_or_404(); record_profile_visit(user); is_following = user in current_user.followed; premium_profile_active = user.has_entitlement('ripple_plus')
-    return render_template('profile.html', user=user, is_following=is_following, premium_profile_active=premium_profile_active)
+    return render_template('profile.html', user=user, is_following=is_following, premium_profile_active=premium_profile_active, topic_reputation=topic_reputation_summaries(user.id))
 
 
 def _analytics_counts(user):

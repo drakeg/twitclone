@@ -65,4 +65,34 @@
 </div>
 </div>
 <h2 class="profile-name">{{ user.username }}{% if user.verified_badge_active %} <span title="Verified identity"><i class="fa-solid fa-circle-check text-primary"></i></span>{% endif %}</h2><div class="profile-handle">@{{ user.username }}</div>{% if current_user.id == user.id and current_user_email_verified %}<div class="mb-2"><span class="badge text-bg-light"><i class="fa-solid fa-envelope-circle-check text-success" aria-hidden="true"></i> Email verified</span></div>{% endif %}{% if user.verified_badge_active %}<div class="mb-2"><span class="badge text-bg-light"><i class="fa-solid fa-circle-check text-primary"></i> Verified identity{% if user.verification_type %} · {{ user.verification_type|title }}{% endif %}</span></div>{% elif current_user.id == user.id and user.identity_verified %}<div class="mb-2"><span class="badge text-bg-light">Identity approved · badge inactive</span></div>{% endif %}{% if premium_profile_active %}<div class="mb-2"><span class="badge text-bg-primary">Ripple+ · {{ theme_label }}{% if user.profile_banner %} · Custom banner{% endif %}</span></div>{% endif %}{% if user.has_entitlement('creator_pro') %}<div class="mb-2"><span class="badge text-bg-dark">Creator Pro</span></div>{% endif %}<p class="profile-bio">{{ user.bio or 'No bio yet — the story is still being written.' }}</p><div class="profile-links"><a href="{{ url_for('following', username=user.username) }}"><strong>View</strong> Following</a><a href="{{ url_for('followers', username=user.username) }}"><strong>View</strong> Followers</a></div></div></section>
+
+{% if topic_reputation %}
+<section class="surface-card mt-3" aria-labelledby="topic-reputation-heading">
+    <span class="auth-kicker">Contribution history</span>
+    <h2 class="h5" id="topic-reputation-heading">Topic reputation</h2>
+    <p class="text-muted">These summaries describe constructive recognition on posts where {{ user.username }} explicitly selected a topic. They do not affect feed ranking or moderation authority.</p>
+    <div class="vstack gap-3">
+        {% for summary in topic_reputation %}
+        <article class="border rounded p-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <h3 class="h6 mb-0">{{ summary.topic.name }}</h3>
+                <span class="badge rounded-pill text-bg-light border">{{ summary.level }}</span>
+            </div>
+            <div class="d-flex flex-wrap gap-3 mt-2 small">
+                <span><strong>{{ summary.evidence.eligible_posts }}</strong> eligible post{% if summary.evidence.eligible_posts != 1 %}s{% endif %}</span>
+                <span><strong>{{ summary.evidence.recognized_posts }}</strong> recognized post{% if summary.evidence.recognized_posts != 1 %}s{% endif %}</span>
+                <span><strong>{{ summary.evidence.unique_recognizers }}</strong> unique recognizer{% if summary.evidence.unique_recognizers != 1 %}s{% endif %}</span>
+                <span><strong>{{ summary.evidence.total_constructive_signals }}</strong> constructive signal{% if summary.evidence.total_constructive_signals != 1 %}s{% endif %}</span>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mt-2">
+                {% for signal in summary.evidence.signals.values() %}
+                <span class="badge text-bg-secondary">{{ signal.label }} · {{ signal.count }}</span>
+                {% endfor %}
+            </div>
+            <p class="form-text mb-0 mt-2">{{ summary.explanation }}</p>
+        </article>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
 {% endblock %}

@@ -42,11 +42,11 @@ Follower count and generic engagement are weak proxies for whether someone is co
 
 ## Story 10.2 — Topic contribution evidence
 
-**Status:** In implementation.
+**Status:** Completed.
 
 **Goal:** Define which existing Ripple activities count as explainable topic contribution evidence.
 
-### Current implementation slice
+### Completed capabilities
 
 - Adds a derived `topic_contribution_evidence()` service rather than persisting a mutable reputation score.
 - Only posts with an **explicit** topic association can create topic-contribution evidence. Hashtag-only associations remain discovery metadata and do not become expertise evidence by themselves.
@@ -56,15 +56,8 @@ Follower count and generic engagement are weak proxies for whether someone is co
 - Removed posts do not contribute.
 - Deleting/toggling off a constructive signal immediately changes the derived evidence because the evidence is recomputed from source records.
 - Followers, impressions, subscriptions, identity badges, and paid status are explicitly excluded from the evidence rules.
-- No score, level, feed-ranking change, moderation weighting, paid boost, or global trust value is introduced in this story.
-
-### Acceptance criteria
-
-- Constructive Helpful, Thoughtful, and Useful context signals can contribute only when attached to eligible topic-associated content.
-- Self-signals never contribute.
-- Community fact-context review history may be shown as a separate evidence dimension where relevant; agreement is not called accuracy.
-- Raw likes, followers, impressions, paid status, and verification payment do not count as reputation evidence.
-- Evidence aggregation is derived and reproducible from source records.
+- No score, feed-ranking change, moderation weighting, paid boost, or global trust value is introduced.
+- The evidence service and regression coverage were merged in PR #183.
 
 ### Explicit evidence rules
 
@@ -77,9 +70,25 @@ Follower count and generic engagement are weak proxies for whether someone is co
 
 ## Story 10.3 — Explainable topic reputation summary
 
+**Status:** In implementation.
+
 **Goal:** Present useful topic history without collapsing it into a mysterious score.
 
-### Planned acceptance criteria
+### Current implementation slice
+
+- Adds derived topic summaries for contributor/topic pairs; no reputation value is stored in the database.
+- Uses plain-language levels with published thresholds across multiple visible dimensions:
+  - Building contribution history — eligible explicit-topic posts exist but recognition thresholds are not yet met.
+  - Emerging contributor — at least 1 constructive signal across at least 1 recognized post from at least 1 unique recognizer.
+  - Recognized contributor — at least 3 constructive signals across at least 2 recognized posts from at least 2 unique recognizers.
+  - Established contributor — at least 5 constructive signals across at least 3 recognized posts from at least 3 unique recognizers.
+- Displays topic reputation on the user's profile alongside the underlying eligible-post, recognized-post, unique-recognizer, and per-signal counts.
+- The profile explicitly states that topic reputation does not affect feed ranking or moderation authority.
+- The summary explains that followers, impressions, paid plans, and verification do not affect it.
+- Hashtag-only topics do not appear in topic reputation summaries.
+- No schema migration is required because summaries are derived from Story 10.1/10.2 source records.
+
+### Acceptance criteria
 
 - Users can view an explainable summary for a contributor/topic pair.
 - The summary shows underlying dimensions/counts and a plain-language level or status rather than only a magic number.
