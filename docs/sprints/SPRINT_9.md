@@ -40,24 +40,34 @@ Helpful, Thoughtful, and Useful context signals recognize contribution quality w
 
 Add a visible Check facts / Add context action to posts. A submission is a request for evidence-backed community context, not an immediate declaration that the post is false.
 
-### Foundation acceptance criteria
+### Foundation — completed
 
 - Signed-in users can open Check facts / Add context from a post detail page.
-- A submission identifies the specific claim, explains proposed context/correction, and includes a valid http/https supporting source URL.
-- New submissions remain pending and are not shown publicly as accepted context.
-- Fact context is reviewed separately from Community Standards moderation.
-- Admins see pending fact-context work from the main Admin page and can review a dedicated queue.
-- Approval requires an explicit nuanced outcome: Additional context, Disputed claim, Outdated information, or Supported correction.
-- Accepted context appears visually separate from the author's words and includes a link to the supporting source.
-- Submitters are notified of approval/rejection; the original author is notified when reviewed context is published on their post.
-- Reviewer identity, review time, notes, status, and outcome remain auditable in persistence.
+- Submissions identify the claim, proposed context/correction, and a valid http/https supporting source URL.
+- New submissions remain pending and unpublished until reviewed.
+- Fact context is separate from Community Standards moderation.
+- Admins have a dedicated auditable review queue.
+- Approval requires Additional context, Disputed claim, Outdated information, or Supported correction.
+- Accepted context is visually separate from the author's words and links to its source.
+- Submitters and post authors receive review notifications.
 - A single submitter cannot unilaterally publish a false-information label.
-- No paid fact-checking API, AI moderation service, external analytics service, or AWS infrastructure is required.
+
+### Community consensus — in implementation
+
+- Community reviewers must have a verified email and have accepted the current Community Standards.
+- Submitters and original post authors cannot review the submission.
+- Each eligible reviewer may submit only one independent assessment per context item.
+- Assessments are Additional context, Disputed claim, Outdated information, Supported correction, or Not enough evidence.
+- Automatic publication requires at least three independent reviews and at least two-thirds agreement on the same publishable outcome.
+- Lack of consensus leaves the submission pending for additional reviews or admin oversight; disagreement does not silently suppress or label the original post.
+- Consensus publication stores an auditable summary and notifies the submitter and original post author.
+- Admin review remains available for unresolved cases and future appeals.
 
 ### Follow-on work
 
-- Define community-review eligibility and consensus rules so accepted context need not depend permanently on administrators alone.
+- Add reviewer reputation/quality signals based on review history rather than follower count.
 - Add source-quality and duplicate/context-merging controls based on actual usage.
+- Add an appeal/correction path for context that was previously published.
 - Consider notifying prior reposters/interactors when meaningful accepted context is attached later.
 - Consider an author-visible correction/update workflow that complements rather than replaces community context.
 
