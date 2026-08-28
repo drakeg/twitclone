@@ -50,6 +50,42 @@ class FactContextSubmission(db.Model):
         order_by="FactContextAppeal.created_at",
     )
 
+    @property
+    def latest_resolved_appeal(self):
+        resolved = [appeal for appeal in self.appeals if appeal.status != "pending"]
+        return resolved[-1] if resolved else None
+
+    @property
+    def is_public(self):
+        appeal = self.latest_resolved_appeal
+        return self.status == "approved" and not (appeal and appeal.status == "withdrawn")
+
+    @property
+    def public_outcome(self):
+        appeal = self.latest_resolved_appeal
+        if appeal and appeal.status == "revised":
+            return appeal.resolved_outcome
+        return self.outcome
+
+    @property
+    def public_context(self):
+        appeal = self.latest_resolved_appeal
+        if appeal and appeal.status == "revised":
+            return appeal.resolved_context
+        return self.context
+
+    @property
+    def public_source_url(self):
+        appeal = self.latest_resolved_appeal
+        if appeal and appeal.status == "revised":
+            return appeal.resolved_source_url
+        return self.source_url
+
+    @property
+    def was_revised_after_appeal(self):
+        appeal = self.latest_resolved_appeal
+        return bool(appeal and appeal.status == "revised")
+
 
 class FactContextAssessment(db.Model):
     __tablename__ = "fact_context_assessment"
