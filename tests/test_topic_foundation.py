@@ -44,6 +44,19 @@ def test_hashtags_create_deterministic_candidates_without_sensitive_inference():
     assert hashtag_topic_values("No hashtags here") == []
 
 
+def test_anonymous_user_cannot_create_post_topics(client, app):
+    response = client.post(
+        "/tweet",
+        data={"content": "Unauthorized topic post", "topics": "AWS"},
+    )
+
+    assert response.status_code in (302, 401)
+    with app.app_context():
+        assert Tweet.query.count() == 0
+        assert Topic.query.count() == 0
+        assert TweetTopic.query.count() == 0
+
+
 def test_post_creation_records_explicit_and_hashtag_sources(client, app):
     user_id = _user(app)
     _login(client, user_id)
