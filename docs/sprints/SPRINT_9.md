@@ -57,28 +57,33 @@ Add a visible Check facts / Add context action to posts. A submission is a reque
 - Community reviewers must have a verified email and have accepted the current Community Standards.
 - Submitters and original post authors cannot review the submission.
 - Each eligible reviewer may submit only one independent assessment per context item.
-- Assessments are Additional context, Disputed claim, Outdated information, Supported correction, or Not enough evidence.
 - Automatic publication requires at least three independent reviews and at least two-thirds agreement on the same publishable outcome.
-- Lack of consensus leaves the submission pending for additional reviews or admin oversight; disagreement does not silently suppress or label the original post.
-- Consensus publication stores an auditable summary and notifies the submitter and original post author.
-- Admin review remains available for unresolved cases and future appeals.
+- Lack of consensus leaves the submission pending for additional reviews or admin oversight.
 
-### Reviewer quality — in implementation
+### Reviewer quality — completed
 
 - Reviewer reputation is derived from assessment history rather than stored as a mutable score.
-- The record tracks total assessments, resolved assessments, assessments aligned with the eventual published outcome, and outcome-agreement rate.
-- Only approved submissions with an explicit final outcome count toward agreement metrics; pending work cannot inflate reputation.
-- Reviewers see their own transparent record and a plain-language level such as New reviewer, Developing reviewer, Established reviewer, or Strong review record.
+- The record tracks total assessments, resolved assessments, aligned assessments, and outcome-agreement rate.
 - Reputation is not based on follower count, paid status, popularity, or inferred political viewpoint.
-- Reputation is informational in this slice and does not silently give a reviewer extra voting weight.
+- Reputation remains informational and does not silently change vote weight.
+
+### Appeals and corrections — in implementation
+
+- Any signed-in user can appeal published community context and provide a reason, new evidence URL, and suggested revised context.
+- A user cannot create duplicate pending appeals for the same context item.
+- Filing an appeal does not immediately hide or alter published context.
+- Admin review can uphold the context, publish a revision, or withdraw it from public display.
+- The original FactContextSubmission remains unchanged so the initial context, source, consensus/admin review history, and appeal history remain auditable.
+- Revised public context is visibly marked as revised after appeal and uses the appeal-approved outcome, wording, and source.
+- Withdrawn context stops rendering publicly without deleting the original submission or appeal record.
+- Appellants and original context submitters receive resolution notifications.
 
 ### Follow-on work
 
-- Use demonstrated reviewer history for carefully designed anti-brigading safeguards only after the reputation metrics have real-world history and are explainable to users.
 - Add source-quality and duplicate/context-merging controls based on actual usage.
-- Add an appeal/correction path for context that was previously published.
 - Consider notifying prior reposters/interactors when meaningful accepted context is attached later.
 - Consider an author-visible correction/update workflow that complements rather than replaces community context.
+- Use demonstrated reviewer history for stronger anti-brigading safeguards only after real-world review history exists and the rules remain explainable.
 
 ## Story 9.5 — Conversation health controls
 
