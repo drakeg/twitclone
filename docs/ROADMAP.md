@@ -101,21 +101,136 @@ The manual Sprint 7 NVDA/VoiceOver and zoom evidence remains a public-launch gat
 
 ## Product iteration after Sprint 8
 
-With the zero-spend production path prepared, current development returns to user-facing Ripple improvements while AWS provisioning remains deferred.
+Before the formal differentiation roadmap began, Ripple completed several user-facing refinements while AWS provisioning remained deferred:
 
 - Email ownership verification and recovery hardening — completed, including reverification after a registered email address changes.
-- Search/discovery refresh — completed. Search now covers usernames, profile bios, normal post text, `@username`, and `#hashtag` queries while excluding removed posts and presenting clearer result states.
+- Search/discovery refresh — completed. Search covers usernames, profile bios, normal post text, `@username`, and `#hashtag` queries while excluding removed posts and presenting clearer result states.
 - Moderation queue triage — completed. Admins can prioritize pending reports, filter the queue, see status counts, and identify content with repeated reports while preserving individual reporter outcomes.
 - Ripple+ profile/theme refinement — completed. Ripple+ members can visually preview curated themes, see the active theme on their public profile, and preserve the existing free-profile fallback.
-- Creator/business refinement — active. Creator Pro now includes daily measured trends and a measured audience-path summary from impressions to profile visits to net follower growth. These ratios remain aggregate observations rather than user-level attribution or causation claims.
+- Creator/business refinement — completed through the current measured analytics slice. Creator Pro includes daily measured trends and a measured audience path from impressions to profile visits to net follower growth; these ratios remain aggregate observations rather than user-level attribution or causation claims.
 
-## Future backlog
+## Sprint 9 — Intentional conversations
 
-Potential work after stabilization:
+**Goal:** Differentiate Ripple through explicit conversational intent, constructive participation, evidence-backed community context, and author-controlled conversation health.
 
-- API design
-- Additional search/discovery improvements based on usage
-- Additional moderation tooling based on real community needs
-- Additional theme and responsive UI refinement based on usage
-- Additional creator/business refinement based on measured usage
-- Optional federation feasibility study
+**Status:** Completed. Detailed acceptance and follow-on notes are maintained in `docs/sprints/SPRINT_9.md`.
+
+Delivered capabilities include conversation-intent labels, intent-aware response guidance, Helpful/Thoughtful/Useful-context contribution signals, community fact/context submissions with independent consensus and appeals, transparent reviewer history, and Open/Closed plus Answered/Resolved conversation state. Resolved remains informational; closing is the explicit mechanism for preventing new quote responses.
+
+# Forward differentiation roadmap
+
+The following numbered sprints are the agreed product direction after Sprint 9. They are deliberately sequenced so later capabilities build on earlier data and behavior. A sprint's detailed `docs/sprints/SPRINT_N.md` file should be created when that sprint begins; future sprint definitions below are roadmap contracts rather than claims that implementation has started.
+
+## Sprint 10 — Topic reputation and expertise
+
+**Goal:** Help users find demonstrated topic-specific contributors without turning reputation into a global popularity score.
+
+**Planned direction:**
+
+- Define a transparent topic vocabulary using explicit user/post topics rather than inferred sensitive traits.
+- Derive topic contribution history from real constructive signals and other eligible, auditable activity.
+- Show explainable topic-specific reputation summaries such as contribution history and earned levels.
+- Prevent self-awards, paid-status influence, follower-count influence, and hidden political/viewpoint scoring.
+- Keep reputation informational initially; do not silently use it to amplify or suppress reach.
+- Establish anti-gaming tests and clear reset/correction behavior before reputation affects higher-trust workflows.
+
+## Sprint 11 — Collaborative knowledge and resource posts
+
+**Goal:** Let useful community knowledge remain discoverable and maintainable instead of disappearing down a chronological feed.
+
+**Planned direction:**
+
+- Introduce a durable resource/guide content type separate from ordinary posts.
+- Support attributable revisions and visible revision history.
+- Allow source/reference links and structured topic association.
+- Define contributor/reviewer permissions without allowing popularity or payment to purchase edit authority.
+- Provide discovery paths from topics and relevant conversations to maintained resources.
+
+## Sprint 12 — Feed choice and relationship-first discovery
+
+**Goal:** Give users meaningful, understandable control over how Ripple orders and discovers content.
+
+**Planned direction:**
+
+- Preserve a straightforward chronological/following option.
+- Add explicit topic-oriented and relationship-first/quiet discovery modes where useful.
+- Explain what each feed mode optimizes for; avoid a single opaque engagement score.
+- Keep user choice persistent and reversible.
+- Measure only behavior Ripple actually records and avoid claims about emotional state or inferred ideology.
+
+## Sprint 13 — Communities and topic spaces
+
+**Goal:** Create persistent spaces where conversations, resources, and topic contribution history can coexist.
+
+**Planned direction:**
+
+- Community/topic-space membership and discovery.
+- Space-specific posts and durable resources.
+- Understandable community roles and moderation boundaries.
+- Community-specific contribution context without replacing global Community Standards.
+- Privacy-conscious local/community coordination may be evaluated here, with coarse/explicit location rather than hidden precise tracking.
+
+## Sprint 14 — Replies and conversation structure
+
+**Goal:** Add a true public reply model so Ripple conversations can develop as readable discussions rather than relying on Quote as the only public response mechanism.
+
+**Planned direction:**
+
+- Threaded replies with stable URLs and authorization/visibility rules.
+- Conversation intent and health controls applied coherently to replies.
+- Constructive contribution signals and community context integrated where semantically appropriate.
+- Existing Quote behavior retained as a distinct repost-with-comment action.
+- Migration/compatibility must not falsely reinterpret historical Quotes as replies.
+
+## Sprint 15 — Creator and community sustainability
+
+**Goal:** Expand sustainable creator/community value without selling credibility, moderation influence, or organic reach.
+
+**Planned direction:**
+
+- Evaluate memberships/support and creator/community convenience tools.
+- Extend measured analytics only where Ripple has reliable underlying data.
+- Keep core conversation, safety, community participation, and reputation available without pay-to-win mechanics.
+- Document fees, entitlements, cancellation behavior, and moderation boundaries before enabling any new paid capability.
+
+## Sprint 16 — Public API and integrations
+
+**Goal:** Provide a stable, permissioned interface for automation and external clients without exposing internal implementation details as an accidental API.
+
+**Planned direction:**
+
+- Versioned API contracts for selected mature capabilities.
+- Scoped authentication/authorization and rate limiting.
+- Developer documentation and representative contract tests.
+- Webhook/integration feasibility for appropriate events.
+- Privacy, abuse, and operational-cost review before broad write access.
+
+## Sprint 17 — Federation and interoperability feasibility
+
+**Goal:** Decide whether federation/interoperability materially advances Ripple's product goals before committing to a distributed architecture.
+
+**Status:** Decision sprint only; implementation is not pre-authorized.
+
+**Planned direction:**
+
+- Evaluate ActivityPub and relevant interoperability approaches against Ripple's identity, moderation, community-context, privacy, and conversation-control semantics.
+- Model abuse handling, deletion, blocking, moderation authority, media storage, and operating cost across server boundaries.
+- Produce an ADR with proceed/defer/reject recommendation and an incremental implementation plan only if justified.
+- Do not add recurring infrastructure or operational burden merely to claim federation support.
+
+## Cross-cutting release gates and deferred work
+
+These are not new product sprints and remain independently tracked:
+
+- **AWS activation:** Sprint 8 remains plan/validate-only. No `terraform apply`, paid AWS activation, or recurring spend is authorized until explicitly approved.
+- **Accessibility evidence:** Manual NVDA/VoiceOver and 200%/400% zoom evidence from Sprint 7 remains a public-launch/conformance gate.
+- **Production evidence:** Restore rehearsal, backup-alert path, cost review, immutable release identifiers, and release record remain part of the launch readiness contract.
+- **Usage-driven refinements:** Search, moderation, themes, creator analytics, community-context source quality, anti-brigading, and conversation-state history may receive targeted follow-up when real usage provides evidence for the change.
+
+## Roadmap governance
+
+- `docs/ROADMAP.md` is the authoritative numbered product roadmap.
+- Detailed sprint documents live under `docs/sprints/` and are created/updated when a sprint becomes active.
+- Completed sprint documentation is historical evidence and should not be rewritten to imply unimplemented features were delivered.
+- Sprint scope can be refined before implementation, but once a sprint begins its goal and acceptance criteria should remain stable unless an explicit documented decision changes them.
+- New infrastructure spend, paid third-party services, or AWS activation require explicit authorization separate from roadmap inclusion.
