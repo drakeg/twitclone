@@ -46,43 +46,46 @@ Some useful contributions should be improved over time instead of repeatedly rep
 
 ## Story 11.3 — Revision review and comparison
 
-**Status:** In implementation.
+**Status:** Completed.
 
-**Goal:** Let readers inspect exactly what any historical revision said and understand what changed without confusing superseded guidance with the current resource.
-
-### Current implementation slice
-
-- Every revision in resource history links to a stable inspection route: `/resources/<resource_id>/revisions/<revision_number>`.
-- Revision pages show the exact historical body, editor, timestamp, change note, and source that belonged to that revision.
-- Current and historical revisions are labeled explicitly.
-- Each revision after revision 1 includes a deterministic line-level comparison against its immediately preceding revision.
-- Added and removed lines are labeled in plain language rather than silently replacing historical content.
-- Revision 1 clearly states that no earlier comparison exists.
-- Previous/next revision navigation makes the history browsable.
-- Unknown revision numbers and revisions belonging to removed resources return 404.
-- No migration is required; comparison is derived from immutable revision history.
-
-### Acceptance criteria
-
-- Historical revision content remains independently inspectable.
-- The UI distinguishes current guidance from superseded history.
-- Comparison uses persisted revision bodies and does not mutate either revision.
-- Added/removed body lines are understandable without an opaque score or generated interpretation.
-- Revision-specific supporting sources remain visible.
-- Removed resources do not expose historical content publicly.
-- Tests cover history links, exact historical content, current/historical labels, comparison output, revision 1 behavior, missing revisions, and removed resources.
-
-### Comparison decision
-
-Story 11.3 intentionally starts with deterministic text comparison rather than AI-generated summaries. This keeps the historical record reproducible, inexpensive, and auditable. More sophisticated visual diff presentation can be added later without changing the revision model.
+- Historical revisions have stable inspection pages with exact persisted content, editor attribution, timestamp, change note, and revision-specific source.
+- Current and superseded revisions are explicitly distinguished.
+- Deterministic line-level comparison shows added and removed body lines against the immediately preceding revision.
+- Revision 1 has a clear no-previous-version state.
+- Removed resources do not expose historical revisions publicly.
+- Story 11.3 merged in PR #190, including a startup regression fix that keeps resource endpoints correctly namespaced.
 
 ## Story 11.4 — Resource discovery
 
-**Status:** Planned.
+**Status:** In implementation.
 
-- Connect resource discovery to explicit topics and relevant conversations.
-- Avoid turning resource discovery into paid placement or follower-count ranking.
-- Provide useful empty/low-data states.
+**Goal:** Make durable resources discoverable through Ripple's explicit topic system without converting knowledge discovery into paid placement or a hidden popularity ranking.
+
+### Current implementation slice
+
+- Existing `/topic/<slug>` discovery pages now include visible, non-removed resources explicitly associated with that normalized topic.
+- Resource discovery uses the same explicit topic association created at publication; it does not infer topics from resource text or user attributes.
+- Resources are ordered by `updated_at` descending and resource ID descending for deterministic ties.
+- The ordering rule is disclosed on the topic page.
+- Followers, subscriptions, paid plans, verification, and contributor reputation do not affect resource placement.
+- Each result links directly to the durable resource and shows owner, current revision number, updated date, and a short current-content preview.
+- Removed resources are excluded.
+- Topics with no visible resources show a clear empty state.
+- No schema migration is required because Story 11.1 already established normalized resource-topic associations.
+
+### Acceptance criteria
+
+- A resource appears on each topic page it was explicitly associated with.
+- Removed resources do not appear.
+- Resource ordering is deterministic and understandable.
+- No follower count, paid entitlement, verification state, or reputation score buys placement.
+- Low-data/empty topics remain useful and understandable.
+- Topic contributor discovery remains separate from durable-resource ordering.
+- Tests cover visible resources, ordering, links, exclusion of removed resources, ranking explanation, and empty state.
+
+### Discovery decision
+
+Story 11.4 uses recency of the resource's maintained state rather than social popularity. This is intentionally not a claim that the newest resource is the most authoritative; it is a transparent browsing order. Future resource quality/review signals require their own explicit, auditable design before they can affect discovery.
 
 ## Story 11.5 — Resource integrity and lifecycle
 
