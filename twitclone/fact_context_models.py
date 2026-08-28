@@ -43,6 +43,48 @@ class FactContextSubmission(db.Model):
         back_populates="submission",
         cascade="all, delete-orphan",
     )
+    appeals = db.relationship(
+        "FactContextAppeal",
+        back_populates="submission",
+        cascade="all, delete-orphan",
+        order_by="FactContextAppeal.created_at",
+    )
+
+    @property
+    def latest_resolved_appeal(self):
+        resolved = [appeal for appeal in self.appeals if appeal.status != "pending"]
+        return resolved[-1] if resolved else None
+
+    @property
+    def is_public(self):
+        appeal = self.latest_resolved_appeal
+        return self.status == "approved" and not (appeal and appeal.status == "withdrawn")
+
+    @property
+    def public_outcome(self):
+        appeal = self.latest_resolved_appeal
+        if appeal and appeal.status == "revised":
+            return appeal.resolved_outcome
+        return self.outcome
+
+    @property
+    def public_context(self):
+        appeal = self.latest_resolved_appeal
+        if appeal and appeal.status == "revised":
+            return appeal.resolved_context
+        return self.context
+
+    @property
+    def public_source_url(self):
+        appeal = self.latest_resolved_appeal
+        if appeal and appeal.status == "revised":
+            return appeal.resolved_source_url
+        return self.source_url
+
+    @property
+    def was_revised_after_appeal(self):
+        appeal = self.latest_resolved_appeal
+        return bool(appeal and appeal.status == "revised")
 
 
 class FactContextAssessment(db.Model):
@@ -73,4 +115,41 @@ class FactContextAssessment(db.Model):
     reviewer = db.relationship("User")
 
 
-__all__ = ["FactContextAssessment", "FactContextSubmission"]
+class FactContextAppeal(db.Model):
+    __tablename__ = "fact_context_appeal"
+    __table_args__ = (
+        db.CheckConstraint(
+            "status in ('pending', 'upheld', 'revised', 'withdrawn')",
+            name="ck_fact_context_appeal_status",
+        ),
+        db.CheckConstraint(
+            "resolved_outcome is null or resolved_outcome in ('context', 'disputed', 'outdated', 'correction')",
+            name="ck_fact_context_appeal_outcome",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    submission_id = db.Column(
+        db.Integer,
+        db.ForeignKey("fact_context_submission.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    appellant_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
+    reason = db.Column(db.Text, nullable=False)
+    source_url = db.Column(db.String(1000), nullable=True)
+    proposed_context = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+    status = db.Column(db.String(20), nullable=False, default="pending", server_default="pending")
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+    reviewed_by_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    resolution_notes = db.Column(db.Text, nullable=True)
+    resolved_outcome = db.Column(db.String(20), nullable=True)
+    resolved_context = db.Column(db.Text, nullable=True)
+    resolved_source_url = db.Column(db.String(1000), nullable=True)
+
+    submission = db.relationship("FactContextSubmission", back_populates="appeals")
+    appellant = db.relationship("User", foreign_keys=[appellant_id])
+    reviewed_by = db.relationship("User", foreign_keys=[reviewed_by_id])
+
+
+__all__ = ["FactContextAppeal", "FactContextAssessment", "FactContextSubmission"]
