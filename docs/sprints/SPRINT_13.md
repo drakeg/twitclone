@@ -16,41 +16,47 @@ Create persistent spaces where conversations, resources, and topic contribution 
 
 ## Story 13.1 — Persistent space and membership foundation
 
-**Status:** In implementation.
+**Status:** Completed.
 
-### Scope
-
-- Add persistent public spaces with stable normalized slugs, names, descriptions, owners, and creation timestamps.
-- Add explicit membership with one membership row per user/space.
-- Establish only two roles initially: `owner` and `member`.
-- The creator becomes the owner and an owner membership is created atomically with the space.
-- Any signed-in user can explicitly join a public space and later leave it.
-- Owners cannot leave until a future ownership-transfer workflow exists.
-- Provide `/spaces/` discovery, `/spaces/create`, and stable `/spaces/<slug>` detail pages.
-- Public visitors can discover and read space identity/description/member-count information without joining.
-- No feed ranking, global reputation, paid entitlement, verification, or inferred-interest effect is attached to membership.
-
-### Acceptance criteria
-
-- Space slugs are unique and normalized into stable URLs.
-- Creation requires authentication and valid name/description input.
-- Creation records both the durable space owner and the matching owner membership.
-- Duplicate memberships are prevented by the database.
-- Join/leave operations are authenticated and idempotent from the user's perspective.
-- An owner cannot remove their own final ownership membership through the ordinary leave action.
-- Public space discovery works without authentication.
-- Regression coverage proves creation, uniqueness, join/leave, owner boundary, and public discovery.
-- Migration `20260829_0027_space_foundation.py` upgrades from the current `0026` head.
-
-### Story boundary
-
-Story 13.1 does **not** add space-specific posts, resources, private communities, invitations, moderator roles, bans, local/precise location, or ownership transfer. Those capabilities require separate acceptance criteria so membership and authority semantics remain reviewable.
+- Persistent public spaces have stable normalized slugs, names, descriptions, owners, and creation timestamps.
+- Explicit membership records establish `owner` and `member` roles with one membership per user/space.
+- Creators become owners atomically; signed-in users can explicitly join and leave public spaces.
+- Owners cannot leave through the ordinary leave flow until ownership transfer exists.
+- `/spaces/`, `/spaces/create`, and `/spaces/<slug>` provide public discovery and stable space identity.
+- Membership has no effect on feed ranking, global reputation, paid entitlement, or verification.
+- Story 13.1 merged in PR #201.
 
 ## Story 13.2 — Space-specific conversations
 
-**Status:** Planned.
+**Status:** In implementation.
 
-Allow posts to be explicitly published into a joined space while preserving a clear distinction between global timeline content and community-scoped conversation context.
+### Current implementation slice
+
+- Add a one-to-one `SpacePost` scope record linking an existing durable `Tweet` to exactly one space.
+- Migration `20260829_0028_space_posts.py` advances from the `0027` space-foundation head.
+- Only explicit members, including the owner, may publish a space-scoped post.
+- Public visitors may read conversations because Story 13 spaces are public.
+- Space conversations render newest-first and are clearly labeled as space-scoped.
+- Space-scoped posts are excluded from All Ripple, Following, Quiet, and Topic global feeds.
+- Reposts and quotes whose source is a space-scoped post are also excluded from global feed assembly, preventing indirect amplification from silently changing the original scope.
+- Posting in a space does not change global reputation, verification, entitlement, or feed ranking.
+- The first slice intentionally keeps the space composer text-only; media, polls, scheduling, conversation intent, and independent topic metadata require separately reviewed space semantics rather than silently inheriting global behavior.
+
+### Acceptance criteria
+
+- A member can publish a valid space post and see it on the space page.
+- A nonmember cannot publish into the space.
+- Public readers can view visible space conversations without joining.
+- Removed posts are not rendered in the space conversation list.
+- Space conversations are deterministically newest-first.
+- A space-scoped post never appears in the global All Ripple, Following, Quiet, or Topic feed.
+- Repost/quote records referencing a space-scoped source do not cause the content to appear globally.
+- The UI states that space posts remain in the space and that global Community Standards still apply.
+- Regression coverage proves membership enforcement, public reading, ordering, and global-feed isolation.
+
+### Story boundary
+
+Story 13.2 does not create private spaces, space-only visibility ACLs, moderator powers, space resources, cross-posting, or a second engagement/ranking system. Space-local removal and appeals are defined in Story 13.4 together with role authority and audit requirements.
 
 ## Story 13.3 — Space resources and knowledge
 
