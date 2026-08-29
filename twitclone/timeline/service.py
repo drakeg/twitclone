@@ -10,6 +10,7 @@ from twitclone.topic_models import public_topic_associations
 
 TIMELINE_TYPE_PRIORITY = {"tweet": 0, "retweet": 1, "quote": 2, "poll": 3}
 TIMELINE_PAGE_SIZE = 20
+FEED_MODES = {"all", "following"}
 
 
 @dataclass(frozen=True)
@@ -45,28 +46,42 @@ def _tweet_conversation_intent(tweet):
 
 def _tweet_conversation_state(tweet):
     record = getattr(tweet, "conversation_state_record", None)
-    return {
-        "is_closed": bool(record and record.is_closed),
-        "is_resolved": bool(record and record.is_resolved),
-    }
+    return {"is_closed": bool(record and record.is_closed), "is_resolved": bool(record and record.is_resolved)}
 
 
 def _tweet_topics(tweet):
-    return [
-        {"name": association.topic.name, "slug": association.topic.slug, "source": association.source}
-        for association in public_topic_associations(tweet)
-    ]
+    return [{"name": association.topic.name, "slug": association.topic.slug, "source": association.source} for association in public_topic_associations(tweet)]
 
 
-def build_timeline_posts(*, now, viewer=None):
+def _following_ids(viewer):
+    if viewer is None or not viewer.is_authenticated:
+        return None
+    return {user.id for user in viewer.followed.all()} | {viewer.id}
+
+
+def build_timeline_posts(*, now, viewer=None, feed_mode="all"):
+    if feed_mode not in FEED_MODES:
+        feed_mode = "all"
+    allowed_user_ids = _following_ids(viewer) if feed_mode == "following" else None
+    if feed_mode == "following" and allowed_user_ids is None:
+        feed_mode = "all"
+
+    def include_user(user_id):
+        return allowed_user_ids is None or user_id in allowed_user_ids
+
     posts = []
     for tweet in Tweet.query.filter(_visible_tweet_filter(now)).all():
-        posts.append({"id": tweet.id, "source_id": tweet.id, "action_tweet_id": tweet.id, "content": tweet.content, "timestamp": _tweet_timeline_timestamp(tweet), "type": "tweet", "user": tweet.user, "image": tweet.image, "original_tweet": None, "original_user": None, "poll": None, "poll_id": None, "has_voted": False, "report_type": "tweet", "report_id": tweet.id, "report_author_id": tweet.user_id, "conversation_intent": _tweet_conversation_intent(tweet), "conversation_state": _tweet_conversation_state(tweet), "topics": _tweet_topics(tweet)})
+        if include_user(tweet.user_id):
+            posts.append({"id": tweet.id, "source_id": tweet.id, "action_tweet_id": tweet.id, "content": tweet.content, "timestamp": _tweet_timeline_timestamp(tweet), "type": "tweet", "user": tweet.user, "image": tweet.image, "original_tweet": None, "original_user": None, "poll": None, "poll_id": None, "has_voted": False, "report_type": "tweet", "report_id": tweet.id, "report_author_id": tweet.user_id, "conversation_intent": _tweet_conversation_intent(tweet), "conversation_state": _tweet_conversation_state(tweet), "topics": _tweet_topics(tweet)})
     for retweet in Retweet.query.join(Retweet.tweet).filter(_visible_tweet_filter(now)).all():
-        posts.append({"id": retweet.id, "source_id": retweet.id, "action_tweet_id": retweet.tweet_id, "content": retweet.tweet.content, "timestamp": retweet.timestamp, "type": "retweet", "user": retweet.user, "image": retweet.tweet.image, "original_tweet": retweet.tweet, "original_user": retweet.tweet.user, "poll": None, "poll_id": None, "has_voted": False, "report_type": "tweet", "report_id": retweet.tweet_id, "report_author_id": retweet.tweet.user_id, "conversation_intent": _tweet_conversation_intent(retweet.tweet), "conversation_state": _tweet_conversation_state(retweet.tweet), "topics": _tweet_topics(retweet.tweet)})
+        if include_user(retweet.user_id):
+            posts.append({"id": retweet.id, "source_id": retweet.id, "action_tweet_id": retweet.tweet_id, "content": retweet.tweet.content, "timestamp": retweet.timestamp, "type": "retweet", "user": retweet.user, "image": retweet.tweet.image, "original_tweet": retweet.tweet, "original_user": retweet.tweet.user, "poll": None, "poll_id": None, "has_voted": False, "report_type": "tweet", "report_id": retweet.tweet_id, "report_author_id": retweet.tweet.user_id, "conversation_intent": _tweet_conversation_intent(retweet.tweet), "conversation_state": _tweet_conversation_state(retweet.tweet), "topics": _tweet_topics(retweet.tweet)})
     for quote in Quote.query.join(Quote.tweet).filter(_visible_tweet_filter(now), Quote.is_removed.is_(False)).all():
-        posts.append({"id": quote.id, "source_id": quote.id, "action_tweet_id": quote.tweet_id, "content": quote.content, "timestamp": quote.timestamp, "type": "quote", "user": quote.user, "image": None, "original_tweet": quote.tweet, "original_user": quote.tweet.user, "poll": None, "poll_id": None, "has_voted": False, "report_type": "quote", "report_id": quote.id, "report_author_id": quote.user_id, "conversation_intent": None, "conversation_state": None, "topics": []})
+        if include_user(quote.user_id):
+            posts.append({"id": quote.id, "source_id": quote.id, "action_tweet_id": quote.tweet_id, "content": quote.content, "timestamp": quote.timestamp, "type": "quote", "user": quote.user, "image": None, "original_tweet": quote.tweet, "original_user": quote.tweet.user, "poll": None, "poll_id": None, "has_voted": False, "report_type": "quote", "report_id": quote.id, "report_author_id": quote.user_id, "conversation_intent": None, "conversation_state": None, "topics": []})
     for poll in Poll.query.filter_by(is_removed=False).all():
+        if not include_user(poll.user_id):
+            continue
         has_voted = False
         if viewer is not None and viewer.is_authenticated:
             has_voted = PollVote.query.filter_by(poll_id=poll.id, user_id=viewer.id).first() is not None
@@ -82,4 +97,4 @@ def paginate_timeline_posts(posts, *, page, per_page=TIMELINE_PAGE_SIZE):
     return TimelinePage(items=posts[start:end], page=bounded_page, per_page=per_page, total_items=total_items, total_pages=total_pages)
 
 
-__all__ = ["TIMELINE_PAGE_SIZE", "TIMELINE_TYPE_PRIORITY", "TimelinePage", "build_timeline_posts", "paginate_timeline_posts"]
+__all__ = ["FEED_MODES", "TIMELINE_PAGE_SIZE", "TIMELINE_TYPE_PRIORITY", "TimelinePage", "build_timeline_posts", "paginate_timeline_posts"]
