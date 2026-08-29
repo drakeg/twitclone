@@ -10,6 +10,7 @@ from twitclone.contribution_models import ConstructiveContribution
 from twitclone.conversation_intent import CONVERSATION_INTENTS, conversation_intent_metadata, normalize_conversation_intent
 from twitclone.conversation_models import TweetConversationIntent
 from twitclone.extensions import db
+from twitclone.feed_preferences import UserFeedPreference
 from twitclone.mentions import add_mention_notifications
 from twitclone.media_storage import MediaNotFound, get_media_storage
 from twitclone.models import DirectMessage, Notification, Quote, Retweet, Tweet, User
@@ -33,18 +34,43 @@ def _tweet_contribution_state(tweet):
     return {key: {"label": label, "count": sum(row.signal == key for row in rows), "selected": current_user.is_authenticated and any(row.signal == key and row.user_id == current_user.id for row in rows)} for key, label in CONTRIBUTION_SIGNALS.items()}
 
 
+def _stored_feed_mode():
+    if not current_user.is_authenticated:
+        return "all"
+    preference = UserFeedPreference.query.filter_by(user_id=current_user.id).first()
+    return preference.feed_mode if preference and preference.feed_mode in FEED_MODES else "all"
+
+
 def index():
     now = datetime.now(UTC).replace(tzinfo=None)
     current_time = now.strftime("%Y-%m-%d %H:%M:%S")
-    requested_mode = (request.args.get("feed") or "all").strip().lower()
-    feed_mode = requested_mode if requested_mode in FEED_MODES else "all"
+    stored_feed_mode = _stored_feed_mode()
+    requested_value = request.args.get("feed")
+    requested_mode = requested_value.strip().lower() if requested_value else None
+    feed_mode = requested_mode if requested_mode in FEED_MODES else stored_feed_mode
     if feed_mode == "following" and not current_user.is_authenticated:
         feed_mode = "all"
     posts = build_timeline_posts(now=now, viewer=current_user, feed_mode=feed_mode)
     page = request.args.get("page", default=1, type=int) or 1
     timeline_page = paginate_timeline_posts(posts, page=page)
     record_post_impressions(timeline_page.items)
-    return render_template("index.html", posts=timeline_page.items, timeline_page=timeline_page, current_time=current_time, trending_hashtags=get_trending_hashtags(), newest_users=get_newest_users(), conversation_intents=CONVERSATION_INTENTS, feed_mode=feed_mode)
+    return render_template("index.html", posts=timeline_page.items, timeline_page=timeline_page, current_time=current_time, trending_hashtags=get_trending_hashtags(), newest_users=get_newest_users(), conversation_intents=CONVERSATION_INTENTS, feed_mode=feed_mode, stored_feed_mode=stored_feed_mode)
+
+
+@login_required
+def set_feed_preference():
+    feed_mode = (request.form.get("feed_mode") or "").strip().lower()
+    if feed_mode not in FEED_MODES:
+        abort(400)
+    preference = UserFeedPreference.query.filter_by(user_id=current_user.id).first()
+    if preference is None:
+        preference = UserFeedPreference(user_id=current_user.id, feed_mode=feed_mode)
+        db.session.add(preference)
+    else:
+        preference.feed_mode = feed_mode
+    db.session.commit()
+    flash(f"{('Following' if feed_mode == 'following' else 'All Ripple')} is now your default feed.", "success")
+    return redirect(url_for("index", feed=feed_mode))
 
 
 def post_detail(tweet_id):
@@ -149,6 +175,7 @@ def toggle_contribution(tweet_id, signal):
 @timeline_blueprint.record_once
 def register_timeline_routes(state):
     state.app.add_url_rule("/", endpoint="index", view_func=index)
+    state.app.add_url_rule("/feed-preference", endpoint="set_feed_preference", view_func=set_feed_preference, methods=["POST"])
     state.app.add_url_rule("/post/<int:tweet_id>", endpoint="post_detail", view_func=post_detail)
     state.app.add_url_rule("/tweet", endpoint="tweet", view_func=tweet, methods=["POST"])
     state.app.add_url_rule("/post/<int:tweet_id>/topics", endpoint="update_post_topics", view_func=update_post_topics, methods=["POST"])
