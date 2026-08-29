@@ -1,5 +1,6 @@
 """Collaborative resource creation and browsing routes."""
 
+from datetime import UTC, datetime
 from difflib import ndiff
 from urllib.parse import urlparse
 
@@ -10,6 +11,10 @@ from twitclone.extensions import db
 from twitclone.resource_models import Resource, ResourceRevision, ResourceTopic
 from twitclone.resources import resources_blueprint
 from twitclone.topic_models import Topic, explicit_topic_values
+
+
+def _utcnow():
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def _valid_source_url(value):
@@ -31,6 +36,10 @@ def _associate_resource_topics(resource, raw_topics):
 
 def _can_publish_revision(resource, user):
     """Keep publication authority explicit until broader collaboration is reviewed."""
+    return bool(user.is_authenticated and (user.id == resource.owner_id or user.is_admin))
+
+
+def _can_remove_resource(resource, user):
     return bool(user.is_authenticated and (user.id == resource.owner_id or user.is_admin))
 
 
@@ -99,6 +108,7 @@ def resource_detail(resource_id):
         "resources/detail.html",
         resource=resource,
         can_publish_revision=_can_publish_revision(resource, current_user),
+        can_remove_resource=_can_remove_resource(resource, current_user),
     )
 
 
@@ -164,6 +174,28 @@ def revise_resource(resource_id):
     return redirect(url_for("resources.resource_detail", resource_id=resource.id))
 
 
+@login_required
+def remove_resource(resource_id):
+    resource = db.get_or_404(Resource, resource_id)
+    if resource.is_removed:
+        abort(404)
+    if not _can_remove_resource(resource, current_user):
+        abort(403)
+
+    reason = " ".join((request.form.get("reason") or "").split())
+    if not reason or len(reason) > 500:
+        flash("Give a removal reason between 1 and 500 characters.", "danger")
+        return redirect(url_for("resources.resource_detail", resource_id=resource.id))
+
+    resource.is_removed = True
+    resource.removed_at = _utcnow()
+    resource.removed_by_id = current_user.id
+    resource.removal_reason = reason
+    db.session.commit()
+    flash("Resource removed from public discovery. Its revision provenance remains preserved in the database.", "success")
+    return redirect(url_for("resources.index"))
+
+
 resources_blueprint.add_url_rule("/", endpoint="index", view_func=index)
 resources_blueprint.add_url_rule(
     "/new", endpoint="create_resource", view_func=create_resource, methods=["GET", "POST"]
@@ -181,4 +213,10 @@ resources_blueprint.add_url_rule(
     endpoint="revise_resource",
     view_func=revise_resource,
     methods=["GET", "POST"],
+)
+resources_blueprint.add_url_rule(
+    "/<int:resource_id>/remove",
+    endpoint="remove_resource",
+    view_func=remove_resource,
+    methods=["POST"],
 )
