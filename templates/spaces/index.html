@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Spaces · Ripple{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Spaces</h1><small>Persistent communities built around shared topics and interests</small></div>{% if current_user.is_authenticated %}<a class="btn btn-primary" href="{{ url_for('spaces.create') }}">Create a space</a>{% endif %}</header>
+<section class="surface-card mb-3"><p class="mb-0 text-muted">Spaces are explicit communities. Membership does not affect your global reputation, feed ranking, verification, or paid status.</p></section>
+<section aria-label="Community spaces">
+{% for space in spaces %}
+<article class="surface-card mb-3"><div class="d-flex justify-content-between gap-3 align-items-start"><div><h2 class="h5 mb-1"><a href="{{ url_for('spaces.detail', slug=space.slug) }}">{{ space.name }}</a></h2><p class="text-muted mb-1">{{ space.description }}</p><small>Owned by @{{ space.owner.username }}</small></div>{% if space.id in memberships %}<span class="badge rounded-pill text-bg-light border">Joined</span>{% endif %}</div></article>
+{% else %}
+<div class="surface-card text-center"><h2 class="h5">No spaces yet</h2><p class="text-muted mb-0">The first community space can be created by any signed-in Ripple member.</p></div>
+{% endfor %}
+</section>
+{% endblock %}

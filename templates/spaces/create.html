@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Create Space · Ripple{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Create a space</h1><small>Start a persistent public community</small></div></header>
+<form class="surface-card" method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="mb-3"><label class="form-label" for="name">Name</label><input class="form-control" id="name" name="name" maxlength="120" required></div>
+<div class="mb-3"><label class="form-label" for="slug">URL name <span class="text-muted">(optional)</span></label><input class="form-control" id="slug" name="slug" maxlength="80" placeholder="Defaults from the name"><div class="form-text">Lowercase letters and numbers are normalized into a stable URL slug.</div></div>
+<div class="mb-3"><label class="form-label" for="description">Description</label><textarea class="form-control" id="description" name="description" maxlength="500" rows="4" required></textarea></div>
+<p class="text-muted small">Story 13.1 spaces are public. Private/local coordination and additional roles require separately defined privacy and moderation rules.</p>
+<button class="btn btn-primary" type="submit">Create space</button> <a class="btn btn-secondary" href="{{ url_for('spaces.index') }}">Cancel</a>
+</form>
+{% endblock %}
