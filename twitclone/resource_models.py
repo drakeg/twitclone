@@ -17,10 +17,14 @@ class Resource(db.Model):
     title = db.Column(db.String(160), nullable=False)
     current_revision_id = db.Column(db.Integer, nullable=True)
     is_removed = db.Column(db.Boolean, nullable=False, default=False)
+    removed_at = db.Column(db.DateTime, nullable=True)
+    removed_by_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="SET NULL"), nullable=True)
+    removal_reason = db.Column(db.String(500), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=_utcnow, onupdate=_utcnow)
 
-    owner = db.relationship("User", backref=db.backref("resources", lazy=True))
+    owner = db.relationship("User", foreign_keys=[owner_id], backref=db.backref("resources", lazy=True))
+    removed_by = db.relationship("User", foreign_keys=[removed_by_id])
     revisions = db.relationship(
         "ResourceRevision",
         backref="resource",
