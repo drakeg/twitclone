@@ -57,43 +57,49 @@ Some useful contributions should be improved over time instead of repeatedly rep
 
 ## Story 11.4 — Resource discovery
 
-**Status:** In implementation.
+**Status:** Completed.
 
-**Goal:** Make durable resources discoverable through Ripple's explicit topic system without converting knowledge discovery into paid placement or a hidden popularity ranking.
-
-### Current implementation slice
-
-- Existing `/topic/<slug>` discovery pages now include visible, non-removed resources explicitly associated with that normalized topic.
-- Resource discovery uses the same explicit topic association created at publication; it does not infer topics from resource text or user attributes.
-- Resources are ordered by `updated_at` descending and resource ID descending for deterministic ties.
-- The ordering rule is disclosed on the topic page.
-- Followers, subscriptions, paid plans, verification, and contributor reputation do not affect resource placement.
-- Each result links directly to the durable resource and shows owner, current revision number, updated date, and a short current-content preview.
-- Removed resources are excluded.
-- Topics with no visible resources show a clear empty state.
-- No schema migration is required because Story 11.1 already established normalized resource-topic associations.
-
-### Acceptance criteria
-
-- A resource appears on each topic page it was explicitly associated with.
-- Removed resources do not appear.
-- Resource ordering is deterministic and understandable.
-- No follower count, paid entitlement, verification state, or reputation score buys placement.
-- Low-data/empty topics remain useful and understandable.
-- Topic contributor discovery remains separate from durable-resource ordering.
-- Tests cover visible resources, ordering, links, exclusion of removed resources, ranking explanation, and empty state.
-
-### Discovery decision
-
-Story 11.4 uses recency of the resource's maintained state rather than social popularity. This is intentionally not a claim that the newest resource is the most authoritative; it is a transparent browsing order. Future resource quality/review signals require their own explicit, auditable design before they can affect discovery.
+- Topic pages surface visible resources through explicit normalized resource-topic associations.
+- Resources are ordered transparently by most recently maintained, with deterministic ID ties.
+- Followers, subscriptions, paid plans, verification, and contributor reputation do not buy placement.
+- Removed resources are excluded and empty topics have a clear durable-resource state.
+- Story 11.4 merged in PR #191.
 
 ## Story 11.5 — Resource integrity and lifecycle
 
-**Status:** Planned.
+**Status:** In implementation.
 
-- Define moderation/removal behavior for resources and historical revisions.
-- Keep source and attribution history understandable after corrections.
-- Document ownership, contributor permissions, and future community integration boundaries.
+**Goal:** Remove unsafe, obsolete, or unwanted resources from public Ripple without silently destroying the provenance that makes durable collaborative knowledge auditable.
+
+### Current implementation slice
+
+- Resource owners and administrators can remove a visible resource from public Ripple.
+- Removal is a lifecycle state change, not a destructive delete.
+- Every removal requires a retained reason and records `removed_at` plus the account that performed the action.
+- Removed resources disappear from the resource library, topic discovery, current detail, and historical revision routes.
+- Stored revision rows, editor attribution, change notes, and sources remain intact in the database for audit/provenance purposes.
+- Removed resources cannot receive new revisions.
+- Unrelated users cannot remove another user's resource.
+- Administrator removals are attributed to the administrator rather than the resource owner.
+- Migration `20260828_0025_resource_lifecycle.py` adds lifecycle audit metadata without altering immutable revision records.
+
+### Acceptance criteria
+
+- Public removal never hard-deletes resource revision history.
+- The remover, removal time, and reason are retained.
+- Owner/admin authority is explicit and unrelated users receive 403.
+- Removed resources return 404 from current and historical public routes and remain absent from discovery.
+- Removed resources cannot be revised after removal.
+- Existing revision provenance remains queryable internally after removal.
+- Tests cover owner removal, administrator attribution, unauthorized removal, required reason, provenance preservation, public hiding, and post-removal revision blocking.
+
+### Lifecycle decision
+
+Sprint 11 deliberately separates public visibility from provenance retention. Removal means Ripple stops serving or discovering the resource; it does not rewrite history. A future legal/privacy deletion workflow may require stronger erasure semantics and must be designed separately rather than overloading moderation removal.
+
+## Sprint completion gate
+
+After Story 11.5 merges and its validation passes, Sprint 11 can be marked **Completed**. The resulting resource system provides durable topic-associated knowledge, append-only attributable revisions, inspectable history, transparent topic discovery, and non-destructive moderation lifecycle controls.
 
 ## Definition of done
 
