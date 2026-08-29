@@ -29,41 +29,52 @@ Give people meaningful, understandable control over what Ripple shows them witho
 
 ## Story 12.2 — Persistent and reversible feed preference
 
+**Status:** Completed.
+
+- A companion `UserFeedPreference` record stores an authenticated user's default feed mode without modifying the mature `User` table model.
+- Migration `20260828_0026_feed_preference.py` creates one preference row per user with a database constraint limiting values to `all` or `following`.
+- Users with no saved preference default to All Ripple.
+- Visiting `/?feed=...` temporarily switches the current view without mutating the saved default.
+- The Home UI distinguishes the saved default from the currently viewed feed.
+- Users can explicitly make All Ripple or Following their default and reverse that choice later.
+- Anonymous visitors cannot persist a feed preference.
+- Story 12.2 merged in PR #194.
+
+## Story 12.3 — Topic-oriented discovery mode
+
 **Status:** In implementation.
 
 ### Current implementation slice
 
-- A companion `UserFeedPreference` record stores an authenticated user's default feed mode without modifying the mature `User` table model.
-- Migration `20260828_0026_feed_preference.py` creates one preference row per user with a database constraint limiting values to `all` or `following`.
-- Users with no saved preference default to All Ripple, preserving existing behavior.
-- Visiting `/?feed=...` temporarily switches the current view without mutating the saved default.
-- The Home UI states the saved default separately from the currently viewed feed.
-- When the current feed differs from the saved default, an explicit **Make ... my default** control is shown.
-- `POST /feed-preference` creates or replaces the preference only after an authenticated, explicit action.
-- Invalid stored/write values do not produce a third implicit feed mode.
-- The preference is reversible by making either All Ripple or Following the default.
-- Anonymous visitors cannot persist a feed preference.
+- Home adds an explicit **Explore a topic** control for authenticated users.
+- Topic mode is a temporary browsing mode and cannot be persisted as the user's default feed.
+- Topic input is normalized through Ripple's existing topic vocabulary and matched by normalized slug.
+- Only posts with an author-selected `explicit` topic association qualify.
+- Hashtag-only topic associations are intentionally excluded from topic discovery.
+- Reposts qualify when the original post has the selected explicit topic association.
+- Quotes are excluded because quote text has no independent topic association today; inheriting the quoted post's topic would imply intent that the quote author did not declare.
+- Polls are excluded because polls do not yet support explicit topic associations.
+- Results remain deterministic newest-first using the same timeline ordering rules as existing feeds.
+- The UI explains the inclusion/exclusion rules and states that popularity/engagement ranking is not applied.
+- Topic pagination preserves the normalized topic slug.
+- Unknown topics produce a clear empty state rather than falling back to unrelated content.
+- No migration is required.
 
 ### Acceptance criteria
 
-- A saved Following preference is applied on a plain `/` visit with no query parameter.
-- A temporary query-string switch does not alter the saved preference.
-- A user can change the saved default in either direction.
-- Invalid preference submissions return 400 and do not mutate data.
-- Unauthenticated preference writes are rejected by authentication.
-- The UI distinguishes **current view** from **saved default** so switching is understandable and reversible.
-- No follower count, engagement metric, paid entitlement, or inferred trait influences preference selection.
-- Tests cover default application, temporary switching, replacement, invalid input, and authentication.
+- Explicitly associated posts appear for the selected topic.
+- Hashtag-only matches do not appear.
+- Reposts of explicitly associated posts appear.
+- Quote posts and polls do not appear until they can carry their own explicit topic semantics.
+- Topic mode cannot be saved through `/feed-preference`.
+- Unknown topics return a clear empty topic feed.
+- Pagination retains both `feed=topic` and the normalized topic slug.
+- Feed explanation makes the deterministic rules visible to the user.
+- Tests cover explicit-vs-hashtag filtering, repost inclusion, quote/poll exclusion, pagination, empty state, and persistence rejection.
 
-### Data-model decision
+### Product decision
 
-Story 12.2 uses a companion preference table rather than adding another column to the mature `User` table. This keeps the feed-choice feature isolated, makes future feed modes easier to evolve, and avoids unrelated model churn.
-
-## Story 12.3 — Topic-oriented discovery mode
-
-**Status:** Planned.
-
-Use explicit topic follows/interests and existing normalized topic associations to provide a transparent topic-oriented browsing mode without inferred sensitive interests.
+Story 12.3 favors declared intent over broad matching. Ripple does not infer that a quote, poll, hashtag, profile attribute, engagement history, or other behavior represents a user's interest in a topic. Additional topic-follow persistence can be designed separately after the browsing semantics are validated.
 
 ## Story 12.4 — Relationship-first / quiet mode
 

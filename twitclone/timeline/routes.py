@@ -16,9 +16,9 @@ from twitclone.media_storage import MediaNotFound, get_media_storage
 from twitclone.models import DirectMessage, Notification, Quote, Retweet, Tweet, User
 from twitclone.timeline import timeline_blueprint
 from twitclone.timeline.media import store_image_upload
-from twitclone.timeline.service import FEED_MODES, build_timeline_posts, paginate_timeline_posts
+from twitclone.timeline.service import FEED_MODES, PERSISTENT_FEED_MODES, build_timeline_posts, paginate_timeline_posts
 from twitclone.timeline.validation import validate_post_content
-from twitclone.topic_models import associate_topics, public_topic_associations, replace_explicit_topics
+from twitclone.topic_models import Topic, associate_topics, public_topic_associations, replace_explicit_topics, topic_slug
 from twitclone.utils import get_newest_users, get_trending_hashtags
 
 CONTRIBUTION_SIGNALS = {"helpful": "Helpful", "thoughtful": "Thoughtful", "context": "Useful context"}
@@ -38,7 +38,7 @@ def _stored_feed_mode():
     if not current_user.is_authenticated:
         return "all"
     preference = UserFeedPreference.query.filter_by(user_id=current_user.id).first()
-    return preference.feed_mode if preference and preference.feed_mode in FEED_MODES else "all"
+    return preference.feed_mode if preference and preference.feed_mode in PERSISTENT_FEED_MODES else "all"
 
 
 def index():
@@ -50,17 +50,41 @@ def index():
     feed_mode = requested_mode if requested_mode in FEED_MODES else stored_feed_mode
     if feed_mode == "following" and not current_user.is_authenticated:
         feed_mode = "all"
-    posts = build_timeline_posts(now=now, viewer=current_user, feed_mode=feed_mode)
+
+    selected_topic = None
+    topic_value = (request.args.get("topic") or "").strip()
+    selected_topic_slug = topic_slug(topic_value) if feed_mode == "topic" else None
+    if selected_topic_slug:
+        selected_topic = Topic.query.filter_by(slug=selected_topic_slug).first()
+    if feed_mode == "topic" and not selected_topic_slug:
+        feed_mode = stored_feed_mode
+
+    posts = build_timeline_posts(now=now, viewer=current_user, feed_mode=feed_mode, topic_slug=selected_topic_slug)
     page = request.args.get("page", default=1, type=int) or 1
     timeline_page = paginate_timeline_posts(posts, page=page)
     record_post_impressions(timeline_page.items)
-    return render_template("index.html", posts=timeline_page.items, timeline_page=timeline_page, current_time=current_time, trending_hashtags=get_trending_hashtags(), newest_users=get_newest_users(), conversation_intents=CONVERSATION_INTENTS, feed_mode=feed_mode, stored_feed_mode=stored_feed_mode)
+    topic_choices = Topic.query.order_by(Topic.name.asc(), Topic.id.asc()).limit(100).all()
+    return render_template(
+        "index.html",
+        posts=timeline_page.items,
+        timeline_page=timeline_page,
+        current_time=current_time,
+        trending_hashtags=get_trending_hashtags(),
+        newest_users=get_newest_users(),
+        conversation_intents=CONVERSATION_INTENTS,
+        feed_mode=feed_mode,
+        stored_feed_mode=stored_feed_mode,
+        selected_topic=selected_topic,
+        selected_topic_slug=selected_topic_slug,
+        selected_topic_label=selected_topic.name if selected_topic else topic_value,
+        topic_choices=topic_choices,
+    )
 
 
 @login_required
 def set_feed_preference():
     feed_mode = (request.form.get("feed_mode") or "").strip().lower()
-    if feed_mode not in FEED_MODES:
+    if feed_mode not in PERSISTENT_FEED_MODES:
         abort(400)
     preference = UserFeedPreference.query.filter_by(user_id=current_user.id).first()
     if preference is None:
