@@ -10,7 +10,7 @@ from twitclone.topic_models import public_topic_associations
 
 TIMELINE_TYPE_PRIORITY = {"tweet": 0, "retweet": 1, "quote": 2, "poll": 3}
 TIMELINE_PAGE_SIZE = 20
-FEED_MODES = {"all", "following", "topic"}
+FEED_MODES = {"all", "following", "topic", "quiet"}
 PERSISTENT_FEED_MODES = {"all", "following"}
 
 
@@ -66,11 +66,24 @@ def _following_ids(viewer):
     return {user.id for user in viewer.followed.all()} | {viewer.id}
 
 
+def _quiet_ids(viewer):
+    if viewer is None or not viewer.is_authenticated:
+        return None
+    followed_ids = {user.id for user in viewer.followed.all()}
+    follower_ids = {user.id for user in viewer.followers.all()}
+    return (followed_ids & follower_ids) | {viewer.id}
+
+
 def build_timeline_posts(*, now, viewer=None, feed_mode="all", topic_slug=None):
     if feed_mode not in FEED_MODES:
         feed_mode = "all"
-    allowed_user_ids = _following_ids(viewer) if feed_mode == "following" else None
-    if feed_mode == "following" and allowed_user_ids is None:
+    if feed_mode == "following":
+        allowed_user_ids = _following_ids(viewer)
+    elif feed_mode == "quiet":
+        allowed_user_ids = _quiet_ids(viewer)
+    else:
+        allowed_user_ids = None
+    if feed_mode in {"following", "quiet"} and allowed_user_ids is None:
         feed_mode = "all"
     if feed_mode == "topic" and not topic_slug:
         feed_mode = "all"
@@ -85,9 +98,10 @@ def build_timeline_posts(*, now, viewer=None, feed_mode="all", topic_slug=None):
     for tweet in Tweet.query.filter(_visible_tweet_filter(now)).all():
         if include_user(tweet.user_id) and include_tweet(tweet):
             posts.append({"id": tweet.id, "source_id": tweet.id, "action_tweet_id": tweet.id, "content": tweet.content, "timestamp": _tweet_timeline_timestamp(tweet), "type": "tweet", "user": tweet.user, "image": tweet.image, "original_tweet": None, "original_user": None, "poll": None, "poll_id": None, "has_voted": False, "report_type": "tweet", "report_id": tweet.id, "report_author_id": tweet.user_id, "conversation_intent": _tweet_conversation_intent(tweet), "conversation_state": _tweet_conversation_state(tweet), "topics": _tweet_topics(tweet)})
-    for retweet in Retweet.query.join(Retweet.tweet).filter(_visible_tweet_filter(now)).all():
-        if include_user(retweet.user_id) and include_tweet(retweet.tweet):
-            posts.append({"id": retweet.id, "source_id": retweet.id, "action_tweet_id": retweet.tweet_id, "content": retweet.tweet.content, "timestamp": retweet.timestamp, "type": "retweet", "user": retweet.user, "image": retweet.tweet.image, "original_tweet": retweet.tweet, "original_user": retweet.tweet.user, "poll": None, "poll_id": None, "has_voted": False, "report_type": "tweet", "report_id": retweet.tweet_id, "report_author_id": retweet.tweet.user_id, "conversation_intent": _tweet_conversation_intent(retweet.tweet), "conversation_state": _tweet_conversation_state(retweet.tweet), "topics": _tweet_topics(retweet.tweet)})
+    if feed_mode != "quiet":
+        for retweet in Retweet.query.join(Retweet.tweet).filter(_visible_tweet_filter(now)).all():
+            if include_user(retweet.user_id) and include_tweet(retweet.tweet):
+                posts.append({"id": retweet.id, "source_id": retweet.id, "action_tweet_id": retweet.tweet_id, "content": retweet.tweet.content, "timestamp": retweet.timestamp, "type": "retweet", "user": retweet.user, "image": retweet.tweet.image, "original_tweet": retweet.tweet, "original_user": retweet.tweet.user, "poll": None, "poll_id": None, "has_voted": False, "report_type": "tweet", "report_id": retweet.tweet_id, "report_author_id": retweet.tweet.user_id, "conversation_intent": _tweet_conversation_intent(retweet.tweet), "conversation_state": _tweet_conversation_state(retweet.tweet), "topics": _tweet_topics(retweet.tweet)})
     if feed_mode != "topic":
         for quote in Quote.query.join(Quote.tweet).filter(_visible_tweet_filter(now), Quote.is_removed.is_(False)).all():
             if include_user(quote.user_id):

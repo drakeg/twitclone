@@ -31,56 +31,59 @@ Give people meaningful, understandable control over what Ripple shows them witho
 
 **Status:** Completed.
 
-- A companion `UserFeedPreference` record stores an authenticated user's default feed mode without modifying the mature `User` table model.
-- Migration `20260828_0026_feed_preference.py` creates one preference row per user with a database constraint limiting values to `all` or `following`.
+- A companion `UserFeedPreference` record stores an authenticated user's default feed mode.
+- Migration `20260828_0026_feed_preference.py` constrains saved values to `all` or `following`.
 - Users with no saved preference default to All Ripple.
-- Visiting `/?feed=...` temporarily switches the current view without mutating the saved default.
-- The Home UI distinguishes the saved default from the currently viewed feed.
-- Users can explicitly make All Ripple or Following their default and reverse that choice later.
+- Query-string switching is temporary unless the user explicitly changes the default.
+- Users can reverse the saved default between All Ripple and Following.
 - Anonymous visitors cannot persist a feed preference.
 - Story 12.2 merged in PR #194.
 
 ## Story 12.3 — Topic-oriented discovery mode
 
+**Status:** Completed.
+
+- Home provides an explicit **Explore a topic** control.
+- Topic mode uses Ripple's normalized topic vocabulary and only author-selected `explicit` associations.
+- Hashtag-only associations are excluded.
+- Reposts qualify when the original post explicitly carries the selected topic.
+- Quotes and polls are excluded until they can carry their own explicit topic semantics.
+- Topic results remain deterministic newest-first and cannot be saved as the default feed.
+- Unknown topics show an empty topic state rather than unrelated content.
+- Story 12.3 implementation merged in PR #197. PR #196 was an empty administrative merge and is not treated as implementation evidence.
+
+## Story 12.4 — Relationship-first / quiet mode
+
 **Status:** In implementation.
 
 ### Current implementation slice
 
-- Home adds an explicit **Explore a topic** control for authenticated users.
-- Topic mode is a temporary browsing mode and cannot be persisted as the user's default feed.
-- Topic input is normalized through Ripple's existing topic vocabulary and matched by normalized slug.
-- Only posts with an author-selected `explicit` topic association qualify.
-- Hashtag-only topic associations are intentionally excluded from topic discovery.
-- Reposts qualify when the original post has the selected explicit topic association.
-- Quotes are excluded because quote text has no independent topic association today; inheriting the quoted post's topic would imply intent that the quote author did not declare.
-- Polls are excluded because polls do not yet support explicit topic associations.
-- Results remain deterministic newest-first using the same timeline ordering rules as existing feeds.
-- The UI explains the inclusion/exclusion rules and states that popularity/engagement ranking is not applied.
-- Topic pagination preserves the normalized topic slug.
-- Unknown topics produce a clear empty state rather than falling back to unrelated content.
+- Authenticated users can explicitly choose **Quiet** from Home.
+- Quiet includes the viewer's own direct activity plus direct posts, quotes, and polls from **mutual connections** only.
+- A mutual connection means both accounts explicitly follow each other; one-way follows do not qualify.
+- Reposts are excluded from Quiet even when performed by a mutual connection, reducing amplification noise by design.
+- Results remain deterministic newest-first.
+- Quiet is a temporary view and cannot be stored through `/feed-preference` in this story.
+- Anonymous requests for Quiet safely fall back to All Ripple.
+- The UI explains the mutual-connection rule, repost exclusion, chronological order, and lack of popularity/engagement ranking.
+- Pagination preserves `feed=quiet`.
 - No migration is required.
 
 ### Acceptance criteria
 
-- Explicitly associated posts appear for the selected topic.
-- Hashtag-only matches do not appear.
-- Reposts of explicitly associated posts appear.
-- Quote posts and polls do not appear until they can carry their own explicit topic semantics.
-- Topic mode cannot be saved through `/feed-preference`.
-- Unknown topics return a clear empty topic feed.
-- Pagination retains both `feed=topic` and the normalized topic slug.
-- Feed explanation makes the deterministic rules visible to the user.
-- Tests cover explicit-vs-hashtag filtering, repost inclusion, quote/poll exclusion, pagination, empty state, and persistence rejection.
+- The viewer's own direct activity remains visible.
+- Direct activity from mutual connections appears.
+- One-way follows and unrelated accounts do not appear.
+- Reposts do not appear, including reposts by mutual connections.
+- Quotes and polls from mutual connections follow the same relationship rule as posts.
+- Ordering remains newest-first and deterministic.
+- Quiet cannot be persisted as the default feed.
+- Anonymous Quiet requests fall back to All Ripple.
+- Tests cover relationship boundaries, repost exclusion, UI explanation, pagination, persistence rejection, and anonymous fallback.
 
 ### Product decision
 
-Story 12.3 favors declared intent over broad matching. Ripple does not infer that a quote, poll, hashtag, profile attribute, engagement history, or other behavior represents a user's interest in a topic. Additional topic-follow persistence can be designed separately after the browsing semantics are validated.
-
-## Story 12.4 — Relationship-first / quiet mode
-
-**Status:** Planned.
-
-Explore a deliberately lower-noise mode based on explicit relationships and understandable recency rules, not engagement velocity or outrage proxies.
+Quiet is intentionally narrower than Following. It is not a quality score or a hidden recommendation model; it is a transparent relationship filter based on reciprocal follows plus a deliberate removal of repost amplification. No follower count, engagement velocity, subscription, verification state, or inferred trait affects inclusion or ordering.
 
 ## Story 12.5 — Feed integrity and measurement
 
