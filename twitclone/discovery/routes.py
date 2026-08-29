@@ -7,6 +7,7 @@ from sqlalchemy import or_
 from twitclone.discovery import discovery_blueprint
 from twitclone.extensions import db
 from twitclone.models import HashtagFollow, Tweet, User
+from twitclone.resource_models import Resource, ResourceTopic
 from twitclone.topic_discovery import topic_contributors
 
 
@@ -16,6 +17,16 @@ def _normalize_hashtag(value: str) -> str:
 
 def _normalize_search_query(value: str) -> str:
     return " ".join(value.strip().split())[:100]
+
+
+def _topic_resources(topic_id):
+    """Return visible resources deterministically without popularity or paid ranking."""
+    return (
+        Resource.query.join(ResourceTopic, ResourceTopic.resource_id == Resource.id)
+        .filter(ResourceTopic.topic_id == topic_id, Resource.is_removed.is_(False))
+        .order_by(Resource.updated_at.desc(), Resource.id.desc())
+        .all()
+    )
 
 
 def about():
@@ -104,6 +115,7 @@ def topic(topic_slug):
         "topic.html",
         topic=topic_record,
         contributors=contributors,
+        resources=_topic_resources(topic_record.id),
     )
 
 
