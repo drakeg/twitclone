@@ -43,6 +43,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     from twitclone.polls import polls_blueprint
     from twitclone.profiles import profiles_blueprint
     from twitclone.resources import resources_blueprint
+    from twitclone.spaces import spaces_blueprint
     from twitclone.timeline import timeline_blueprint
     from twitclone.utils import bind_legacy_module
 
@@ -63,6 +64,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
         discovery_blueprint,
         bookmarks_blueprint,
         resources_blueprint,
+        spaces_blueprint,
         admin_blueprint,
         community_blueprint,
         payments_blueprint,
