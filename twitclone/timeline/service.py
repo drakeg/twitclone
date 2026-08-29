@@ -6,6 +6,7 @@ from math import ceil
 from twitclone.conversation_intent import conversation_intent_metadata
 from twitclone.conversation_models import TweetConversationIntent
 from twitclone.models import Poll, PollVote, Quote, Retweet, Tweet
+from twitclone.spaces.models import SpacePost
 from twitclone.topic_models import public_topic_associations
 
 TIMELINE_TYPE_PRIORITY = {"tweet": 0, "retweet": 1, "quote": 2, "poll": 3}
@@ -60,6 +61,10 @@ def _has_explicit_topic(tweet, topic_slug):
     return any(topic["slug"] == topic_slug and topic["source"] == "explicit" for topic in _tweet_topics(tweet))
 
 
+def _space_scoped_tweet_ids():
+    return {row.tweet_id for row in SpacePost.query.all()}
+
+
 def _following_ids(viewer):
     if viewer is None or not viewer.is_authenticated:
         return None
@@ -88,10 +93,14 @@ def build_timeline_posts(*, now, viewer=None, feed_mode="all", topic_slug=None):
     if feed_mode == "topic" and not topic_slug:
         feed_mode = "all"
 
+    scoped_tweet_ids = _space_scoped_tweet_ids()
+
     def include_user(user_id):
         return allowed_user_ids is None or user_id in allowed_user_ids
 
     def include_tweet(tweet):
+        if tweet.id in scoped_tweet_ids:
+            return False
         return feed_mode != "topic" or _has_explicit_topic(tweet, topic_slug)
 
     posts = []
@@ -104,7 +113,7 @@ def build_timeline_posts(*, now, viewer=None, feed_mode="all", topic_slug=None):
                 posts.append({"id": retweet.id, "source_id": retweet.id, "action_tweet_id": retweet.tweet_id, "content": retweet.tweet.content, "timestamp": retweet.timestamp, "type": "retweet", "user": retweet.user, "image": retweet.tweet.image, "original_tweet": retweet.tweet, "original_user": retweet.tweet.user, "poll": None, "poll_id": None, "has_voted": False, "report_type": "tweet", "report_id": retweet.tweet_id, "report_author_id": retweet.tweet.user_id, "conversation_intent": _tweet_conversation_intent(retweet.tweet), "conversation_state": _tweet_conversation_state(retweet.tweet), "topics": _tweet_topics(retweet.tweet)})
     if feed_mode != "topic":
         for quote in Quote.query.join(Quote.tweet).filter(_visible_tweet_filter(now), Quote.is_removed.is_(False)).all():
-            if include_user(quote.user_id):
+            if include_user(quote.user_id) and quote.tweet_id not in scoped_tweet_ids:
                 posts.append({"id": quote.id, "source_id": quote.id, "action_tweet_id": quote.tweet_id, "content": quote.content, "timestamp": quote.timestamp, "type": "quote", "user": quote.user, "image": None, "original_tweet": quote.tweet, "original_user": quote.tweet.user, "poll": None, "poll_id": None, "has_voted": False, "report_type": "quote", "report_id": quote.id, "report_author_id": quote.user_id, "conversation_intent": None, "conversation_state": None, "topics": []})
         for poll in Poll.query.filter_by(is_removed=False).all():
             if not include_user(poll.user_id):

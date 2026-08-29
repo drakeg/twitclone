@@ -31,6 +31,12 @@ class Space(db.Model):
         cascade="all, delete-orphan",
         lazy=True,
     )
+    posts = db.relationship(
+        "SpacePost",
+        back_populates="space",
+        cascade="all, delete-orphan",
+        lazy=True,
+    )
 
 
 class SpaceMembership(db.Model):
@@ -50,4 +56,17 @@ class SpaceMembership(db.Model):
     user = db.relationship("User")
 
 
-__all__ = ["Space", "SpaceMembership"]
+class SpacePost(db.Model):
+    __tablename__ = "space_post"
+    __table_args__ = (db.UniqueConstraint("tweet_id", name="uq_space_post_tweet"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    space_id = db.Column(db.Integer, db.ForeignKey("space.id", ondelete="CASCADE"), nullable=False)
+    tweet_id = db.Column(db.Integer, db.ForeignKey("tweet.id", ondelete="CASCADE"), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+
+    space = db.relationship("Space", back_populates="posts")
+    tweet = db.relationship("Tweet")
+
+
+__all__ = ["Space", "SpaceMembership", "SpacePost"]
