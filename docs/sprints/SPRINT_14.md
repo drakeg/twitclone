@@ -29,41 +29,45 @@ Add a true public reply model so Ripple conversations can develop as readable di
 
 ## Story 14.2 — Threaded reply structure
 
+**Status:** Completed.
+
+- Added nullable `parent_reply_id` and migration `20260901_0032_threaded_replies.py`.
+- Added nested replies scoped to the same root post.
+- Added deterministic parent-before-child depth-first rendering.
+- Preserved stable reply permalinks and explicit parent navigation.
+- Capped visual indentation while preserving deeper persisted hierarchy.
+- Applied Closed behavior consistently to top-level and nested replies.
+- Story 14.2 merged in PR #212.
+
+## Story 14.3 — Conversation intent and health semantics
+
 **Status:** In implementation.
 
 ### Current implementation slice
 
-- Adds nullable `parent_reply_id` to `Reply`, preserving top-level replies while allowing explicit parent/child relationships.
-- Migration `20260901_0032_threaded_replies.py` advances from `0031` and uses Alembic batch alteration for SQLite compatibility.
-- Adds a nested reply POST route scoped by both root post and parent reply.
-- Parent replies must belong to the same root post and remain publicly visible.
-- Thread rendering is deterministic depth-first: root replies and each sibling group are ordered oldest-first with ID tie-breaking.
-- Each nested reply displays an attributable parent link using the parent's stable permalink.
-- Reply permalinks continue to anchor into the full root conversation so ancestor/root context is not lost.
-- Visual indentation is capped at three levels; deeper hierarchy remains intact in persistence and navigation and is labeled as a deeper thread.
-- Closed conversations reject nested replies using the same root conversation health boundary as top-level replies.
-- Nested reply notifications target the parent reply author when appropriate rather than always notifying only the root author.
+- The root post's conversation intent is now presented as the expectation for the entire reply thread rather than as decoration only on the root card.
+- Top-level and nested reply forms repeat the root expectation so participants see it at the point of response.
+- **Answered / resolved** remains informational and does not silently become a reply lock.
+- Resolved conversations continue accepting top-level and nested replies unless the author also marks the conversation Closed.
+- **Closed** remains the single conversation-health control that blocks new replies.
+- A conversation may be both Resolved and Closed; the UI displays both states without conflating their semantics.
+- Existing replies remain readable when Closed.
+- Reply ordering, visibility, and Quote semantics are unchanged.
 
 ### Acceptance criteria
 
-- Nested replies persist an explicit parent relationship without changing Quote semantics.
-- A parent reply from a different root cannot be used to create a cross-root child.
-- Thread rendering preserves deterministic parent-before-child depth-first order.
-- Every nested reply and parent remains reachable through stable reply permalinks.
-- Deep conversations preserve their actual hierarchy while visual indentation remains bounded.
-- Closed conversations prevent new top-level and nested replies without hiding existing descendants.
-- No follower count, contribution total, paid status, verification state, or engagement velocity changes reply ordering.
-- Tests cover nested persistence, cross-root rejection, ordering, parent navigation, depth bounds, and closed-conversation behavior.
+- Root conversation intent is visible as a thread-wide expectation.
+- Reply controls present the same root expectation before a response is submitted.
+- Resolved-only conversations remain replyable.
+- Closed-only and Closed+Resolved conversations reject new top-level and nested replies.
+- Existing descendants remain visible after closure.
+- Both health states can be displayed simultaneously without contradictory copy.
+- No paid status, verification, follower count, contribution total, or engagement velocity affects conversation-health behavior.
+- Tests cover intent propagation, resolved replyability, combined Closed+Resolved state, existing-reply visibility, and top-level/nested blocking.
 
 ### Story boundary
 
-Story 14.2 adds structural nesting only. Reply-level contribution signals, reporting/moderation, reply removal lifecycle, resolved/answered descendant semantics, and broader anti-abuse/performance work remain later Sprint 14 stories.
-
-## Story 14.3 — Conversation intent and health semantics
-
-**Status:** Planned.
-
-Apply root conversation intent, Closed, and Answered/Resolved semantics coherently throughout nested replies and clarify author/replier expectations in the UI.
+Story 14.3 clarifies and regression-locks root-level intent and health semantics. It does not add reply-specific resolution markers, accepted-answer selection, per-reply intent, moderation controls, contribution signals, or ranking behavior.
 
 ## Story 14.4 — Reply contribution, reporting, and moderation
 
