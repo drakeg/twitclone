@@ -5,10 +5,11 @@ from datetime import UTC, datetime
 from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
+from twitclone.community.routes import REPORT_CATEGORIES
 from twitclone.conversation_intent import conversation_intent_metadata
 from twitclone.extensions import db
 from twitclone.models import Notification, Tweet
-from twitclone.reply_models import Reply, ReplyContribution
+from twitclone.reply_models import Reply, ReplyContribution, ReplyReport
 from twitclone.replies import replies_blueprint
 from twitclone.spaces.models import SpacePost
 from twitclone.timeline.validation import validate_post_content
@@ -168,6 +169,50 @@ def toggle_reply_contribution(tweet_id, reply_id, signal):
         flash(f"Marked {CONTRIBUTION_SIGNALS[signal].lower()}.", "success")
     db.session.commit()
     return redirect(url_for("timeline.reply_permalink", tweet_id=tweet_id, reply_id=reply.id))
+
+
+@replies_blueprint.route("/post/<int:tweet_id>/reply/<int:reply_id>/report", methods=["GET", "POST"])
+@login_required
+def report_reply(tweet_id, reply_id):
+    _root_tweet(tweet_id)
+    reply = _visible_reply(tweet_id, reply_id)
+    if reply.user_id == current_user.id:
+        flash("You cannot report your own content.", "warning")
+        return redirect(url_for("timeline.reply_permalink", tweet_id=tweet_id, reply_id=reply.id))
+
+    existing = ReplyReport.query.filter_by(reporter_id=current_user.id, reply_id=reply.id).first()
+    if existing:
+        flash("You have already reported this content. An admin can review it.", "info")
+        return redirect(url_for("timeline.reply_permalink", tweet_id=tweet_id, reply_id=reply.id))
+
+    if request.method == "POST":
+        category = request.form.get("category") or ""
+        details = (request.form.get("details") or "").strip() or None
+        if category not in REPORT_CATEGORIES:
+            flash("Choose a reason for the report.", "danger")
+        else:
+            db.session.add(ReplyReport(
+                reporter_id=current_user.id,
+                author_id=reply.user_id,
+                reply_id=reply.id,
+                category=category,
+                details=details,
+            ))
+            db.session.add(Notification(
+                user_id=current_user.id,
+                message="Your report was received and is awaiting Ripple admin review.",
+            ))
+            db.session.commit()
+            flash("Report submitted. Ripple admins have been alerted for review.", "success")
+            return redirect(url_for("timeline.reply_permalink", tweet_id=tweet_id, reply_id=reply.id))
+
+    return render_template(
+        "report_content.html",
+        content=reply,
+        content_type="reply",
+        preview=reply.content,
+        categories=REPORT_CATEGORIES,
+    )
 
 
 @replies_blueprint.route("/post/<int:tweet_id>/reply/<int:reply_id>", methods=["GET"])
