@@ -41,39 +41,47 @@ Add a true public reply model so Ripple conversations can develop as readable di
 
 ## Story 14.3 — Conversation intent and health semantics
 
+**Status:** Completed.
+
+- Root conversation intent is presented as the expectation for the entire reply thread and repeated at reply controls.
+- **Answered / resolved** remains informational and does not lock replies.
+- **Closed** remains the only root health state that blocks new top-level and nested replies.
+- Closed and Resolved can coexist without conflating their meaning.
+- Existing replies remain readable after closure.
+- Story 14.3 merged in PR #213.
+
+## Story 14.4 — Reply contribution, reporting, and moderation
+
 **Status:** In implementation.
 
 ### Current implementation slice
 
-- The root post's conversation intent is now presented as the expectation for the entire reply thread rather than as decoration only on the root card.
-- Top-level and nested reply forms repeat the root expectation so participants see it at the point of response.
-- **Answered / resolved** remains informational and does not silently become a reply lock.
-- Resolved conversations continue accepting top-level and nested replies unless the author also marks the conversation Closed.
-- **Closed** remains the single conversation-health control that blocks new replies.
-- A conversation may be both Resolved and Closed; the UI displays both states without conflating their semantics.
-- Existing replies remain readable when Closed.
-- Reply ordering, visibility, and Quote semantics are unchanged.
+- Replies support the same constructive labels as posts: **Helpful**, **Thoughtful**, and **Useful context**.
+- Reply signals are stored in a dedicated `ReplyContribution` table rather than in post contribution history.
+- Users may apply multiple distinct signal types to a reply, but cannot signal their own reply.
+- Signals are toggleable and display transparent per-label counts; they do not alter thread ordering or feed ranking.
+- Replies can be reported through the same Community Standards categories used for other public content.
+- Reply reports use an isolated `ReplyReport` model so legacy `PostReport` constraints and IDs remain untouched.
+- Reply reports appear in the shared admin moderation queue and can be filtered as content type **Reply**.
+- Admin dismissal preserves the reply; removal hides the reply from the public thread and records moderator, time, and reason.
+- All pending reports on the same reply are resolved together when an admin removes it.
+- Migration `20260901_0033_reply_moderation.py` adds moderation metadata, reply contribution persistence, and reply-report persistence.
 
 ### Acceptance criteria
 
-- Root conversation intent is visible as a thread-wide expectation.
-- Reply controls present the same root expectation before a response is submitted.
-- Resolved-only conversations remain replyable.
-- Closed-only and Closed+Resolved conversations reject new top-level and nested replies.
-- Existing descendants remain visible after closure.
-- Both health states can be displayed simultaneously without contradictory copy.
-- No paid status, verification, follower count, contribution total, or engagement velocity affects conversation-health behavior.
-- Tests cover intent propagation, resolved replyability, combined Closed+Resolved state, existing-reply visibility, and top-level/nested blocking.
+- Helpful/Thoughtful/Useful-context reply signals can be added and removed by authenticated non-authors.
+- Self-signaling is blocked.
+- Reply signals remain separate from post/topic reputation evidence and do not affect ordering.
+- Authenticated non-authors can report a visible reply exactly once per account.
+- Reply reports are attributable to reporter and author and appear in the existing admin moderation experience.
+- Admins can dismiss a reply report without changing content visibility.
+- Admin removal hides the reply, records the moderation decision, and resolves all pending reports for that reply.
+- Removed replies do not render in the public thread or accept new contribution/report actions.
+- Tests cover signal toggling, self-signal prevention, report deduplication, moderation queue visibility, dismissal, and removal.
 
 ### Story boundary
 
-Story 14.3 clarifies and regression-locks root-level intent and health semantics. It does not add reply-specific resolution markers, accepted-answer selection, per-reply intent, moderation controls, contribution signals, or ranking behavior.
-
-## Story 14.4 — Reply contribution, reporting, and moderation
-
-**Status:** Planned.
-
-Extend constructive contribution signals and reporting/moderation controls to replies where semantics are well-defined, without converting them into popularity ranking inputs.
+Story 14.4 integrates replies with constructive participation and Ripple-wide reporting/moderation. It does not make reply signals reputation/ranking inputs, add accepted answers, add user-authored reply deletion/editing, create reply-level appeals, or reinterpret historical Quotes.
 
 ## Story 14.5 — Reply integrity and compatibility
 
