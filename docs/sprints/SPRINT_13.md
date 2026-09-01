@@ -1,6 +1,6 @@
 # Sprint 13 — Communities and Topic Spaces
 
-**Status:** In implementation.
+**Status:** Completed.
 
 ## Goal
 
@@ -61,37 +61,20 @@ Create persistent spaces where conversations, resources, and topic contribution 
 
 ## Story 13.5 — Community contribution context and privacy review
 
-**Status:** In implementation.
-
-### Current implementation slice
+**Status:** Completed.
 
 - Community contribution context is derived from existing **Helpful**, **Thoughtful**, and **Useful context** signals rather than stored as a mutable space reputation score.
 - Evidence qualifies only when the recognized post is a currently visible post scoped to the space.
 - Both the recognized author and recognizer must currently be explicit members of that same space.
-- Self-recognition is ignored even if malformed/imported data contains it.
-- Hidden space posts and globally removed posts do not contribute.
-- If a recognizer or recognized author leaves the space, that evidence no longer appears in current community context.
-- The space detail page exposes total signals, recognized posts, unique recognizers, and per-member component counts.
+- Self-recognition, nonmember signals, hidden space posts, and globally removed posts are excluded.
+- Membership changes immediately affect current space context without deleting the underlying global signal history.
+- The space detail page exposes total signals, recognized posts, unique recognizers, and transparent per-member component counts.
 - Recognized members are displayed alphabetically rather than score-ranked.
 - Context has no effect on feed ordering, global/topic reputation, moderation authority, verification, subscription status, or paid reach.
 - `docs/COMMUNITY_CONTEXT_PRIVACY.md` documents anti-gaming, sensitive-trait, location, and future-expansion boundaries.
-- No location collection is introduced. Future local coordination must use explicit coarse location and receive a separate privacy review; precise/background tracking remains out of scope.
-- No schema migration is required.
+- No location collection is introduced; future local coordination requires explicit coarse-location and privacy review.
+- Story 13.5 merged in PR #210.
 
-### Acceptance criteria
+## Sprint outcome
 
-- Only current member-to-member recognition on visible space posts contributes to space context.
-- Signals from nonmembers, self-signals, hidden posts, and globally removed posts are excluded.
-- Leaving the space removes that member's recognition evidence from current space context without deleting the underlying global signal record.
-- The interface explains that the context is descriptive rather than a leaderboard/reputation score.
-- Member context ordering is alphabetical and not based on signal totals, followers, engagement, payment, verification, or role.
-- Tests cover evidence eligibility, membership changes, hidden/removed isolation, and user-facing explanation.
-- Privacy documentation explicitly prohibits silent precise-location tracking and sensitive-trait inference.
-
-### Story boundary
-
-Story 13.5 does not create a cross-space reputation score, community leaderboard, recommendation input, moderator eligibility gate, location database, private spaces, or automated moderation signal. Any future use of community context for ranking, eligibility, or cross-community reputation requires a separately specified product/integrity decision.
-
-## Definition of done
-
-Sprint 13 is complete when Ripple has persistent communities with explicit membership, space-scoped conversations and resources, understandable moderation roles, community contribution context, and documented privacy/integrity boundaries while global Community Standards remain authoritative.
+Sprint 13 delivered persistent public spaces, explicit membership, space-scoped conversations and knowledge, auditable local moderation/appeals, and descriptive community contribution context while preserving global Community Standards and preventing community roles, payment, or engagement from becoming global ranking signals.
