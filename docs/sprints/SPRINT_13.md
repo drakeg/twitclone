@@ -28,41 +28,49 @@ Create persistent spaces where conversations, resources, and topic contribution 
 
 ## Story 13.2 — Space-specific conversations
 
+**Status:** Completed.
+
+- `SpacePost` links an existing durable `Tweet` to exactly one space.
+- Only explicit members can publish into a space; public visitors can read current public-space conversations.
+- Space conversations are deterministic newest-first and clearly labeled as space-scoped.
+- Space-scoped posts, plus reposts/quotes referencing them, are excluded from global All Ripple, Following, Quiet, and Topic feeds.
+- Space posting does not change global reputation, verification, entitlement, or feed ranking.
+- Story 13.2 merged in PR #202.
+
+## Story 13.3 — Space resources and knowledge
+
 **Status:** In implementation.
 
 ### Current implementation slice
 
-- Add a one-to-one `SpacePost` scope record linking an existing durable `Tweet` to exactly one space.
-- Migration `20260829_0028_space_posts.py` advances from the `0027` space-foundation head.
-- Only explicit members, including the owner, may publish a space-scoped post.
-- Public visitors may read conversations because Story 13 spaces are public.
-- Space conversations render newest-first and are clearly labeled as space-scoped.
-- Space-scoped posts are excluded from All Ripple, Following, Quiet, and Topic global feeds.
-- Reposts and quotes whose source is a space-scoped post are also excluded from global feed assembly, preventing indirect amplification from silently changing the original scope.
-- Posting in a space does not change global reputation, verification, entitlement, or feed ranking.
-- The first slice intentionally keeps the space composer text-only; media, polls, scheduling, conversation intent, and independent topic metadata require separately reviewed space semantics rather than silently inheriting global behavior.
+- Add an attributable `SpaceResource` association connecting an existing Sprint 11 durable resource to a public space.
+- Migration `20260829_0029_space_resources.py` advances from the `0028` space-post head.
+- Associations are many-to-many across spaces and resources, with one link per space/resource pair.
+- Every link records the member who explicitly added the resource and the link timestamp.
+- Linking never copies or changes resource ownership, revision history, topics, lifecycle state, or global discovery placement.
+- Any explicit space member can link a currently visible resource into the space knowledge list.
+- Public readers can browse linked resources because current Sprint 13 spaces are public.
+- Removed resources are excluded from space knowledge and cannot be newly linked.
+- Space knowledge is ordered by link recency with a deterministic ID tie-breaker; this is a browsing order, not a quality score.
+- The member who created a link can undo that association without deleting or modifying the resource itself.
+- Other members, including the owner, do not receive link-removal authority in this story; broader local moderation powers are intentionally deferred to Story 13.4.
 
 ### Acceptance criteria
 
-- A member can publish a valid space post and see it on the space page.
-- A nonmember cannot publish into the space.
-- Public readers can view visible space conversations without joining.
-- Removed posts are not rendered in the space conversation list.
-- Space conversations are deterministically newest-first.
-- A space-scoped post never appears in the global All Ripple, Following, Quiet, or Topic feed.
-- Repost/quote records referencing a space-scoped source do not cause the content to appear globally.
-- The UI states that space posts remain in the space and that global Community Standards still apply.
-- Regression coverage proves membership enforcement, public reading, ordering, and global-feed isolation.
+- A member can link an existing visible resource and the UI attributes the link to that member.
+- A nonmember cannot link resources into the space.
+- Public readers can see linked visible resources and follow them to the durable resource detail/history.
+- Linking preserves the original resource owner and immutable revision history.
+- Removed resources are hidden from space knowledge and cannot be newly linked.
+- Duplicate space/resource associations are prevented by the database constraint.
+- The original linker can remove only the space association; the resource and revisions remain intact.
+- Another member cannot remove someone else's association before Story 13.4 defines local moderation authority.
+- Membership, link count, paid status, verification, follower count, and engagement do not influence global resource placement or reputation.
+- Tests cover attribution, membership enforcement, removal visibility, provenance preservation, unlink behavior, and authorization boundaries.
 
 ### Story boundary
 
-Story 13.2 does not create private spaces, space-only visibility ACLs, moderator powers, space resources, cross-posting, or a second engagement/ranking system. Space-local removal and appeals are defined in Story 13.4 together with role authority and audit requirements.
-
-## Story 13.3 — Space resources and knowledge
-
-**Status:** Planned.
-
-Connect Sprint 11 durable resources to spaces with explicit attribution and discovery boundaries.
+Story 13.3 is space-local curation, not resource ownership transfer or a second knowledge store. It does not add space-only resource copies, space-specific revision forks, quality scoring, moderator curation powers, private resources, or paid placement. Those would require separate product and integrity decisions.
 
 ## Story 13.4 — Roles and moderation boundaries
 
