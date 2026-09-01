@@ -165,10 +165,9 @@ def retweet(tweet_id):
     existing = Retweet.query.filter_by(user_id=current_user.id, tweet_id=original_tweet.id).first()
     if existing is None:
         db.session.add(Retweet(user_id=current_user.id, tweet_id=original_tweet.id))
-        if original_tweet.user_id != current_user.id: db.session.add(Notification(user_id=original_tweet.user_id, message=f"{current_user.username} reposted your post"))
-        db.session.commit(); flash("Post reposted.", "success")
-    else:
-        db.session.delete(existing); db.session.commit(); flash("Repost removed.", "success")
+        if original_tweet.user_id != current_user.id: db.session.add(Notification(user_id=original_tweet.user_id, tweet_id=original_tweet.id, message=f"{current_user.username} reposted your post"))
+        db.session.commit()
+    flash("Post reposted.", "success")
     return redirect(url_for("index"))
 
 
@@ -179,9 +178,9 @@ def quote(tweet_id):
     response_intent = _tweet_conversation_intent(original_tweet)
     if request.method == "POST":
         content = request.form.get("content"); validation_error = validate_post_content(content, post_type="Quote")
-        if validation_error: flash(validation_error, "danger"); return render_template("quote.html", tweet=original_tweet, response_intent=response_intent), 400
-        db.session.add(Quote(content=content, user_id=current_user.id, tweet_id=original_tweet.id)); db.session.add(Notification(user_id=original_tweet.user_id, message=f"{current_user.username} quoted your post")); db.session.commit(); flash("Your quote has been posted!", "success"); return redirect(url_for("index"))
-    return render_template("quote.html", tweet=original_tweet, response_intent=response_intent)
+        if validation_error: flash(validation_error, "danger"); return render_template("quote.html", tweet=original_tweet, conversation_intent=response_intent), 400
+        db.session.add(Quote(content=content, user_id=current_user.id, tweet_id=original_tweet.id)); db.session.add(Notification(user_id=original_tweet.user_id, tweet_id=original_tweet.id, message=f"{current_user.username} quoted your post")); db.session.commit(); flash("Your quote has been posted!", "success"); return redirect(url_for("index"))
+    return render_template("quote.html", tweet=original_tweet, conversation_intent=response_intent)
 
 
 @login_required

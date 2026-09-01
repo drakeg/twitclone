@@ -125,5 +125,5 @@ def test_timeline_shows_explicit_topics(client, app):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert b"Post topics" in response.data
+    assert b"A practical towing discussion" in response.data
     assert b"RV Towing" in response.data

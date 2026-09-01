@@ -85,7 +85,7 @@ def test_linker_can_remove_space_link_without_deleting_resource(client, app):
     client.post("/spaces/knowledge-space/resources", data={"resource_id": resource_id})
     response = client.post(f"/spaces/knowledge-space/resources/{resource_id}/unlink", follow_redirects=True)
     assert response.status_code == 200
-    assert b"Durable guide" not in response.data
+    assert b"No resources have been linked" in response.data
     with app.app_context():
         assert SpaceResource.query.filter_by(space_id=space_id, resource_id=resource_id).count() == 0
         assert db.session.get(Resource, resource_id) is not None

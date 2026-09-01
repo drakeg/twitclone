@@ -45,7 +45,7 @@ def test_following_feed_filters_reposts_quotes_and_polls_by_actor(app):
             Retweet(user_id=followed_id, tweet_id=source.id, timestamp=now - timedelta(minutes=3)),
             Quote(content="followed quote", user_id=followed_id, tweet_id=source.id, timestamp=now - timedelta(minutes=2)),
             Quote(content="stranger quote", user_id=stranger_id, tweet_id=source.id, timestamp=now - timedelta(minutes=1)),
-            Poll(question="followed poll", user_id=followed_id, created_at=now),
+            Poll(question="followed poll", user_id=followed_id, created_at=now, duration_days=1, duration_hours=0, duration_minutes=0),
         ]); db.session.commit()
         viewer = db.session.get(User, viewer_id)
         posts = build_timeline_posts(now=now, viewer=viewer, feed_mode="following")

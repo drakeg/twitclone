@@ -60,3 +60,24 @@ def test_repost_notification_links_to_original_post(client, app):
     notifications = client.get("/notifications")
     assert f'/post/{tweet_id}'.encode() in notifications.data
     assert b"The post that gets reposted." in notifications.data
+
+
+def test_quote_notification_links_to_original_post(client, app):
+    alice_id, bob_id = _users(app)
+    with app.app_context():
+        tweet = Tweet(content="The post that gets quoted.", user_id=alice_id)
+        db.session.add(tweet)
+        db.session.commit()
+        tweet_id = tweet.id
+
+    _login(client, bob_id)
+    client.post(f"/quote/{tweet_id}", data={"content": "Useful response."})
+
+    with app.app_context():
+        notice = Notification.query.filter_by(user_id=alice_id).one()
+        assert notice.tweet_id == tweet_id
+
+    _login(client, alice_id)
+    notifications = client.get("/notifications")
+    assert f'/post/{tweet_id}'.encode() in notifications.data
+    assert b"The post that gets quoted." in notifications.data

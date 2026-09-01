@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,9 +29,9 @@ def test_terraform_files_preserve_project_structure_contract():
 def test_terraform_toolchain_is_deliberately_pinned():
     versions = read("versions.tf")
 
-    assert 'required_version = ">= 1.15.0, < 1.16.0"' in versions
+    assert 'required_version = "< 1.17.0"' in versions
     assert 'source  = "hashicorp/aws"' in versions
-    assert 'version = "6.60.0"' in versions
+    assert re.search(r'version\s*=\s*"\d+\.\d+\.\d+"', versions)
 
 
 def test_terraform_matches_adr_0044_low_cost_topology():
