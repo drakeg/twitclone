@@ -1,9 +1,7 @@
-"""Public reply routes."""
+"""Public reply routes attached to the existing timeline blueprint."""
 
-from flask import Blueprint
+from twitclone.timeline import timeline_blueprint
 
-replies_blueprint = Blueprint("replies", __name__)
-
-from twitclone.replies import routes  # noqa: E402,F401
+replies_blueprint = timeline_blueprint
 
 __all__ = ["replies_blueprint"]
