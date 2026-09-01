@@ -50,4 +50,37 @@ class ReplyContribution(db.Model):
     reply = db.relationship("Reply", backref=db.backref("constructive_contributions", cascade="all, delete-orphan"))
 
 
-__all__ = ["Reply", "ReplyContribution"]
+class ReplyReport(db.Model):
+    __tablename__ = "reply_report"
+    __table_args__ = (
+        db.CheckConstraint("status in ('pending', 'dismissed', 'removed')", name="ck_reply_report_status"),
+        db.UniqueConstraint("reporter_id", "reply_id", name="uq_reply_report_reporter_reply"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    reporter_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    reply_id = db.Column(db.Integer, db.ForeignKey("reply.id", ondelete="CASCADE"), nullable=False, index=True)
+    category = db.Column(db.String(40), nullable=False)
+    details = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(20), nullable=False, default="pending", server_default="pending")
+    created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+    reviewed_by_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=True)
+    resolution_notes = db.Column(db.Text, nullable=True)
+
+    reporter = db.relationship("User", foreign_keys=[reporter_id])
+    author = db.relationship("User", foreign_keys=[author_id])
+    reviewed_by = db.relationship("User", foreign_keys=[reviewed_by_id])
+    reply = db.relationship("Reply", backref=db.backref("reports", cascade="all, delete-orphan"))
+
+    @property
+    def content_type(self):
+        return "reply"
+
+    @property
+    def content_id(self):
+        return self.reply_id
+
+
+__all__ = ["Reply", "ReplyContribution", "ReplyReport"]
