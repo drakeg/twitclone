@@ -8,12 +8,13 @@ from flask_login import current_user, login_required
 from twitclone.conversation_intent import conversation_intent_metadata
 from twitclone.extensions import db
 from twitclone.models import Notification, Tweet
-from twitclone.reply_models import Reply
+from twitclone.reply_models import Reply, ReplyContribution
 from twitclone.replies import replies_blueprint
 from twitclone.spaces.models import SpacePost
 from twitclone.timeline.validation import validate_post_content
 
 MAX_PRESENTATION_DEPTH = 3
+CONTRIBUTION_SIGNALS = {"helpful": "Helpful", "thoughtful": "Thoughtful", "context": "Useful context"}
 
 
 def _root_tweet(tweet_id):
@@ -50,7 +51,23 @@ def _thread_rows(tweet_id):
         if reply.id in visited:
             return
         visited.add(reply.id)
-        rows.append({"reply": reply, "depth": min(depth, MAX_PRESENTATION_DEPTH), "actual_depth": depth})
+        contributions = list(reply.constructive_contributions)
+        signals = {
+            key: {
+                "label": label,
+                "count": sum(item.signal == key for item in contributions),
+                "selected": current_user.is_authenticated and any(
+                    item.signal == key and item.user_id == current_user.id for item in contributions
+                ),
+            }
+            for key, label in CONTRIBUTION_SIGNALS.items()
+        }
+        rows.append({
+            "reply": reply,
+            "depth": min(depth, MAX_PRESENTATION_DEPTH),
+            "actual_depth": depth,
+            "contribution_signals": signals,
+        })
         for child in by_parent.get(reply.id, []):
             visit(child, depth + 1)
 
@@ -125,6 +142,32 @@ def create_nested_reply(tweet_id, parent_reply_id):
     tweet = _root_tweet(tweet_id)
     parent = _visible_reply(tweet.id, parent_reply_id)
     return _create_reply(tweet, parent=parent)
+
+
+@replies_blueprint.route("/post/<int:tweet_id>/reply/<int:reply_id>/contribution/<signal>", methods=["POST"])
+@login_required
+def toggle_reply_contribution(tweet_id, reply_id, signal):
+    _root_tweet(tweet_id)
+    reply = _visible_reply(tweet_id, reply_id)
+    if signal not in CONTRIBUTION_SIGNALS:
+        abort(404)
+    if reply.user_id == current_user.id:
+        flash("Constructive contribution signals are for recognizing someone else's reply.", "warning")
+        return redirect(url_for("timeline.reply_permalink", tweet_id=tweet_id, reply_id=reply.id))
+
+    existing = ReplyContribution.query.filter_by(
+        user_id=current_user.id,
+        reply_id=reply.id,
+        signal=signal,
+    ).first()
+    if existing:
+        db.session.delete(existing)
+        flash(f"{CONTRIBUTION_SIGNALS[signal]} removed.", "success")
+    else:
+        db.session.add(ReplyContribution(user_id=current_user.id, reply_id=reply.id, signal=signal))
+        flash(f"Marked {CONTRIBUTION_SIGNALS[signal].lower()}.", "success")
+    db.session.commit()
+    return redirect(url_for("timeline.reply_permalink", tweet_id=tweet_id, reply_id=reply.id))
 
 
 @replies_blueprint.route("/post/<int:tweet_id>/reply/<int:reply_id>", methods=["GET"])
