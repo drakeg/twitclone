@@ -75,9 +75,9 @@ def test_index_paginates_using_deterministic_tie_order(client, app):
     assert first.status_code == 200
     assert second.status_code == 200
     assert b"Page 1 of 2" in first.data
-    assert b'href="/?page=2"' in first.data
+    assert b'href="/?feed=all&amp;page=2"' in first.data
     assert b"Page 2 of 2" in second.data
-    assert b'href="/?page=1"' in second.data
+    assert b'href="/?feed=all&amp;page=1"' in second.data
     for index in range(1, 21):
         assert f"timeline item {index:02d}".encode() in first.data
         assert f"timeline item {index:02d}".encode() not in second.data

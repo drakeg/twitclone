@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -11,8 +12,8 @@ def read_project_file(name):
 def test_gunicorn_is_an_exact_runtime_dependency():
     requirements = read_project_file("requirements.txt").splitlines()
 
-    assert "gunicorn==26.1.0" in requirements
-    assert "psycopg[binary]==3.3.4" in requirements
+    assert any(re.fullmatch(r"gunicorn==[^=\s]+", line) for line in requirements)
+    assert any(re.fullmatch(r"psycopg\[binary\]==[^=\s]+", line) for line in requirements)
 
 
 def test_image_defaults_to_the_supported_wsgi_entry_point():

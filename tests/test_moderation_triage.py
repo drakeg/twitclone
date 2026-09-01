@@ -53,7 +53,8 @@ def test_moderation_filters_by_status_and_category(client, app):
     assert b"second reported post" in dismissed.data
     assert b"first reported post" not in dismissed.data
     assert b"Bullying or harassment" in bullying.data
-    assert b"Spam, scams, or manipulation" not in bullying.data
+    assert b"first reported post" in bullying.data
+    assert b"second reported post" not in bullying.data
 
 
 def test_moderation_highlights_multiple_reports_on_same_content(client, app):

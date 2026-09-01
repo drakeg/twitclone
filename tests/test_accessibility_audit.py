@@ -31,7 +31,7 @@ def test_secondary_pages_start_with_level_one_headings():
         "templates/create_poll.html": "<h1>Create Poll</h1>",
         "templates/quote.html": "<h1>Quote post</h1>",
         "templates/reply.html": "<h1>Reply to {{ message.sender.username }}</h1>",
-        "templates/search_results.html": "<h1>Search Results",
+        "templates/search_results.html": '<h1 id="search-results-heading">',
         "templates/followers.html": "<h1>{{ user.username }}'s Followers</h1>",
         "templates/following.html": "<h1>{{ user.username }}'s Following</h1>",
     }

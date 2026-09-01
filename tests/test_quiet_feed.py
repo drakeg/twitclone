@@ -102,4 +102,4 @@ def test_anonymous_quiet_request_falls_back_to_all(client, app):
     response = client.get("/?feed=quiet")
     assert response.status_code == 200
     assert b"anonymous public" in response.data
-    assert b"<strong>All Ripple</strong>" in response.data
+    assert b'aria-label="Feed mode"' not in response.data

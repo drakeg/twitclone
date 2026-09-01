@@ -111,7 +111,7 @@ def test_topic_discovery_route_renders_rule_evidence_and_profile_links(client, a
 
     assert response.status_code == 200
     assert b"People contributing to RV Towing" in response.data
-    assert b"Ordering is visible and deterministic" in response.data
+    assert b"Contributor ordering is visible and deterministic" in response.data
     assert b"Followers, impressions, paid plans, and verification never affect placement" in response.data
     assert b"tow_author" in response.data
     assert b"Emerging contributor" in response.data

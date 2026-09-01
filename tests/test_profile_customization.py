@@ -106,7 +106,7 @@ def test_ripple_plus_user_can_set_theme_and_banner(client, app):
     response = client.get('/profile/alice')
     assert response.status_code == 200
     assert banner_name.encode() in response.data
-    assert b'Ripple+ Â    assert b'Ripple+ \xc2·    assert b'Ripple+ \xc2\xb7 Sunset Â    assert b'Ripple+ \xc2\xb7 Sunset \xc2·    assert b'Ripple+ \xc2\xb7 Sunset \xc2\xb7 Custom banner' in response.data
+    assert 'Ripple+ · Sunset · Custom banner'.encode() in response.data
 
 
 def test_selected_theme_is_identified_on_public_profile(client, app):
@@ -120,7 +120,7 @@ def test_selected_theme_is_identified_on_public_profile(client, app):
     response = client.get('/profile/alice')
 
     assert response.status_code == 200
-    assert b'Ripple+ Â    assert b'Ripple+ \xc2·    assert b'Ripple+ \xc2\xb7 Forest' in response.data
+    assert 'Ripple+ · Forest'.encode() in response.data
     assert b'background: linear-gradient(135deg, #166534, #0f766e);' in response.data
 
 
@@ -163,7 +163,7 @@ def test_lapsed_ripple_plus_profile_falls_back_to_default_public_appearance(clie
     assert response.status_code == 200
     assert b'banner_saved.png' not in response.data
     assert b'background: linear-gradient(135deg, #2563eb, #06b6d4);' in response.data
-    assert b'Ripple+ Â    assert b'Ripple+ \xc2·    assert b'Ripple+ \xc2\xb7 Violet' not in response.data
+    assert 'Ripple+ · Violet'.encode() not in response.data
 
 
 def test_ripple_plus_user_can_remove_banner(client, app):

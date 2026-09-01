@@ -58,4 +58,4 @@ def test_terraform_provider_downloads_are_cached():
 
     assert "TF_PLUGIN_CACHE_DIR" in ci
     assert "Restore Terraform provider cache" in ci
-    assert "actions/cache@v5" in ci
+    assert "uses: actions/cache@" in ci

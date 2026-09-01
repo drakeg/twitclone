@@ -39,7 +39,7 @@ def test_composer_exposes_intentional_conversation_choices(app, client):
     assert "Support wanted" in text
     assert "Respectful debate welcome" in text
     assert "Just sharing" in text
-    assert "does not block respectful participation" in text
+    assert "without blocking respectful participation" in text
 
 
 def test_post_persists_selected_conversation_intent(app, client):
@@ -156,6 +156,6 @@ def test_quote_validation_error_preserves_intent_reminder(app, client):
     response = client.post(f"/quote/{tweet_id}", data={"content": ""})
     text = response.get_data(as_text=True)
 
-    assert response.status_code == 200
+    assert response.status_code == 400
     assert "Before you respond: Just sharing" in text
     assert "they are sharing, not asking for advice or debate" in text

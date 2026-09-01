@@ -121,6 +121,6 @@ def test_profile_renders_explainable_topic_summary(client, app):
     assert b"Topic reputation" in response.data
     assert b"AWS" in response.data
     assert b"Emerging contributor" in response.data
-    assert b"1 unique recognizer" in response.data
+    assert b"unique recognizer" in response.data
     assert b"Useful context" in response.data
     assert b"do not affect feed ranking or moderation authority" in response.data

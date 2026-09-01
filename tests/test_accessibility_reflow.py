@@ -37,7 +37,7 @@ def test_timeline_labeled_controls_hide_decorative_icons():
     assert 'aria-label="Repost"><i class="fa-solid fa-retweet" aria-hidden="true"' in template
     assert 'aria-label="Quote"><i class="fa-solid fa-quote-right" aria-hidden="true"' in template
     assert 'aria-label="Bookmark"><i class="fa-regular fa-bookmark" aria-hidden="true"' in template
-    assert 'aria-label="Report content" title="Report"><i class="fa-regular fa-flag" aria-hidden="true"' in template
+    assert 'aria-label="Report content"><i class="fa-regular fa-flag" aria-hidden="true"' in template
     assert '<i class="fa-solid fa-retweet" aria-hidden="true"></i> Retweeted from' in template
     assert '<i class="fa-solid fa-quote-left" aria-hidden="true"></i> Quoted' in template
 

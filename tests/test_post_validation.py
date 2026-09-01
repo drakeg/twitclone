@@ -111,7 +111,7 @@ def test_quote_rejects_invalid_content_without_writes(
 
     response = client.post(f"/quote/{tweet_id}", data=data)
 
-    assert response.status_code == 200
+    assert response.status_code == 400
     assert expected_message.encode() in response.data
     with app.app_context():
         assert Quote.query.count() == 0
