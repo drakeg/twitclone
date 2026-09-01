@@ -37,6 +37,12 @@ class Space(db.Model):
         cascade="all, delete-orphan",
         lazy=True,
     )
+    resource_links = db.relationship(
+        "SpaceResource",
+        back_populates="space",
+        cascade="all, delete-orphan",
+        lazy=True,
+    )
 
 
 class SpaceMembership(db.Model):
@@ -69,4 +75,21 @@ class SpacePost(db.Model):
     tweet = db.relationship("Tweet")
 
 
-__all__ = ["Space", "SpaceMembership", "SpacePost"]
+class SpaceResource(db.Model):
+    __tablename__ = "space_resource"
+    __table_args__ = (
+        db.UniqueConstraint("space_id", "resource_id", name="uq_space_resource_space_resource"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    space_id = db.Column(db.Integer, db.ForeignKey("space.id", ondelete="CASCADE"), nullable=False)
+    resource_id = db.Column(db.Integer, db.ForeignKey("resource.id", ondelete="CASCADE"), nullable=False)
+    linked_by_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
+    linked_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+
+    space = db.relationship("Space", back_populates="resource_links")
+    resource = db.relationship("Resource")
+    linked_by = db.relationship("User")
+
+
+__all__ = ["Space", "SpaceMembership", "SpacePost", "SpaceResource"]
