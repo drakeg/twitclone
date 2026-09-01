@@ -13,7 +13,7 @@ bcrypt==5.0.0
 boto3==1.43.85
 gravatar==0.1
 gunicorn==26.2.0
-psycopg[binary]==3.3.4
+psycopg[binary]==3.3.5
 pytz==2026.3.post1
 SQLAlchemy==2.0.52
 stripe==15.6.0
