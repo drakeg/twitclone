@@ -73,7 +73,7 @@ def _create_reply(tweet, *, parent=None):
     validation_error = validate_post_content(content, post_type="Reply")
     if validation_error:
         flash(validation_error, "danger")
-        return redirect(url_for("replies.thread", tweet_id=tweet.id))
+        return redirect(url_for("timeline.thread", tweet_id=tweet.id))
 
     reply = Reply(
         tweet_id=tweet.id,
@@ -97,7 +97,7 @@ def _create_reply(tweet, *, parent=None):
         ))
     db.session.commit()
     flash("Your reply has been posted.", "success")
-    return redirect(url_for("replies.reply_permalink", tweet_id=tweet.id, reply_id=reply.id))
+    return redirect(url_for("timeline.reply_permalink", tweet_id=tweet.id, reply_id=reply.id))
 
 
 @replies_blueprint.route("/post/<int:tweet_id>/thread", methods=["GET"])
@@ -131,4 +131,4 @@ def create_nested_reply(tweet_id, parent_reply_id):
 def reply_permalink(tweet_id, reply_id):
     tweet = _root_tweet(tweet_id)
     reply = _visible_reply(tweet.id, reply_id)
-    return redirect(url_for("replies.thread", tweet_id=tweet.id, _anchor=f"reply-{reply.id}"))
+    return redirect(url_for("timeline.thread", tweet_id=tweet.id, _anchor=f"reply-{reply.id}"))
