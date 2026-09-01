@@ -19,13 +19,13 @@
     <form method="GET" action="{{ url_for('admin.moderation_queue') }}" class="row g-2 align-items-end">
         <div class="col-md-4"><label for="status-filter" class="form-label">Status</label><select class="form-select" id="status-filter" name="status"><option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option><option value="dismissed" {% if status_filter == 'dismissed' %}selected{% endif %}>Dismissed</option><option value="removed" {% if status_filter == 'removed' %}selected{% endif %}>Removed</option><option value="all" {% if status_filter == 'all' %}selected{% endif %}>All statuses</option></select></div>
         <div class="col-md-4"><label for="category-filter" class="form-label">Category</label><select class="form-select" id="category-filter" name="category"><option value="">All categories</option>{% for key, label in categories.items() %}<option value="{{ key }}" {% if category_filter == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-        <div class="col-md-3"><label for="content-type-filter" class="form-label">Content type</label><select class="form-select" id="content-type-filter" name="content_type"><option value="">All types</option>{% for value in ['tweet', 'quote', 'poll'] %}<option value="{{ value }}" {% if content_type_filter == value %}selected{% endif %}>{{ value|title }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label for="content-type-filter" class="form-label">Content type</label><select class="form-select" id="content-type-filter" name="content_type"><option value="">All types</option>{% for value in ['tweet', 'quote', 'poll', 'reply'] %}<option value="{{ value }}" {% if content_type_filter == value %}selected{% endif %}>{{ value|title }}</option>{% endfor %}</select></div>
         <div class="col-md-1 d-grid"><button class="btn btn-primary" type="submit">Filter</button></div>
     </form>
 </section>
 
 {% for report, content, preview, report_count in reports %}
-<section id="report-{{ report.id }}" class="surface-card {% if report.status == 'pending' %}border border-warning{% endif %}">
+<section id="report-{{ report.content_type }}-{{ report.id }}" class="surface-card {% if report.status == 'pending' %}border border-warning{% endif %}">
     <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
         <div>
             <div class="d-flex gap-2 flex-wrap align-items-center"><span class="badge {% if report.status == 'pending' %}text-bg-warning{% elif report.status == 'removed' %}text-bg-danger{% else %}text-bg-secondary{% endif %}">{{ report.status|title }}</span>{% if report_count > 1 %}<span class="badge text-bg-dark">{{ report_count }} reports on this content</span>{% endif %}</div>
@@ -37,9 +37,9 @@
     <blockquote class="border-start ps-3 my-3">{{ preview }}</blockquote>
     {% if report.details %}<p><strong>Reporter context:</strong> {{ report.details }}</p>{% endif %}
     {% if report.status == 'pending' %}
-    <form method="POST" action="{{ url_for('admin.review_report', report_id=report.id) }}">
+    <form method="POST" action="{{ url_for('admin.review_reply_report', report_id=report.id) if report.content_type == 'reply' else url_for('admin.review_report', report_id=report.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="mb-3"><label class="form-label" for="notes-{{ report.id }}">Moderator notes</label><textarea class="form-control" id="notes-{{ report.id }}" name="resolution_notes" rows="2" maxlength="1000" placeholder="Optional internal context for this decision"></textarea></div>
+        <div class="mb-3"><label class="form-label" for="notes-{{ report.content_type }}-{{ report.id }}">Moderator notes</label><textarea class="form-control" id="notes-{{ report.content_type }}-{{ report.id }}" name="resolution_notes" rows="2" maxlength="1000" placeholder="Optional internal context for this decision"></textarea></div>
         <button class="btn btn-secondary" name="action" value="dismiss" type="submit">Dismiss report</button>
         <button class="btn btn-danger" name="action" value="remove" type="submit" onclick="return confirm('Remove this content from Ripple? Any other pending reports on the same content will also be resolved.');">Remove content</button>
     </form>
