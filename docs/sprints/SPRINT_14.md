@@ -17,41 +17,47 @@ Add a true public reply model so Ripple conversations can develop as readable di
 
 ## Story 14.1 — Persistent public reply foundation
 
+**Status:** Completed.
+
+- Added the dedicated persistent `Reply` model and migration `20260901_0031_public_replies.py`.
+- Added `/post/<tweet_id>/thread` and stable reply permalinks.
+- Added authenticated top-level public replies ordered oldest-first with deterministic ID tie-breaking.
+- Closed conversations preserve existing replies while rejecting new replies.
+- Removed, scheduled, and space-scoped root posts are excluded from the global reply surface.
+- Historical Quotes remain separate and unchanged.
+- Story 14.1 merged in PR #211.
+
+## Story 14.2 — Threaded reply structure
+
 **Status:** In implementation.
 
 ### Current implementation slice
 
-- Adds a dedicated `Reply` persistence model linked to the root post and reply author.
-- Migration `20260901_0031_public_replies.py` advances from the current `0030` migration head.
-- Public thread route: `/post/<tweet_id>/thread`.
-- Stable reply permalink: `/post/<tweet_id>/reply/<reply_id>`.
-- Authenticated users can publish a top-level public reply to an eligible root post.
-- Replies render oldest-first with deterministic ID tie-breaking.
-- Closing a conversation prevents new replies while preserving existing replies.
-- Removed or future-scheduled root posts are unavailable through reply routes.
-- Space-scoped posts are excluded from the global reply surface; space reply semantics require a separately scoped integration.
-- Existing Quote rows are not imported, copied, or displayed as replies.
-- Root authors receive an attributable notification when another user replies.
+- Adds nullable `parent_reply_id` to `Reply`, preserving top-level replies while allowing explicit parent/child relationships.
+- Migration `20260901_0032_threaded_replies.py` advances from `0031` and uses Alembic batch alteration for SQLite compatibility.
+- Adds a nested reply POST route scoped by both root post and parent reply.
+- Parent replies must belong to the same root post and remain publicly visible.
+- Thread rendering is deterministic depth-first: root replies and each sibling group are ordered oldest-first with ID tie-breaking.
+- Each nested reply displays an attributable parent link using the parent's stable permalink.
+- Reply permalinks continue to anchor into the full root conversation so ancestor/root context is not lost.
+- Visual indentation is capped at three levels; deeper hierarchy remains intact in persistence and navigation and is labeled as a deeper thread.
+- Closed conversations reject nested replies using the same root conversation health boundary as top-level replies.
+- Nested reply notifications target the parent reply author when appropriate rather than always notifying only the root author.
 
 ### Acceptance criteria
 
-- A valid authenticated reply persists independently from Quote data.
-- Every visible reply has a stable permalink.
-- Thread rendering is deterministic and contains only eligible Reply records.
-- Closed conversations reject new reply creation without hiding old replies.
-- Space-scoped roots do not become reachable through global reply routes.
-- Historical Quotes remain unchanged.
-- Regression tests cover creation, permalinks, ordering, health controls, Quote separation, and space isolation.
+- Nested replies persist an explicit parent relationship without changing Quote semantics.
+- A parent reply from a different root cannot be used to create a cross-root child.
+- Thread rendering preserves deterministic parent-before-child depth-first order.
+- Every nested reply and parent remains reachable through stable reply permalinks.
+- Deep conversations preserve their actual hierarchy while visual indentation remains bounded.
+- Closed conversations prevent new top-level and nested replies without hiding existing descendants.
+- No follower count, contribution total, paid status, verification state, or engagement velocity changes reply ordering.
+- Tests cover nested persistence, cross-root rejection, ordering, parent navigation, depth bounds, and closed-conversation behavior.
 
 ### Story boundary
 
-Story 14.1 establishes top-level replies only. Nested parent/child reply trees, reply-level contribution signals, reply moderation/reporting, deletion lifecycle, and richer thread navigation are intentionally deferred to later Sprint 14 stories.
-
-## Story 14.2 — Threaded reply structure
-
-**Status:** Planned.
-
-Add explicit parent-reply relationships, readable nesting, stable ancestor/root navigation, and bounded presentation rules without engagement ranking.
+Story 14.2 adds structural nesting only. Reply-level contribution signals, reporting/moderation, reply removal lifecycle, resolved/answered descendant semantics, and broader anti-abuse/performance work remain later Sprint 14 stories.
 
 ## Story 14.3 — Conversation intent and health semantics
 
