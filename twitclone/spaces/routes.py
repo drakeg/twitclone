@@ -7,8 +7,9 @@ from flask_login import current_user, login_required
 
 from twitclone.extensions import db
 from twitclone.models import Tweet
+from twitclone.resource_models import Resource
 from twitclone.spaces import spaces_blueprint
-from twitclone.spaces.models import Space, SpaceMembership, SpacePost
+from twitclone.spaces.models import Space, SpaceMembership, SpacePost, SpaceResource
 from twitclone.timeline.validation import validate_post_content
 
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
@@ -32,6 +33,25 @@ def _visible_space_posts(space):
         .order_by(Tweet.timestamp.desc(), SpacePost.id.desc())
         .all()
     )
+
+
+def _visible_space_resources(space):
+    return (
+        SpaceResource.query.join(SpaceResource.resource)
+        .filter(SpaceResource.space_id == space.id, Resource.is_removed.is_(False))
+        .order_by(SpaceResource.linked_at.desc(), SpaceResource.id.desc())
+        .all()
+    )
+
+
+def _resource_candidates(space):
+    linked_ids = {
+        row.resource_id for row in SpaceResource.query.filter_by(space_id=space.id).all()
+    }
+    query = Resource.query.filter_by(is_removed=False)
+    if linked_ids:
+        query = query.filter(~Resource.id.in_(linked_ids))
+    return query.order_by(Resource.updated_at.desc(), Resource.id.desc()).limit(100).all()
 
 
 @spaces_blueprint.get("/")
@@ -86,6 +106,8 @@ def detail(slug):
         membership=membership,
         member_count=member_count,
         space_posts=_visible_space_posts(space),
+        space_resources=_visible_space_resources(space),
+        resource_candidates=_resource_candidates(space) if membership else [],
     )
 
 
@@ -107,6 +129,45 @@ def publish_post(slug):
     db.session.add(SpacePost(space_id=space.id, tweet_id=tweet.id))
     db.session.commit()
     flash(f"Posted in {space.name}.", "success")
+    return redirect(url_for("spaces.detail", slug=space.slug))
+
+
+@spaces_blueprint.post("/<slug>/resources")
+@login_required
+def link_resource(slug):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    if _membership(space) is None:
+        abort(403)
+    resource_id = request.form.get("resource_id", type=int)
+    resource = db.session.get(Resource, resource_id) if resource_id else None
+    if resource is None or resource.is_removed:
+        abort(404)
+    existing = SpaceResource.query.filter_by(space_id=space.id, resource_id=resource.id).first()
+    if existing is None:
+        db.session.add(
+            SpaceResource(
+                space_id=space.id,
+                resource_id=resource.id,
+                linked_by_id=current_user.id,
+            )
+        )
+        db.session.commit()
+        flash(f"Added {resource.title} to {space.name} knowledge.", "success")
+    return redirect(url_for("spaces.detail", slug=space.slug))
+
+
+@spaces_blueprint.post("/<slug>/resources/<int:resource_id>/unlink")
+@login_required
+def unlink_resource(slug, resource_id):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    if _membership(space) is None:
+        abort(403)
+    link = SpaceResource.query.filter_by(space_id=space.id, resource_id=resource_id).first_or_404()
+    if link.linked_by_id != current_user.id:
+        abort(403)
+    db.session.delete(link)
+    db.session.commit()
+    flash("Resource removed from this space's knowledge list. The resource itself was not deleted.", "success")
     return redirect(url_for("spaces.detail", slug=space.slug))
 
 
