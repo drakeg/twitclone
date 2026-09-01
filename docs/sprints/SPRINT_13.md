@@ -9,10 +9,10 @@ Create persistent spaces where conversations, resources, and topic contribution 
 ## Product principles
 
 - Membership is explicit; Ripple does not infer community membership from browsing, location, ideology, or other sensitive traits.
-- Community membership, ownership, or future moderation roles do not purchase or imply global reach, reputation, verification, or paid status.
+- Community membership, ownership, or moderation roles do not purchase or imply global reach, reputation, verification, or paid status.
 - Global Community Standards remain authoritative inside every space.
 - Roles and moderation powers must be understandable and auditable before additional privileges are introduced.
-- Story 13.1 spaces are public. Private/local coordination requires separately defined privacy and location boundaries.
+- Current Sprint 13 spaces are public. Private/local coordination requires separately defined privacy and location boundaries.
 
 ## Story 13.1 — Persistent space and membership foundation
 
@@ -39,44 +39,49 @@ Create persistent spaces where conversations, resources, and topic contribution 
 
 ## Story 13.3 — Space resources and knowledge
 
+**Status:** Completed.
+
+- `SpaceResource` associates an existing Sprint 11 durable resource with a public space without copying it.
+- Every association records the member who explicitly linked it and when.
+- Any explicit member can link a currently visible resource; the original linker can remove only that association.
+- Public readers can follow linked resources back to the original durable resource and revision history.
+- Removed resources are excluded from space knowledge and cannot be newly linked.
+- Link recency is browsing order only; membership, link counts, payment, verification, followers, and engagement do not change global placement or reputation.
+- Story 13.3 merged in PR #205.
+
+## Story 13.4 — Roles and moderation boundaries
+
 **Status:** In implementation.
 
 ### Current implementation slice
 
-- Add an attributable `SpaceResource` association connecting an existing Sprint 11 durable resource to a public space.
-- Migration `20260829_0029_space_resources.py` advances from the `0028` space-post head.
-- Associations are many-to-many across spaces and resources, with one link per space/resource pair.
-- Every link records the member who explicitly added the resource and the link timestamp.
-- Linking never copies or changes resource ownership, revision history, topics, lifecycle state, or global discovery placement.
-- Any explicit space member can link a currently visible resource into the space knowledge list.
-- Public readers can browse linked resources because current Sprint 13 spaces are public.
-- Removed resources are excluded from space knowledge and cannot be newly linked.
-- Space knowledge is ordered by link recency with a deterministic ID tie-breaker; this is a browsing order, not a quality score.
-- The member who created a link can undo that association without deleting or modifying the resource itself.
-- Other members, including the owner, do not receive link-removal authority in this story; broader local moderation powers are intentionally deferred to Story 13.4.
+- Expand explicit space roles to `owner`, `moderator`, and `member`.
+- Only owners can promote a member to moderator or demote a moderator back to member.
+- Moderator authority is strictly space-local: moderators and owners can hide or restore a `SpacePost` or `SpaceResource` association without deleting the underlying global Tweet or durable Resource.
+- Local visibility state records who hid an item, when, and the required reason.
+- Append-only `SpaceModerationAction` records preserve role changes, local hides, and local restores with actor, target, affected account, reason, and timestamp.
+- `SpaceModerationAppeal` gives the affected post author or resource linker one attributable appeal for a hide decision.
+- Appeals are reviewed by an owner/moderator other than the requester. Approval restores only the space-local association and creates a separate restore audit action; denial retains the local hide.
+- The space UI explains role powers, local-vs-global moderation, moderation history, and appeal status.
+- Global Community Standards and Ripple-wide reporting remain separate and authoritative; a local moderator cannot use space powers to erase global content or alter global moderation state.
+- Migration `20260831_0030_space_moderation.py` advances from the `0029` space-resource head and uses SQLite-compatible batch alterations for existing space tables.
 
 ### Acceptance criteria
 
-- A member can link an existing visible resource and the UI attributes the link to that member.
-- A nonmember cannot link resources into the space.
-- Public readers can see linked visible resources and follow them to the durable resource detail/history.
-- Linking preserves the original resource owner and immutable revision history.
-- Removed resources are hidden from space knowledge and cannot be newly linked.
-- Duplicate space/resource associations are prevented by the database constraint.
-- The original linker can remove only the space association; the resource and revisions remain intact.
-- Another member cannot remove someone else's association before Story 13.4 defines local moderation authority.
-- Membership, link count, paid status, verification, follower count, and engagement do not influence global resource placement or reputation.
-- Tests cover attribution, membership enforcement, removal visibility, provenance preservation, unlink behavior, and authorization boundaries.
+- Owners can grant/revoke moderator role; moderators cannot grant roles or modify ownership.
+- Ordinary members cannot use moderation routes.
+- Owners/moderators can hide a space-scoped post with a required reason and public space readers stop seeing it.
+- Hiding a space post does not set the underlying Tweet's global `is_removed` flag.
+- Owners/moderators can hide a resource association without removing or altering the durable Resource or its revision history.
+- Every local hide/restore and moderator role change creates an attributable audit record.
+- The affected account can appeal an eligible local hide and cannot appeal another account's moderation action.
+- Appeal approval restores local visibility without changing global content state; appeal resolution is attributable.
+- Paid status, verification, followers, engagement, and global reputation do not grant local moderation authority.
+- Tests cover role authorization, local/global isolation, audit attribution, resource preservation, appeal submission, and appeal restoration.
 
 ### Story boundary
 
-Story 13.3 is space-local curation, not resource ownership transfer or a second knowledge store. It does not add space-only resource copies, space-specific revision forks, quality scoring, moderator curation powers, private resources, or paid placement. Those would require separate product and integrity decisions.
-
-## Story 13.4 — Roles and moderation boundaries
-
-**Status:** Planned.
-
-Define understandable moderator/owner powers, audit history, removal/appeal behavior, and the relationship between local moderation and global Community Standards.
+Story 13.4 is intentionally local moderation, not a replacement for Ripple-wide Community Standards enforcement. It does not add private spaces, bans/suspensions, ownership transfer, moderator deletion of global posts/resources, automated moderation scores, paid moderation privileges, or hidden trust/ranking effects. Those require separately specified product and integrity decisions.
 
 ## Story 13.5 — Community contribution context and privacy review
 
