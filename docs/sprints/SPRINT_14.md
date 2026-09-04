@@ -52,42 +52,48 @@ Add a true public reply model so Ripple conversations can develop as readable di
 
 ## Story 14.4 — Reply contribution, reporting, and moderation
 
+**Status:** Completed.
+
+- Replies support **Helpful**, **Thoughtful**, and **Useful context** signals in dedicated Reply contribution persistence.
+- Self-signaling is blocked; signals are reversible and do not alter ordering or topic reputation.
+- Replies can be reported through Community Standards categories using the dedicated `ReplyReport` model.
+- Reply reports appear in the shared admin moderation queue with Reply filtering.
+- Admin dismissal preserves the Reply; admin removal hides it and records moderator, time, and reason.
+- Pending reports for a removed Reply are resolved together.
+- Migration `20260901_0033_reply_moderation.py` added moderation metadata, Reply contribution persistence, and Reply-report persistence.
+- Story 14.4 merged in PR #214.
+
+## Story 14.5 — Reply integrity and compatibility
+
 **Status:** In implementation.
 
 ### Current implementation slice
 
-- Replies support the same constructive labels as posts: **Helpful**, **Thoughtful**, and **Useful context**.
-- Reply signals are stored in a dedicated `ReplyContribution` table rather than in post contribution history.
-- Users may apply multiple distinct signal types to a reply, but cannot signal their own reply.
-- Signals are toggleable and display transparent per-label counts; they do not alter thread ordering or feed ranking.
-- Replies can be reported through the same Community Standards categories used for other public content.
-- Reply reports use an isolated `ReplyReport` model so legacy `PostReport` constraints and IDs remain untouched.
-- Reply reports appear in the shared admin moderation queue and can be filtered as content type **Reply**.
-- Admin dismissal preserves the reply; removal hides the reply from the public thread and records moderator, time, and reason.
-- All pending reports on the same reply are resolved together when an admin removes it.
-- Migration `20260901_0033_reply_moderation.py` adds moderation metadata, reply contribution persistence, and reply-report persistence.
+- Nested Reply creation is capped at 12 persisted levels and enforced server-side.
+- Existing three-level visual indentation remains bounded while deeper valid hierarchy stays persisted and understandable.
+- Thread parent traversal guards against malformed/cyclic parent chains rather than recursing indefinitely.
+- Thread assembly bulk-loads constructive Reply contributions instead of issuing a lazy contribution lookup for each Reply.
+- A visible child of a removed parent remains readable but renders a neutral **Replying to a removed reply** tombstone.
+- Removed-parent body, identity, and dead permalink are not exposed through surviving descendants.
+- Helpful/Thoughtful/Useful-context toggle buttons expose `aria-pressed` state and accessible labels.
+- Regression coverage verifies the depth cap, removed-parent presentation, accessible signal state, and historical Quote separation.
+- `docs/REPLY_INTEGRITY.md` records persistence, anti-abuse, removal, performance, accessibility, ranking, and compatibility boundaries.
+- No schema migration is required for Story 14.5.
 
 ### Acceptance criteria
 
-- Helpful/Thoughtful/Useful-context reply signals can be added and removed by authenticated non-authors.
-- Self-signaling is blocked.
-- Reply signals remain separate from post/topic reputation evidence and do not affect ordering.
-- Authenticated non-authors can report a visible reply exactly once per account.
-- Reply reports are attributable to reporter and author and appear in the existing admin moderation experience.
-- Admins can dismiss a reply report without changing content visibility.
-- Admin removal hides the reply, records the moderation decision, and resolves all pending reports for that reply.
-- Removed replies do not render in the public thread or accept new contribution/report actions.
-- Tests cover signal toggling, self-signal prevention, report deduplication, moderation queue visibility, dismissal, and removal.
+- A nested Reply cannot be created beyond the documented server-side depth cap.
+- Valid deep threads remain readable without unbounded horizontal indentation.
+- Malformed/cyclic parent relationships cannot cause unbounded presentation traversal.
+- Reply contribution display does not require a per-Reply contribution query.
+- Removing a parent does not silently remove visible descendants or expose the removed parent's content/identity through them.
+- Interactive contribution signals expose understandable pressed/unpressed accessibility state.
+- Historical Quotes remain Quote records and never appear as Reply thread rows unless a separate real Reply also exists.
+- Story 14.5 changes do not introduce contribution/engagement ranking, accepted-answer ranking, paid reach, or inferred-trait behavior.
 
-### Story boundary
+### Product boundary
 
-Story 14.4 integrates replies with constructive participation and Ripple-wide reporting/moderation. It does not make reply signals reputation/ranking inputs, add accepted answers, add user-authored reply deletion/editing, create reply-level appeals, or reinterpret historical Quotes.
-
-## Story 14.5 — Reply integrity and compatibility
-
-**Status:** Planned.
-
-Close migration, deletion/removal, anti-abuse, accessibility, query/performance, and historical-Quote compatibility gaps before Sprint 14 completes.
+This integrity pass closes threading, removal, accessibility, query, and compatibility gaps. It does not add user-authored Reply editing/deletion, accepted answers, engagement-based collapse/ranking, reply-level appeals, or historical Quote migration.
 
 ## Definition of done
 
