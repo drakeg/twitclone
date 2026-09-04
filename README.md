@@ -27,10 +27,19 @@ With Docker Desktop or Docker Engine running:
 docker compose up --build
 ```
 
-Open <http://localhost:8000>. Compose applies database migrations before its
+Open <http://localhost:8000> on the host running Docker. Compose applies database migrations before its
 Gunicorn web service starts, runs scheduled-post processing in a separate
 worker, and uses a named volume to preserve the SQLite database and uploaded
 media.
+
+By default, Compose publishes Ripple on `0.0.0.0`, so other devices on the same LAN can connect using the Docker host's LAN address, for example `http://192.168.1.50:8000`. Determine the host address with your operating system's normal network tools and use that address instead of `localhost` from another computer. Your host firewall must also allow inbound TCP traffic to the selected Ripple port.
+
+If you intentionally want host-only access, set `RIPPLE_BIND_HOST=127.0.0.1`. The default can be made explicit in a local `.env` file:
+
+```text
+RIPPLE_BIND_HOST=0.0.0.0
+RIPPLE_PORT=8000
+```
 
 If port 8000 is already in use by another local application, set a different
 host port while leaving Ripple's internal container port unchanged:
@@ -39,15 +48,7 @@ host port while leaving Ripple's internal container port unchanged:
 RIPPLE_PORT=8001 docker compose up --build
 ```
 
-Ripple will then be available at <http://localhost:8001>. You can also set
-`RIPPLE_PORT` in a local `.env` file, for example:
-
-```text
-RIPPLE_PORT=8010
-```
-
-This makes it easy to run multiple local applications at the same time without
-changing Ripple's Gunicorn or health-check ports.
+Ripple will then be available at <http://localhost:8001> on the Docker host and at `http://<LAN-IP>:8001` from other systems on the network. This makes it easy to run multiple local applications at the same time without changing Ripple's Gunicorn or health-check ports.
 
 ### Demo users and public sample content
 
