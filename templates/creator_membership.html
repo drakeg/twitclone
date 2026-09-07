@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ offering.name }} · {{ user.username }} · Ripple{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>{{ offering.name }}</h1><small>{{ user.username }} membership offering</small></div></header>
+<section class="surface-card" aria-labelledby="membership-heading">
+    <span class="auth-kicker">Creator membership</span>
+    <h2 class="h5" id="membership-heading">About this offering</h2>
+    <p>{{ offering.description }}</p>
+    <h3 class="h6">Planned benefits</h3>
+    <ul>
+        {% for label in offering.benefit_labels %}<li>{{ label }}</li>{% endfor %}
+    </ul>
+    <div class="alert alert-info mb-0" role="note">
+        <strong>Enrollment and payment are not enabled yet.</strong> This page describes a future membership offering only. Membership status will not buy organic reach, reputation, moderation authority, verification, or safety exemptions.
+    </div>
+</section>
+<p class="mt-3"><a class="btn btn-secondary" href="{{ url_for('creator_support', username=user.username) }}">Back to {{ user.username }}'s support page</a></p>
+{% endblock %}
