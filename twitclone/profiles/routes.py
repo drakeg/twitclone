@@ -62,6 +62,12 @@ def profile(username):
     return render_template('profile.html', user=user, is_following=is_following, premium_profile_active=premium_profile_active, topic_reputation=topic_reputation_summaries(user.id), support_profile=support_profile)
 
 
+def creator_support(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    support_profile = CreatorSupportProfile.query.filter_by(user_id=user.id, enabled=True).first_or_404()
+    return render_template('creator_support.html', user=user, support_profile=support_profile)
+
+
 def _analytics_counts(user):
     tweets = Tweet.query.filter_by(user_id=user.id, is_removed=False).all(); tweet_ids = [tweet.id for tweet in tweets]
     reposts = Retweet.query.filter(Retweet.tweet_id.in_(tweet_ids)).count() if tweet_ids else 0
@@ -108,7 +114,7 @@ def creator_support_settings():
         enabled = request.form.get('enabled') == '1'
         message = normalized_support_message(request.form.get('message'))
         if enabled and not message:
-            flash('Add a short support message before publishing your support card.', 'danger')
+            flash('Add a short support message before publishing your support page.', 'danger')
             return render_template('creator_support_settings.html', support_profile=support_profile)
         if support_profile is None:
             support_profile = CreatorSupportProfile(user_id=current_user.id)
@@ -165,4 +171,4 @@ def unfollow_from_list(user_id):
 
 @profiles_blueprint.record_once
 def register_profile_routes(state):
-    state.app.add_url_rule('/follow/<username>',endpoint='follow',view_func=follow,methods=['POST']); state.app.add_url_rule('/unfollow/<username>',endpoint='unfollow',view_func=unfollow,methods=['POST']); state.app.add_url_rule('/profile/<username>',endpoint='profile',view_func=profile); state.app.add_url_rule('/analytics',endpoint='analytics',view_func=analytics); state.app.add_url_rule('/creator/analytics',endpoint='creator_analytics',view_func=creator_analytics); state.app.add_url_rule('/creator/analytics/export.csv',endpoint='creator_analytics_export',view_func=creator_analytics_export); state.app.add_url_rule('/creator/support',endpoint='creator_support_settings',view_func=creator_support_settings,methods=['GET','POST']); state.app.add_url_rule('/profile/edit',endpoint='edit_profile',view_func=edit_profile,methods=['GET','POST']); state.app.add_url_rule('/followers/<username>',endpoint='followers',view_func=followers); state.app.add_url_rule('/following/<username>',endpoint='following',view_func=following); state.app.add_url_rule('/unfollow_from_list/<int:user_id>',endpoint='unfollow_from_list',view_func=unfollow_from_list)
+    state.app.add_url_rule('/follow/<username>',endpoint='follow',view_func=follow,methods=['POST']); state.app.add_url_rule('/unfollow/<username>',endpoint='unfollow',view_func=unfollow,methods=['POST']); state.app.add_url_rule('/profile/<username>',endpoint='profile',view_func=profile); state.app.add_url_rule('/support/<username>',endpoint='creator_support',view_func=creator_support); state.app.add_url_rule('/analytics',endpoint='analytics',view_func=analytics); state.app.add_url_rule('/creator/analytics',endpoint='creator_analytics',view_func=creator_analytics); state.app.add_url_rule('/creator/analytics/export.csv',endpoint='creator_analytics_export',view_func=creator_analytics_export); state.app.add_url_rule('/creator/support',endpoint='creator_support_settings',view_func=creator_support_settings,methods=['GET','POST']); state.app.add_url_rule('/profile/edit',endpoint='edit_profile',view_func=edit_profile,methods=['GET','POST']); state.app.add_url_rule('/followers/<username>',endpoint='followers',view_func=followers); state.app.add_url_rule('/following/<username>',endpoint='following',view_func=following); state.app.add_url_rule('/unfollow_from_list/<int:user_id>',endpoint='unfollow_from_list',view_func=unfollow_from_list)
