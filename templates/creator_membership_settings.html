@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Creator membership · Ripple{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Creator membership</h1><small>Describe optional supporter benefits before enrollment is enabled</small></div></header>
+<section class="surface-card" aria-labelledby="membership-settings-heading">
+    <span class="auth-kicker">Sprint 15</span>
+    <h2 class="h5" id="membership-settings-heading">Membership offering</h2>
+    <p class="text-muted">You can publish a future membership offering and its benefits. <strong>No supporter can enroll or be charged in this version.</strong> Membership configuration does not affect organic reach, reputation, verification, moderation authority, or safety decisions.</p>
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-check form-switch mb-3">
+            <input class="form-check-input" type="checkbox" role="switch" id="enabled" name="enabled" value="1" {% if offering and offering.enabled %}checked{% endif %}>
+            <label class="form-check-label" for="enabled">Publish this membership offering</label>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="name">Membership name</label>
+            <input class="form-control" id="name" name="name" maxlength="80" value="{{ offering.name if offering and offering.name else '' }}">
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="description">Description</label>
+            <textarea class="form-control" id="description" name="description" maxlength="280" rows="4">{{ offering.description if offering and offering.description else '' }}</textarea>
+        </div>
+        <fieldset class="mb-3">
+            <legend class="h6">Supported benefits</legend>
+            <p class="form-text">Benefits are descriptive only until Ripple implements real membership enrollment and access control.</p>
+            {% for key, label in membership_benefits.items() %}
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="benefit-{{ key }}" name="benefits" value="{{ key }}" {% if offering and key in offering.benefit_keys %}checked{% endif %}>
+                <label class="form-check-label" for="benefit-{{ key }}">{{ label }}</label>
+            </div>
+            {% endfor %}
+        </fieldset>
+        <button class="btn btn-primary" type="submit">Save membership offering</button>
+        {% if offering and offering.enabled %}<a class="btn btn-secondary" href="{{ url_for('creator_membership', username=current_user.username) }}">View public offering</a>{% endif %}
+        <a class="btn btn-secondary" href="{{ url_for('creator_support_settings') }}">Back to creator support</a>
+    </form>
+</section>
+{% endblock %}
