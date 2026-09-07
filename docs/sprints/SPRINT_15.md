@@ -17,38 +17,48 @@ Expand sustainable creator/community value without selling credibility, moderati
 
 ## Story 15.1 — Creator support foundation
 
+**Status:** Completed.
+
+- Dedicated `CreatorSupportProfile` persistence keeps creator-support state isolated from the mature `User` model.
+- Creators can explicitly publish/unpublish a bounded support message and receive a stable public support page only while enabled.
+- Disabled/unconfigured support pages remain private, and disabling preserves reversible configuration.
+- No checkout, payment, entitlement, ranking, reputation, verification, or moderation effect is created.
+- Migration `20260906_0034_creator_support_profile.py` advances from migration `0033`.
+- Story 15.1 merged in PR #221.
+
+## Story 15.2 — Support transaction contract
+
 **Status:** In implementation.
 
 ### Current implementation slice
 
-- Adds a dedicated `CreatorSupportProfile` record rather than modifying the mature `User` model.
-- Creators can explicitly publish or unpublish an informational support page.
-- A support message is required before the public page can be enabled and is bounded to 280 characters.
-- Public support pages are available only while the creator has explicitly enabled them.
-- Disabling support hides the public page without deleting the creator's stored support profile.
-- The UI states prominently that no payment is processed in this story.
-- Enabling support grants no entitlement and changes no feed ranking, reputation, verification, or moderation behavior.
-- Migration `20260906_0034_creator_support_profile.py` advances from migration `0033`.
+- Adds provider-neutral transaction states: `created`, `pending`, `succeeded`, `failed`, `canceled`, `partially_refunded`, `refunded`, and `chargeback`.
+- Defines narrow allowed state transitions so failed/canceled transactions cannot later be rewritten as successful history.
+- Defines independent payout states: `not_ready`, `pending`, `paid`, `failed`, and `reversed`.
+- Adds a validated fee contract requiring gross amount to reconcile exactly to platform fee + provider fee + creator net.
+- Establishes an initial USD support range of $1.00 through $1,000.00 for the future payment implementation.
+- Defines the minimum supporter receipt fields Ripple must be able to present after settlement.
+- Documents cancellation, partial/full refund, chargeback/dispute, payout, provider retry/idempotency, reconciliation, privacy, and failure-state rules.
+- Financial events are explicitly prohibited from affecting organic feed ranking, topic/community reputation, verification, moderation authority, or safety exemptions.
+- Unknown/contradictory provider state must fail closed for reconciliation rather than assuming payment success.
+- This story performs no checkout, provider API call, transaction persistence, payout, or entitlement grant.
 
 ### Acceptance criteria
 
-- Support settings require authentication.
-- Enabling support requires a non-empty creator-authored message.
-- Enabled support profiles have a stable public URL.
-- Disabled/unconfigured support profiles are not publicly readable.
-- Support enablement creates no paid entitlement and triggers no checkout/provider action.
-- Creator support state is reversible without deleting the record.
-- Tests cover authentication, publication, validation, disable/re-enable lifecycle, bounded text, and the no-entitlement boundary.
+- Fee components cannot be negative and must reconcile exactly to gross amount.
+- Unsupported currencies and out-of-range support amounts are rejected by the contract.
+- Transaction and payout transitions are explicit and regression-tested.
+- Receipt validation requires a transaction reference, creator reference, status, currency, and reconciled fee data.
+- Successful transactions cannot be rewritten as pending/created; failed/canceled transactions cannot later become successful.
+- Chargebacks remain financial/provider events rather than moderation or reputation signals.
+- The contract prohibits storage of raw card/bank credentials, CVV, provider secrets, or authentication secrets in transaction records.
+- Provider selection and actual money movement remain separately gated.
 
 ### Product boundary
 
-Story 15.1 does **not** process money. Payment provider selection, fees, checkout, receipts, refunds/cancellation, chargebacks, payouts, tax handling, supporter memberships, paid benefits, and creator/community revenue analytics remain future stories.
+Story 15.2 defines behavior only. It does **not** activate Stripe or any other provider, create checkout/webhook routes, move money, create payouts, grant memberships, add transaction persistence, or authorize AWS/paid-service spend. Provider-specific implementation remains a later explicit story/decision after fee, webhook, refund, dispute, tax, payout, reconciliation, and secret-handling responsibilities are resolved.
 
-## Story 15.2 — Support transaction contract
-
-**Status:** Planned.
-
-Define the provider-neutral transaction, fee, receipt, refund/cancellation, chargeback, payout, and failure-state contract before enabling support payments.
+See `docs/SUPPORT_TRANSACTION_CONTRACT.md` for the normative contract.
 
 ## Story 15.3 — Supporter memberships and benefits
 
