@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Support analytics · Ripple{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Support analytics</h1><small>Measured interest in your creator-support pages</small></div></header>
+<section class="surface-card mb-3">
+  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+    <div><span class="auth-kicker">Measured activity</span><h2 class="h5 mb-1">{{ summary.range_start.strftime('%b %d') }}–{{ summary.range_end.strftime('%b %d, %Y') }}</h2><p class="text-muted mb-0">Unique daily visitors are deduplicated per page. Your own visits are excluded.</p></div>
+    <div class="btn-group" role="group" aria-label="Analytics range">
+      {% for days in [7, 30, 90] %}<a class="btn btn-sm {% if summary.days == days %}btn-primary{% else %}btn-secondary{% endif %}" href="{{ url_for('creator_sustainability_analytics', days=days) }}" {% if summary.days == days %}aria-current="page"{% endif %}>{{ days }} days</a>{% endfor %}
+    </div>
+  </div>
+</section>
+<div class="row g-3 mb-3">
+  <div class="col-md-6"><section class="surface-card h-100"><span class="auth-kicker">Support page</span><h2 class="display-6 mb-1">{{ summary.support_page_visitors }}</h2><p class="text-muted mb-0">Unique daily visitors in this period.</p><p class="form-text mb-0">Status: <strong>{{ 'Published' if support_profile and support_profile.enabled else 'Not published' }}</strong></p></section></div>
+  <div class="col-md-6"><section class="surface-card h-100"><span class="auth-kicker">Membership offering</span><h2 class="display-6 mb-1">{{ summary.membership_page_visitors }}</h2><p class="text-muted mb-0">Unique daily visitors in this period.</p><p class="form-text mb-0">Status: <strong>{{ 'Published' if membership_offering and membership_offering.enabled else 'Not published' }}</strong></p></section></div>
+</div>
+<section class="surface-card mb-3">
+  <h2 class="h5">Daily measured interest</h2>
+  <div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th scope="col">Date</th><th scope="col">Support page</th><th scope="col">Membership page</th></tr></thead><tbody>{% for row in summary.daily %}<tr><th scope="row">{{ row.date.strftime('%b %d') }}</th><td>{{ row.support }}</td><td>{{ row.membership }}</td></tr>{% endfor %}</tbody></table></div>
+</section>
+<section class="surface-card">
+  <span class="auth-kicker">Not yet measurable</span><h2 class="h5">No invented money or member metrics</h2><p class="text-muted">Ripple does not yet process creator-support payments or enroll supporter memberships, so revenue, payment conversion, supporter count, active member count, churn, refunds, payouts, and lifetime value are intentionally not shown. Those metrics will only appear after Ripple has real underlying transaction or membership records.</p>
+  <a class="btn btn-secondary" href="{{ url_for('creator_support_settings') }}">Support settings</a> <a class="btn btn-secondary" href="{{ url_for('creator_membership_settings') }}">Membership offering</a>
+</section>
+{% endblock %}
