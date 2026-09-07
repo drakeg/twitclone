@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 
 from twitclone.analytics_models import FollowerSnapshot, PostImpression, ProfileVisit
 from twitclone.extensions import db
+from twitclone.sustainability_analytics import PAGE_TYPES, SustainabilityPageVisit
 
 
 def _today():
@@ -68,6 +69,32 @@ def record_profile_visit(profile_user):
     today = _today()
     if ProfileVisit.query.filter_by(profile_user_id=profile_user.id, visitor_key=visitor_key, visit_date=today).first() is None:
         db.session.add(ProfileVisit(profile_user_id=profile_user.id, visitor_user_id=visitor_user_id, visitor_key=visitor_key, visit_date=today))
+        _safe_commit()
+
+
+def record_sustainability_page_visit(creator_user, page_type):
+    """Record one unique visitor per creator/page/day for a real public page."""
+    if page_type not in PAGE_TYPES:
+        raise ValueError("Unsupported sustainability analytics page type")
+    visitor_user_id, visitor_key = _viewer_identity(f'sustainability_{page_type}')
+    if visitor_user_id == creator_user.id:
+        return
+    today = _today()
+    if SustainabilityPageVisit.query.filter_by(
+        creator_user_id=creator_user.id,
+        page_type=page_type,
+        visitor_key=visitor_key,
+        visit_date=today,
+    ).first() is None:
+        db.session.add(
+            SustainabilityPageVisit(
+                creator_user_id=creator_user.id,
+                page_type=page_type,
+                visitor_user_id=visitor_user_id,
+                visitor_key=visitor_key,
+                visit_date=today,
+            )
+        )
         _safe_commit()
 
 
