@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Support {{ user.username }} · Ripple{% endblock %}
+{% block content %}
+<header class="page-header"><div><h1>Support {{ user.username }}</h1><small>Creator support</small></div></header>
+<section class="surface-card" aria-labelledby="support-heading">
+    <span class="auth-kicker">Creator support</span>
+    <h2 class="h5" id="support-heading">{{ user.username }}'s support message</h2>
+    <p>{{ support_profile.message }}</p>
+    <div class="alert alert-info mb-0" role="note">
+        <strong>No payment is processed on this page yet.</strong> Ripple is establishing the support contract before enabling any money-moving capability. Support status does not affect organic reach, reputation, moderation authority, or verification.
+    </div>
+</section>
+<p class="mt-3"><a class="btn btn-secondary" href="{{ url_for('profile', username=user.username) }}">Back to {{ user.username }}'s profile</a></p>
+{% endblock %}
