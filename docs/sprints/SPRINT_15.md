@@ -28,43 +28,46 @@ Expand sustainable creator/community value without selling credibility, moderati
 
 ## Story 15.2 — Support transaction contract
 
+**Status:** Completed.
+
+- Provider-neutral transaction and payout state contracts are defined and regression-tested.
+- Gross/platform/provider/creator-net fee components must reconcile exactly.
+- The initial future support range is USD $1.00–$1,000.00.
+- Minimum receipt fields, refund/cancellation, chargeback/dispute, payout, retry/idempotency, reconciliation, privacy, and fail-closed behavior are documented.
+- Financial events cannot affect organic ranking, topic/community reputation, verification, moderation authority, or safety exemptions.
+- The story performs no checkout, provider API call, transaction persistence, payout, or entitlement grant.
+- See `docs/SUPPORT_TRANSACTION_CONTRACT.md` for the normative contract.
+- Story 15.2 merged in PR #222.
+
+## Story 15.3 — Supporter memberships and benefits
+
 **Status:** In implementation.
 
 ### Current implementation slice
 
-- Adds provider-neutral transaction states: `created`, `pending`, `succeeded`, `failed`, `canceled`, `partially_refunded`, `refunded`, and `chargeback`.
-- Defines narrow allowed state transitions so failed/canceled transactions cannot later be rewritten as successful history.
-- Defines independent payout states: `not_ready`, `pending`, `paid`, `failed`, and `reversed`.
-- Adds a validated fee contract requiring gross amount to reconcile exactly to platform fee + provider fee + creator net.
-- Establishes an initial USD support range of $1.00 through $1,000.00 for the future payment implementation.
-- Defines the minimum supporter receipt fields Ripple must be able to present after settlement.
-- Documents cancellation, partial/full refund, chargeback/dispute, payout, provider retry/idempotency, reconciliation, privacy, and failure-state rules.
-- Financial events are explicitly prohibited from affecting organic feed ranking, topic/community reputation, verification, moderation authority, or safety exemptions.
-- Unknown/contradictory provider state must fail closed for reconciliation rather than assuming payment success.
-- This story performs no checkout, provider API call, transaction persistence, payout, or entitlement grant.
+- Adds a dedicated `CreatorMembershipOffering` companion model instead of modifying the mature `User` model.
+- Migration `20260907_0035_creator_membership_offering.py` advances from migration `0034`.
+- A creator may publish or unpublish one descriptive membership offering with a bounded name and description.
+- Creators choose only from Ripple-defined benefit categories: supporter-only creator updates, early access to creator-published material, member Q&A participation, and creator-provided downloadable resources.
+- Public membership offerings are visible only when both the creator support profile and the membership offering are enabled.
+- Disabling the offering preserves its configuration so the choice is reversible.
+- The public page explicitly states that enrollment and payment are not enabled.
+- No supporter/member row, payment record, checkout, access-control grant, entitlement, badge, ranking boost, verification benefit, moderation authority, or safety exemption is created.
 
 ### Acceptance criteria
 
-- Fee components cannot be negative and must reconcile exactly to gross amount.
-- Unsupported currencies and out-of-range support amounts are rejected by the contract.
-- Transaction and payout transitions are explicit and regression-tested.
-- Receipt validation requires a transaction reference, creator reference, status, currency, and reconciled fee data.
-- Successful transactions cannot be rewritten as pending/created; failed/canceled transactions cannot later become successful.
-- Chargebacks remain financial/provider events rather than moderation or reputation signals.
-- The contract prohibits storage of raw card/bank credentials, CVV, provider secrets, or authentication secrets in transaction records.
-- Provider selection and actual money movement remain separately gated.
+- Membership settings require authentication.
+- Publishing requires a name, description, and at least one supported benefit.
+- Unsupported benefit keys are ignored and cannot become published benefits.
+- A public membership page returns 404 unless the creator's support profile and membership offering are both enabled.
+- Disabling an offering hides the public page without deleting configuration.
+- Creating or publishing an offering grants no entitlement.
+- Benefit labels are fixed by Ripple rather than accepting arbitrary promises that the product cannot enforce.
+- Tests cover authentication, publication, validation, visibility, reversibility, and the no-entitlement boundary.
 
 ### Product boundary
 
-Story 15.2 defines behavior only. It does **not** activate Stripe or any other provider, create checkout/webhook routes, move money, create payouts, grant memberships, add transaction persistence, or authorize AWS/paid-service spend. Provider-specific implementation remains a later explicit story/decision after fee, webhook, refund, dispute, tax, payout, reconciliation, and secret-handling responsibilities are resolved.
-
-See `docs/SUPPORT_TRANSACTION_CONTRACT.md` for the normative contract.
-
-## Story 15.3 — Supporter memberships and benefits
-
-**Status:** Planned.
-
-Evaluate optional creator/community membership benefits that provide convenience or access without buying ranking, reputation, moderation authority, verification, or safety exemptions.
+Story 15.3 defines and publishes a future membership offering only. It does **not** enroll supporters, charge money, create recurring billing, activate supporter access, create a membership badge, unlock private content, select a payment provider, or authorize paid/AWS service activation. Those capabilities require later explicit implementation after provider and operational responsibilities are resolved.
 
 ## Story 15.4 — Creator/community sustainability analytics
 
