@@ -19,11 +19,12 @@
         </div>
         <button class="btn btn-primary" type="submit">Save support profile</button>
         {% if support_profile and support_profile.enabled %}<a class="btn btn-secondary" href="{{ url_for('creator_support', username=current_user.username) }}">View public support page</a>{% endif %}
+        <a class="btn btn-secondary" href="{{ url_for('creator_membership_settings') }}">Membership offering</a>
         <a class="btn btn-secondary" href="{{ url_for('profile', username=current_user.username) }}">Back to profile</a>
     </form>
 </section>
 <section class="surface-card mt-3" aria-labelledby="support-boundaries-heading">
     <h2 class="h6" id="support-boundaries-heading">Current boundaries</h2>
-    <p class="mb-0 text-muted">This story stores your opt-in and message only. Payment provider selection, fees, supporter receipts, refunds/cancellation, payouts, taxes, and paid-member benefits require later explicit implementation and documentation.</p>
+    <p class="mb-0 text-muted">Ripple now supports publishing informational support and membership offerings, but not enrollment or money movement. Payment provider selection, checkout, supporter receipts, refunds/cancellation, payouts, taxes, access enforcement, and paid-member activation remain separately gated.</p>
 </section>
 {% endblock %}
