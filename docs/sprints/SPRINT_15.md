@@ -41,39 +41,48 @@ Expand sustainable creator/community value without selling credibility, moderati
 
 ## Story 15.3 — Supporter memberships and benefits
 
-**Status:** In implementation.
-
-### Current implementation slice
+**Status:** Completed.
 
 - Adds a dedicated `CreatorMembershipOffering` companion model instead of modifying the mature `User` model.
 - Migration `20260907_0035_creator_membership_offering.py` advances from migration `0034`.
 - A creator may publish or unpublish one descriptive membership offering with a bounded name and description.
 - Creators choose only from Ripple-defined benefit categories: supporter-only creator updates, early access to creator-published material, member Q&A participation, and creator-provided downloadable resources.
 - Public membership offerings are visible only when both the creator support profile and the membership offering are enabled.
-- Disabling the offering preserves its configuration so the choice is reversible.
+- Disabling the offering preserves its configuration so publication is reversible.
 - The public page explicitly states that enrollment and payment are not enabled.
 - No supporter/member row, payment record, checkout, access-control grant, entitlement, badge, ranking boost, verification benefit, moderation authority, or safety exemption is created.
-
-### Acceptance criteria
-
-- Membership settings require authentication.
-- Publishing requires a name, description, and at least one supported benefit.
-- Unsupported benefit keys are ignored and cannot become published benefits.
-- A public membership page returns 404 unless the creator's support profile and membership offering are both enabled.
-- Disabling an offering hides the public page without deleting configuration.
-- Creating or publishing an offering grants no entitlement.
-- Benefit labels are fixed by Ripple rather than accepting arbitrary promises that the product cannot enforce.
-- Tests cover authentication, publication, validation, visibility, reversibility, and the no-entitlement boundary.
-
-### Product boundary
-
-Story 15.3 defines and publishes a future membership offering only. It does **not** enroll supporters, charge money, create recurring billing, activate supporter access, create a membership badge, unlock private content, select a payment provider, or authorize paid/AWS service activation. Those capabilities require later explicit implementation after provider and operational responsibilities are resolved.
+- Story 15.3 merged in PR #223.
 
 ## Story 15.4 — Creator/community sustainability analytics
 
-**Status:** Planned.
+**Status:** In implementation.
 
-Add measured support/member analytics only where Ripple has reliable transaction and membership data, with explicit separation from organic-content ranking.
+### Current implementation slice
+
+- Adds `SustainabilityPageVisit`, a dedicated measured-event model for public creator-support and membership-offering page visits.
+- Migration `20260907_0036_sustainability_page_visits.py` advances from migration `0035`.
+- Public page interest is deduplicated to one visitor per creator/page/day.
+- Authenticated creator self-views are excluded.
+- Only successful public support/membership pages record visits; disabled or unavailable pages do not create analytics events.
+- `/creator/support/analytics` provides 7/30/90-day measured summaries for support-page and membership-page visitors.
+- Daily measured-interest rows are shown transparently without an engagement score or conversion inference.
+- Revenue, payment conversion, supporter count, active member count, churn, refunds, payouts, and lifetime value remain explicitly unavailable because Ripple does not yet have the underlying transaction or enrollment records.
+- Analytics do not affect organic ranking, reputation, verification, moderation authority, or safety behavior.
+
+### Acceptance criteria
+
+- Sustainability analytics require authentication.
+- Repeated views by the same visitor on the same public page/day count once.
+- Support and membership pages are measured separately.
+- A creator's own authenticated views are not counted.
+- 404/disabled pages create no analytics event.
+- The dashboard supports bounded 7/30/90-day views and reports only measured visitor data.
+- The UI explicitly explains why revenue/supporter/member metrics are absent instead of displaying inferred or placeholder values.
+- Tests cover authentication, deduplication, self-view exclusion, page-type separation, disabled-page behavior, and the no-invented-metrics boundary.
+
+### Product boundary
+
+Story 15.4 does not add checkout, transaction persistence, recurring billing, membership enrollment, payouts, conversion attribution, or financial analytics. It measures only real visits to public sustainability surfaces that Ripple already serves. Financial/member analytics require future real transaction or membership records.
 
 ## Story 15.5 — Sustainability integrity and operations review
 
