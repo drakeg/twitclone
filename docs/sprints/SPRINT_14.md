@@ -1,6 +1,6 @@
 # Sprint 14 — Replies and Conversation Structure
 
-**Status:** In implementation.
+**Status:** Completed.
 
 ## Goal
 
@@ -65,36 +65,18 @@ Add a true public reply model so Ripple conversations can develop as readable di
 
 ## Story 14.5 — Reply integrity and compatibility
 
-**Status:** In implementation.
-
-### Current implementation slice
+**Status:** Completed.
 
 - Nested Reply creation is capped at 12 persisted levels and enforced server-side.
-- Existing three-level visual indentation remains bounded while deeper valid hierarchy stays persisted and understandable.
-- Thread parent traversal guards against malformed/cyclic parent chains rather than recursing indefinitely.
-- Thread assembly bulk-loads constructive Reply contributions instead of issuing a lazy contribution lookup for each Reply.
-- A visible child of a removed parent remains readable but renders a neutral **Replying to a removed reply** tombstone.
-- Removed-parent body, identity, and dead permalink are not exposed through surviving descendants.
-- Helpful/Thoughtful/Useful-context toggle buttons expose `aria-pressed` state and accessible labels.
-- Regression coverage verifies the depth cap, removed-parent presentation, accessible signal state, and historical Quote separation.
+- Visual indentation remains bounded while deeper valid hierarchy stays persisted and readable.
+- Parent traversal guards against malformed/cyclic chains.
+- Thread assembly bulk-loads constructive Reply contributions instead of querying per Reply.
+- Visible descendants of a removed parent remain readable through a neutral tombstone without exposing removed content, identity, or a dead permalink.
+- Helpful/Thoughtful/Useful-context controls expose pressed/unpressed accessibility state.
 - `docs/REPLY_INTEGRITY.md` records persistence, anti-abuse, removal, performance, accessibility, ranking, and compatibility boundaries.
-- No schema migration is required for Story 14.5.
+- Historical Quotes remain Quote records and are never reclassified as Replies.
+- Story 14.5 merged in PR #218.
 
-### Acceptance criteria
+## Sprint outcome
 
-- A nested Reply cannot be created beyond the documented server-side depth cap.
-- Valid deep threads remain readable without unbounded horizontal indentation.
-- Malformed/cyclic parent relationships cannot cause unbounded presentation traversal.
-- Reply contribution display does not require a per-Reply contribution query.
-- Removing a parent does not silently remove visible descendants or expose the removed parent's content/identity through them.
-- Interactive contribution signals expose understandable pressed/unpressed accessibility state.
-- Historical Quotes remain Quote records and never appear as Reply thread rows unless a separate real Reply also exists.
-- Story 14.5 changes do not introduce contribution/engagement ranking, accepted-answer ranking, paid reach, or inferred-trait behavior.
-
-### Product boundary
-
-This integrity pass closes threading, removal, accessibility, query, and compatibility gaps. It does not add user-authored Reply editing/deletion, accepted answers, engagement-based collapse/ranking, reply-level appeals, or historical Quote migration.
-
-## Definition of done
-
-Sprint 14 is complete when Ripple has durable readable threaded replies with stable URLs, coherent conversation controls, appropriate contribution/moderation integration, and explicit compatibility boundaries that preserve Quote as a separate repost-with-comment action.
+Sprint 14 delivered durable, readable threaded replies with stable URLs, coherent conversation intent/health behavior, reply-level constructive contribution and moderation integration, bounded deep-thread handling, removal-safe descendants, accessibility state, and explicit compatibility boundaries preserving Quote as a separate repost-with-comment action.
