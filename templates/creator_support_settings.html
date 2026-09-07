@@ -20,6 +20,7 @@
         <button class="btn btn-primary" type="submit">Save support profile</button>
         {% if support_profile and support_profile.enabled %}<a class="btn btn-secondary" href="{{ url_for('creator_support', username=current_user.username) }}">View public support page</a>{% endif %}
         <a class="btn btn-secondary" href="{{ url_for('creator_membership_settings') }}">Membership offering</a>
+        <a class="btn btn-secondary" href="{{ url_for('creator_sustainability_analytics') }}">Support analytics</a>
         <a class="btn btn-secondary" href="{{ url_for('profile', username=current_user.username) }}">Back to profile</a>
     </form>
 </section>
