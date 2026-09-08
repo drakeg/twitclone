@@ -3,6 +3,7 @@
 from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
+from twitclone.analytics_tracking import record_sustainability_page_visit
 from twitclone.creator_memberships import (
     CreatorMembershipOffering,
     MEMBERSHIP_BENEFITS,
@@ -14,6 +15,7 @@ from twitclone.creator_support import CreatorSupportProfile
 from twitclone.extensions import db
 from twitclone.models import User
 from twitclone.profiles import profiles_blueprint
+from twitclone.sustainability_analytics import MEMBERSHIP_PAGE
 
 
 @login_required
@@ -72,6 +74,7 @@ def creator_membership(username):
     offering = CreatorMembershipOffering.query.filter_by(user_id=user.id, enabled=True).first()
     if support_profile is None or offering is None:
         abort(404)
+    record_sustainability_page_visit(user, MEMBERSHIP_PAGE)
     return render_template("creator_membership.html", user=user, offering=offering)
 
 
