@@ -1,6 +1,6 @@
 # Sprint 15 — Creator and Community Sustainability
 
-**Status:** In implementation.
+**Status:** Completed.
 
 ## Goal
 
@@ -47,7 +47,7 @@ Expand sustainable creator/community value without selling credibility, moderati
 - Migration `20260907_0035_creator_membership_offering.py` advances from migration `0034`.
 - A creator may publish or unpublish one descriptive membership offering with a bounded name and description.
 - Creators choose only from Ripple-defined benefit categories: supporter-only creator updates, early access to creator-published material, member Q&A participation, and creator-provided downloadable resources.
-- Public membership offerings are visible only when both the creator support profile and the membership offering are enabled.
+- Public membership offerings are visible only when both the creator support profile and membership offering are enabled.
 - Disabling the offering preserves its configuration so publication is reversible.
 - The public page explicitly states that enrollment and payment are not enabled.
 - No supporter/member row, payment record, checkout, access-control grant, entitlement, badge, ranking boost, verification benefit, moderation authority, or safety exemption is created.
@@ -55,41 +55,33 @@ Expand sustainable creator/community value without selling credibility, moderati
 
 ## Story 15.4 — Creator/community sustainability analytics
 
-**Status:** In implementation.
+**Status:** Completed.
 
-### Current implementation slice
-
-- Adds `SustainabilityPageVisit`, a dedicated measured-event model for public creator-support and membership-offering page visits.
+- `SustainabilityPageVisit` records measured public creator-support and membership-page interest only.
 - Migration `20260907_0036_sustainability_page_visits.py` advances from migration `0035`.
-- Public page interest is deduplicated to one visitor per creator/page/day.
+- Public-page interest is deduplicated to one visitor per creator/page/day.
 - Authenticated creator self-views are excluded.
 - Only successful public support/membership pages record visits; disabled or unavailable pages do not create analytics events.
-- `/creator/support/analytics` provides 7/30/90-day measured summaries for support-page and membership-page visitors.
-- Daily measured-interest rows are shown transparently without an engagement score or conversion inference.
-- Revenue, payment conversion, supporter count, active member count, churn, refunds, payouts, and lifetime value remain explicitly unavailable because Ripple does not yet have the underlying transaction or enrollment records.
+- `/creator/support/analytics` provides bounded 7/30/90-day measured summaries and daily visitor counts.
+- Revenue, payment conversion, supporter count, active member count, churn, refunds, payouts, and lifetime value remain unavailable because Ripple has no underlying transaction or enrollment records.
 - Analytics do not affect organic ranking, reputation, verification, moderation authority, or safety behavior.
-
-### Acceptance criteria
-
-- Sustainability analytics require authentication.
-- Repeated views by the same visitor on the same public page/day count once.
-- Support and membership pages are measured separately.
-- A creator's own authenticated views are not counted.
-- 404/disabled pages create no analytics event.
-- The dashboard supports bounded 7/30/90-day views and reports only measured visitor data.
-- The UI explicitly explains why revenue/supporter/member metrics are absent instead of displaying inferred or placeholder values.
-- Tests cover authentication, deduplication, self-view exclusion, page-type separation, disabled-page behavior, and the no-invented-metrics boundary.
-
-### Product boundary
-
-Story 15.4 does not add checkout, transaction persistence, recurring billing, membership enrollment, payouts, conversion attribution, or financial analytics. It measures only real visits to public sustainability surfaces that Ripple already serves. Financial/member analytics require future real transaction or membership records.
+- Story 15.4 merged in PR #224.
 
 ## Story 15.5 — Sustainability integrity and operations review
 
-**Status:** Planned.
+**Status:** Completed.
 
-Close the sprint with fee/cancellation/payout documentation, abuse and moderation boundaries, privacy/financial-data handling, operational failure modes, and regression evidence.
+- `docs/SUSTAINABILITY_OPERATIONS.md` defines the operational, privacy, abuse, financial-data, reconciliation, secret-handling, provider-outage, migration, and failure-mode boundaries for future money movement.
+- The provider-neutral fee/cancellation/refund/chargeback/payout contract remains normative in `docs/SUPPORT_TRANSACTION_CONTRACT.md`.
+- Future checkout activation requires an explicit provider-specific review, webhook authenticity/idempotency evidence, refund/dispute/payout testing, reconciliation rehearsal, privacy/data-retention review, receipt behavior, secret handling, and a tested disable/rollback path.
+- Financial disputes remain separate from moderation and reputation behavior.
+- Paid/supporter status cannot purchase organic reach, reputation, verification, moderation authority, report priority, or safety exemptions.
+- Current sustainability models remain intentionally non-financial: support publication, descriptive membership offerings, and measured page visits only.
+- Regression coverage locks those current model boundaries and keeps unmeasured financial/member metrics explicitly unavailable.
+- No payment provider, checkout, supporter enrollment, payout, AWS resource, or paid-service activation is introduced by this story.
 
 ## Definition of done
 
-Sprint 15 is complete when Ripple has an understandable and reversible creator/community sustainability model with documented payment/fee/cancellation boundaries, measured analytics where justified, and explicit safeguards preventing pay-to-win reach, credibility, or moderation influence.
+Sprint 15 is complete. Ripple now has reversible creator-support and membership-publication foundations, a provider-neutral transaction contract for future work, measured sustainability-page analytics, and explicit integrity/operations gates that prevent descriptive support features from silently becoming pay-to-win reach or unreviewed money-moving infrastructure.
+
+Actual payment processing remains separately gated and unimplemented.
