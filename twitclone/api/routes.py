@@ -7,6 +7,7 @@ from flask import jsonify
 from twitclone.api import api_blueprint
 from twitclone.extensions import db
 from twitclone.models import Tweet
+from twitclone.spaces.models import SpacePost
 from twitclone.topic_models import public_topic_associations
 
 
@@ -36,6 +37,14 @@ def _public_post(tweet):
     }
 
 
+def _is_public_post(tweet, now):
+    if tweet is None or tweet.is_removed:
+        return False
+    if tweet.scheduled_at is not None and tweet.scheduled_at > now:
+        return False
+    return SpacePost.query.filter_by(tweet_id=tweet.id).first() is None
+
+
 @api_blueprint.get("")
 @api_blueprint.get("/")
 def api_index():
@@ -52,8 +61,7 @@ def api_index():
 @api_blueprint.get("/posts/<int:tweet_id>")
 def get_post(tweet_id):
     tweet = db.session.get(Tweet, tweet_id)
-    now = _utcnow_naive()
-    if tweet is None or tweet.is_removed or (tweet.scheduled_at is not None and tweet.scheduled_at > now):
+    if not _is_public_post(tweet, _utcnow_naive()):
         return _api_error(404, "post_not_found", "The requested public post was not found.")
     return jsonify({"data": _public_post(tweet)})
 
