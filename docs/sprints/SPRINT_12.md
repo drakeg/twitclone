@@ -42,45 +42,50 @@ Give people meaningful, understandable control over what Ripple shows them witho
 
 ## Story 12.3 — Topic-oriented discovery mode
 
+**Status:** Completed.
+
+- Home adds an explicit **Explore a topic** control for authenticated users.
+- Topic mode is temporary and cannot become the saved default feed.
+- Only author-selected explicit topic associations qualify.
+- Hashtag-only associations do not qualify.
+- Reposts qualify when the original post has the selected explicit topic.
+- Quotes and polls are excluded until they can carry their own explicit topic semantics.
+- Results remain deterministic newest-first with no popularity or engagement ranking.
+- Unknown topics show a clear empty state rather than unrelated content.
+- Story 12.3 merged in PR #197. PR #196 was an empty administrative merge and is not considered the implementation evidence.
+
+## Story 12.4 — Relationship-first / quiet mode
+
 **Status:** In implementation.
 
 ### Current implementation slice
 
-- Home adds an explicit **Explore a topic** control for authenticated users.
-- Topic mode is a temporary browsing mode and cannot be persisted as the user's default feed.
-- Topic input is normalized through Ripple's existing topic vocabulary and matched by normalized slug.
-- Only posts with an author-selected `explicit` topic association qualify.
-- Hashtag-only topic associations are intentionally excluded from topic discovery.
-- Reposts qualify when the original post has the selected explicit topic association.
-- Quotes are excluded because quote text has no independent topic association today; inheriting the quoted post's topic would imply intent that the quote author did not declare.
-- Polls are excluded because polls do not yet support explicit topic associations.
-- Results remain deterministic newest-first using the same timeline ordering rules as existing feeds.
-- The UI explains the inclusion/exclusion rules and states that popularity/engagement ranking is not applied.
-- Topic pagination preserves the normalized topic slug.
-- Unknown topics produce a clear empty state rather than falling back to unrelated content.
+- Authenticated users can select a temporary **Quiet** feed from Home.
+- Quiet uses only explicit follow relationships plus the viewer's own account.
+- Quiet includes original posts and polls from those accounts.
+- Reposts and quote posts are intentionally excluded to remove amplification layers while retaining direct authored content.
+- Quiet remains newest-first and deterministic.
+- No engagement velocity, follower count, paid entitlement, verification status, topic inference, or sentiment signal affects inclusion or order.
+- Quiet cannot be persisted as the default feed in this story; saved defaults remain All Ripple or Following.
+- Anonymous requests for Quiet fall back to All Ripple rather than creating a pseudo-personalized anonymous feed.
+- Pagination preserves `feed=quiet`.
 - No migration is required.
 
 ### Acceptance criteria
 
-- Explicitly associated posts appear for the selected topic.
-- Hashtag-only matches do not appear.
-- Reposts of explicitly associated posts appear.
-- Quote posts and polls do not appear until they can carry their own explicit topic semantics.
-- Topic mode cannot be saved through `/feed-preference`.
-- Unknown topics return a clear empty topic feed.
-- Pagination retains both `feed=topic` and the normalized topic slug.
-- Feed explanation makes the deterministic rules visible to the user.
-- Tests cover explicit-vs-hashtag filtering, repost inclusion, quote/poll exclusion, pagination, empty state, and persistence rejection.
+- Direct posts from followed accounts and the viewer appear in Quiet.
+- Direct posts from unrelated accounts do not appear.
+- Polls authored by followed accounts remain visible as direct authored content.
+- Reposts and quote posts are excluded even when the amplification action came from a followed account.
+- Ordering remains deterministic newest-first.
+- The UI explains exactly what Quiet includes and excludes.
+- Quiet cannot be persisted through `/feed-preference`.
+- Anonymous Quiet requests safely fall back to All Ripple.
+- Tests cover relationship filtering, amplification suppression, UI explanation, pagination, persistence rejection, and anonymous fallback.
 
 ### Product decision
 
-Story 12.3 favors declared intent over broad matching. Ripple does not infer that a quote, poll, hashtag, profile attribute, engagement history, or other behavior represents a user's interest in a topic. Additional topic-follow persistence can be designed separately after the browsing semantics are validated.
-
-## Story 12.4 — Relationship-first / quiet mode
-
-**Status:** Planned.
-
-Explore a deliberately lower-noise mode based on explicit relationships and understandable recency rules, not engagement velocity or outrage proxies.
+Quiet is not a hidden ranking algorithm. It is a transparent content-type reduction layered on the user's explicit relationship graph: direct authored posts and polls from people they chose to follow, plus their own. It deliberately suppresses repost and quote amplification rather than trying to predict which content is calming, healthy, agreeable, or emotionally appropriate.
 
 ## Story 12.5 — Feed integrity and measurement
 
