@@ -22,6 +22,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     import app as legacy_app
 
     from twitclone.admin import admin_blueprint
+    from twitclone.api import api_blueprint
     from twitclone.auth import auth_blueprint
     from twitclone.billing import ensure_default_plans
     from twitclone.bookmarks import bookmarks_blueprint
@@ -65,6 +66,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
         bookmarks_blueprint,
         resources_blueprint,
         spaces_blueprint,
+        api_blueprint,
         admin_blueprint,
         community_blueprint,
         payments_blueprint,
