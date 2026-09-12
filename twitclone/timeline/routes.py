@@ -48,7 +48,7 @@ def index():
     requested_value = request.args.get("feed")
     requested_mode = requested_value.strip().lower() if requested_value else None
     feed_mode = requested_mode if requested_mode in FEED_MODES else stored_feed_mode
-    if feed_mode == "following" and not current_user.is_authenticated:
+    if feed_mode in {"following", "quiet"} and not current_user.is_authenticated:
         feed_mode = "all"
 
     selected_topic = None
