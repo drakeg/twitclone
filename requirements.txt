@@ -15,7 +15,7 @@ gravatar==0.1
 gunicorn==26.2.0
 psycopg[binary]==3.3.5
 pytz==2026.3.post1
-SQLAlchemy==2.0.52
+SQLAlchemy==2.0.53
 stripe==15.6.1
 tzlocal==5.4.4
 WTForms==3.2.2
