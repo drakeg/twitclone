@@ -65,10 +65,21 @@ def test_credential_lifetime_cannot_exceed_one_year(app):
         )
 
 
+def test_posts_write_scope_is_supported(app):
+    user_id = _user(app)
+    with app.app_context():
+        credential, _ = issue_api_credential(
+            user_id=user_id,
+            label="writer",
+            scopes={"posts:read", "posts:write"},
+        )
+        assert credential.scope_set == {"posts:read", "posts:write"}
+
+
 def test_unsupported_scope_is_rejected(app):
     user_id = _user(app)
     with app.app_context(), pytest.raises(ValueError, match="supported scope"):
-        issue_api_credential(user_id=user_id, label="writer", scopes={"posts:write"})
+        issue_api_credential(user_id=user_id, label="admin", scopes={"admin:write"})
 
 
 def test_api_account_requires_bearer_token_even_with_browser_session(client, app):
