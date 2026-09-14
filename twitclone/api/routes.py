@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from flask import current_app, jsonify, request
 
 from twitclone.api import api_blueprint
-from twitclone.api.credentials import authenticate_bearer_token
+from twitclone.api.credentials import SUPPORTED_API_SCOPES, authenticate_bearer_token
 from twitclone.api.rate_limits import (
     DEFAULT_CREDENTIAL_LIMIT,
     DEFAULT_INVALID_TOKEN_LIMIT,
@@ -13,10 +13,14 @@ from twitclone.api.rate_limits import (
     DEFAULT_WINDOW_SECONDS,
     consume_rate_limit,
 )
+from twitclone.conversation_intent import normalize_conversation_intent
+from twitclone.conversation_models import TweetConversationIntent
 from twitclone.extensions import db
+from twitclone.mentions import add_mention_notifications
 from twitclone.models import Tweet
 from twitclone.spaces.models import SpacePost
-from twitclone.topic_models import public_topic_associations
+from twitclone.timeline.validation import validate_post_content
+from twitclone.topic_models import associate_topics, public_topic_associations
 
 
 def _utcnow_naive():
@@ -144,6 +148,24 @@ def _bearer_credential(required_scope):
     return credential, None, result
 
 
+def _post_payload_error(payload):
+    if not isinstance(payload, dict):
+        return "Request body must be a JSON object."
+    content = payload.get("content")
+    validation_error = validate_post_content(content, post_type="Post")
+    if validation_error:
+        return validation_error
+    topics = payload.get("topics", [])
+    if topics is None:
+        topics = []
+    if not isinstance(topics, list) or len(topics) > 5 or not all(isinstance(item, str) for item in topics):
+        return "topics must be an array of at most five strings."
+    conversation_intent = payload.get("conversation_intent")
+    if conversation_intent is not None and not isinstance(conversation_intent, str):
+        return "conversation_intent must be a string when provided."
+    return None
+
+
 @api_blueprint.get("")
 @api_blueprint.get("/")
 def api_index():
@@ -154,11 +176,11 @@ def api_index():
         {
             "name": "Ripple Public API",
             "version": "v1",
-            "status": "read-only-preview",
+            "status": "limited-write-preview",
             "documentation": "/api/v1/",
             "authentication": {
                 "scheme": "Bearer",
-                "supported_scopes": ["posts:read"],
+                "supported_scopes": sorted(SUPPORTED_API_SCOPES),
             },
         }
     )
@@ -180,6 +202,37 @@ def get_post(tweet_id):
         jsonify({"data": _public_post(tweet)}),
         limit_result,
     )
+
+
+@api_blueprint.post("/posts")
+def create_post():
+    credential, error, limit_result = _bearer_credential("posts:write")
+    if error is not None:
+        return error
+
+    payload = request.get_json(silent=True)
+    payload_error = _post_payload_error(payload)
+    if payload_error:
+        return _with_rate_limit_headers(
+            _api_error(400, "invalid_post", payload_error),
+            limit_result,
+        )
+
+    content = payload["content"].strip()
+    intent = normalize_conversation_intent(payload.get("conversation_intent"))
+    topics = payload.get("topics") or []
+    tweet = Tweet(content=content, user_id=credential.user_id)
+    db.session.add(tweet)
+    db.session.flush()
+    db.session.add(TweetConversationIntent(tweet_id=tweet.id, intent=intent))
+    associate_topics(tweet, explicit_raw=",".join(topics), content=content)
+    add_mention_notifications(content=content, author=credential.user, tweet_id=tweet.id)
+    db.session.commit()
+
+    response = jsonify({"data": _public_post(tweet)})
+    response.status_code = 201
+    response.headers["Location"] = f"/api/v1/posts/{tweet.id}"
+    return _with_rate_limit_headers(response, limit_result)
 
 
 @api_blueprint.get("/account")

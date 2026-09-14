@@ -8,7 +8,7 @@ import secrets
 
 from twitclone.extensions import db
 
-SUPPORTED_API_SCOPES = {"posts:read"}
+SUPPORTED_API_SCOPES = {"posts:read", "posts:write"}
 DEFAULT_CREDENTIAL_LIFETIME_DAYS = 90
 MAX_CREDENTIAL_LIFETIME_DAYS = 365
 
