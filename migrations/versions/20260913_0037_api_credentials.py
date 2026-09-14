@@ -24,7 +24,7 @@ def upgrade():
         sa.Column("token_digest", sa.String(length=64), nullable=False),
         sa.Column("scopes", sa.String(length=255), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
-        sa.Column("expires_at", sa.DateTime(), nullable=True),
+        sa.Column("expires_at", sa.DateTime(), nullable=False),
         sa.Column("revoked_at", sa.DateTime(), nullable=True),
         sa.Column("last_used_at", sa.DateTime(), nullable=True),
         sa.CheckConstraint("length(label) between 1 and 80", name="ck_api_credential_label_length"),
