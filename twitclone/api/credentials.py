@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 import hashlib
 import secrets
 
 from twitclone.extensions import db
 
 SUPPORTED_API_SCOPES = {"posts:read"}
+DEFAULT_CREDENTIAL_LIFETIME_DAYS = 90
+MAX_CREDENTIAL_LIFETIME_DAYS = 365
 
 
 def _utcnow():
@@ -33,7 +35,7 @@ class ApiCredential(db.Model):
     token_digest = db.Column(db.String(64), nullable=False)
     scopes = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
-    expires_at = db.Column(db.DateTime, nullable=True)
+    expires_at = db.Column(db.DateTime, nullable=False)
     revoked_at = db.Column(db.DateTime, nullable=True)
     last_used_at = db.Column(db.DateTime, nullable=True)
 
@@ -44,7 +46,7 @@ class ApiCredential(db.Model):
         return {value for value in self.scopes.split(" ") if value}
 
     def is_active_at(self, now):
-        return self.revoked_at is None and (self.expires_at is None or self.expires_at > now)
+        return self.revoked_at is None and self.expires_at > now
 
 
 def issue_api_credential(*, user_id, label, scopes, expires_at=None):
@@ -54,9 +56,13 @@ def issue_api_credential(*, user_id, label, scopes, expires_at=None):
         raise ValueError("Credential label must be between 1 and 80 characters.")
     if not requested_scopes or not requested_scopes.issubset(SUPPORTED_API_SCOPES):
         raise ValueError("Credential scopes must be a non-empty supported scope set.")
+
     now = _utcnow()
-    if expires_at is not None and expires_at <= now:
+    expires_at = expires_at or now + timedelta(days=DEFAULT_CREDENTIAL_LIFETIME_DAYS)
+    if expires_at <= now:
         raise ValueError("Credential expiration must be in the future.")
+    if expires_at > now + timedelta(days=MAX_CREDENTIAL_LIFETIME_DAYS):
+        raise ValueError("Credential expiration cannot exceed 365 days.")
 
     raw_token = f"rpl_{secrets.token_urlsafe(32)}"
     credential = ApiCredential(
@@ -95,6 +101,8 @@ def revoke_api_credential(credential, *, now=None):
 
 __all__ = [
     "ApiCredential",
+    "DEFAULT_CREDENTIAL_LIFETIME_DAYS",
+    "MAX_CREDENTIAL_LIFETIME_DAYS",
     "SUPPORTED_API_SCOPES",
     "authenticate_bearer_token",
     "issue_api_credential",
