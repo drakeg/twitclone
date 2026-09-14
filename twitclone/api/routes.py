@@ -2,10 +2,17 @@
 
 from datetime import UTC, datetime
 
-from flask import jsonify, request
+from flask import current_app, jsonify, request
 
 from twitclone.api import api_blueprint
 from twitclone.api.credentials import authenticate_bearer_token
+from twitclone.api.rate_limits import (
+    DEFAULT_CREDENTIAL_LIMIT,
+    DEFAULT_INVALID_TOKEN_LIMIT,
+    DEFAULT_PUBLIC_READ_LIMIT,
+    DEFAULT_WINDOW_SECONDS,
+    consume_rate_limit,
+)
 from twitclone.extensions import db
 from twitclone.models import Tweet
 from twitclone.spaces.models import SpacePost
@@ -20,6 +27,67 @@ def _api_error(status_code, code, message):
     response = jsonify({"error": {"code": code, "message": message}})
     response.status_code = status_code
     return response
+
+
+def _limit_value(config_key, default):
+    return int(current_app.config.get(config_key, default))
+
+
+def _consume_limit(bucket_type, subject, config_key, default_limit):
+    return consume_rate_limit(
+        bucket_type=bucket_type,
+        subject=subject,
+        secret_key=current_app.config.get("SECRET_KEY", ""),
+        limit=_limit_value(config_key, default_limit),
+        window_seconds=_limit_value("API_RATE_LIMIT_WINDOW_SECONDS", DEFAULT_WINDOW_SECONDS),
+    )
+
+
+def _with_rate_limit_headers(response, result):
+    response.headers["X-RateLimit-Limit"] = str(result.limit)
+    response.headers["X-RateLimit-Remaining"] = str(result.remaining)
+    response.headers["X-RateLimit-Reset"] = str(
+        int(result.reset_at.replace(tzinfo=UTC).timestamp())
+    )
+    return response
+
+
+def _rate_limited_response(result):
+    response = _api_error(
+        429,
+        "rate_limited",
+        "Request limit exceeded. Retry after the indicated interval.",
+    )
+    response.headers["Retry-After"] = str(result.retry_after)
+    return _with_rate_limit_headers(response, result)
+
+
+def _client_subject():
+    return request.remote_addr or "unknown-client"
+
+
+def _public_read_limit():
+    result = _consume_limit(
+        "public_read",
+        _client_subject(),
+        "API_PUBLIC_READ_LIMIT",
+        DEFAULT_PUBLIC_READ_LIMIT,
+    )
+    if not result.allowed:
+        return result, _rate_limited_response(result)
+    return result, None
+
+
+def _invalid_token_response(message):
+    result = _consume_limit(
+        "invalid_token",
+        _client_subject(),
+        "API_INVALID_TOKEN_LIMIT",
+        DEFAULT_INVALID_TOKEN_LIMIT,
+    )
+    if not result.allowed:
+        return _rate_limited_response(result)
+    return _with_rate_limit_headers(_api_error(401, "invalid_token", message), result)
 
 
 def _public_post(tweet):
@@ -50,20 +118,39 @@ def _bearer_credential(required_scope):
     authorization = request.headers.get("Authorization", "")
     scheme, separator, raw_token = authorization.partition(" ")
     if not separator or scheme.lower() != "bearer" or not raw_token.strip():
-        return None, _api_error(401, "invalid_token", "A valid bearer token is required.")
+        return None, _invalid_token_response("A valid bearer token is required."), None
 
     credential = authenticate_bearer_token(raw_token.strip())
     if credential is None:
-        return None, _api_error(401, "invalid_token", "The bearer token is invalid, expired, or revoked.")
+        return None, _invalid_token_response(
+            "The bearer token is invalid, expired, or revoked."
+        ), None
+
+    result = _consume_limit(
+        "credential",
+        str(credential.id),
+        "API_CREDENTIAL_LIMIT",
+        DEFAULT_CREDENTIAL_LIMIT,
+    )
+    if not result.allowed:
+        return None, _rate_limited_response(result), result
     if required_scope not in credential.scope_set:
-        return None, _api_error(403, "insufficient_scope", f"This operation requires the {required_scope} scope.")
-    return credential, None
+        response = _api_error(
+            403,
+            "insufficient_scope",
+            f"This operation requires the {required_scope} scope.",
+        )
+        return None, _with_rate_limit_headers(response, result), result
+    return credential, None, result
 
 
 @api_blueprint.get("")
 @api_blueprint.get("/")
 def api_index():
-    return jsonify(
+    limit_result, error = _public_read_limit()
+    if error is not None:
+        return error
+    response = jsonify(
         {
             "name": "Ripple Public API",
             "version": "v1",
@@ -75,22 +162,32 @@ def api_index():
             },
         }
     )
+    return _with_rate_limit_headers(response, limit_result)
 
 
 @api_blueprint.get("/posts/<int:tweet_id>")
 def get_post(tweet_id):
+    limit_result, error = _public_read_limit()
+    if error is not None:
+        return error
     tweet = db.session.get(Tweet, tweet_id)
     if not _is_public_post(tweet, _utcnow_naive()):
-        return _api_error(404, "post_not_found", "The requested public post was not found.")
-    return jsonify({"data": _public_post(tweet)})
+        return _with_rate_limit_headers(
+            _api_error(404, "post_not_found", "The requested public post was not found."),
+            limit_result,
+        )
+    return _with_rate_limit_headers(
+        jsonify({"data": _public_post(tweet)}),
+        limit_result,
+    )
 
 
 @api_blueprint.get("/account")
 def api_account():
-    credential, error = _bearer_credential("posts:read")
+    credential, error, limit_result = _bearer_credential("posts:read")
     if error is not None:
         return error
-    return jsonify(
+    response = jsonify(
         {
             "data": {
                 "user": {"id": credential.user.id, "username": credential.user.username},
@@ -104,6 +201,7 @@ def api_account():
             }
         }
     )
+    return _with_rate_limit_headers(response, limit_result)
 
 
 @api_blueprint.errorhandler(404)
