@@ -38,10 +38,10 @@ def test_reply_thread_is_oldest_first_and_quote_history_is_not_reinterpreted(cli
     other_id = _user(app, "thread_other")
     with app.app_context():
         tweet = Tweet(content="thread root", user_id=author_id); db.session.add(tweet); db.session.flush()
-        db.session.add_all([Reply(tweet_id=tweet.id, user_id=other_id, content="first"), Reply(tweet_id=tweet.id, user_id=author_id, content="second"), Quote(tweet_id=tweet.id, user_id=other_id, content="historical quote")]); db.session.commit(); tweet_id = tweet.id
+        db.session.add_all([Reply(tweet_id=tweet.id, user_id=other_id, content="unique first reply"), Reply(tweet_id=tweet.id, user_id=author_id, content="unique second reply"), Quote(tweet_id=tweet.id, user_id=other_id, content="historical quote")]); db.session.commit(); tweet_id = tweet.id
     response = client.get(f"/post/{tweet_id}/thread")
     assert response.status_code == 200
-    assert response.data.index(b"first") < response.data.index(b"second")
+    assert response.data.index(b"unique first reply") < response.data.index(b"unique second reply")
     assert b"historical quote" not in response.data
 
 
@@ -65,5 +65,5 @@ def test_space_scoped_post_does_not_leak_into_global_reply_thread(client, app):
     author_id = _user(app, "space_reply_author")
     with app.app_context():
         space = Space(name="Reply Space", slug="reply-space", description="scope", owner_id=author_id); db.session.add(space); db.session.flush()
-        db.session.add(SpaceMembership(space_id=space.id, user_id=author_id, role="owner")); tweet = Tweet(content="space root", user_id=author_id); db.session.add(tweet); db.session.flush(); db.session.add(SpacePost(space_id=space.id, tweet_id=tweet.id, user_id=author_id)); db.session.commit(); tweet_id = tweet.id
+        db.session.add(SpaceMembership(space_id=space.id, user_id=author_id, role="owner")); tweet = Tweet(content="space root", user_id=author_id); db.session.add(tweet); db.session.flush(); db.session.add(SpacePost(space_id=space.id, tweet_id=tweet.id)); db.session.commit(); tweet_id = tweet.id
     assert client.get(f"/post/{tweet_id}/thread").status_code == 404
