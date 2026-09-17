@@ -14,10 +14,19 @@ def _user(app, suffix="author"):
         db.session.add(user); db.session.commit(); return user.id
 
 
-def test_api_index_declares_versioned_read_only_preview(client):
+def test_api_index_declares_versioned_limited_write_preview(client):
     response = client.get("/api/v1/")
     assert response.status_code == 200
-    assert response.get_json() == {"name": "Ripple Public API", "version": "v1", "status": "read-only-preview", "documentation": "/api/v1/"}
+    assert response.get_json() == {
+        "name": "Ripple Public API",
+        "version": "v1",
+        "status": "limited-write-preview",
+        "documentation": "/api/v1/",
+        "authentication": {
+            "scheme": "Bearer",
+            "supported_scopes": ["posts:read", "posts:write"],
+        },
+    }
 
 
 def test_public_post_contract_exposes_bounded_fields(client, app):

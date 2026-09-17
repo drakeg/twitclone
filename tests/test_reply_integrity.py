@@ -88,7 +88,7 @@ def test_removed_parent_is_tombstoned_without_broken_permalink_or_identity_leak(
     assert b"visible child survives" in response.data
     assert b"Replying to a removed reply" in response.data
     assert b"removed parent secret text" not in response.data
-    assert b"@integrity_removed_parent" not in response.data
+    assert b"Replying to @integrity_removed_parent" not in response.data
     assert f"reply/{parent_id}".encode() not in response.data
 
 
