@@ -1,7 +1,7 @@
 """Sprint 18 Story 18.1 user-controlled portability coverage."""
 
 from twitclone.extensions import db
-from twitclone.models import DirectMessage, Follows, Quote, Tweet, User
+from twitclone.models import DirectMessage, Entitlement, Follows, Plan, Quote, Subscription, Tweet, User
 from twitclone.reply_models import Reply
 from twitclone.resource_models import Resource, ResourceRevision
 from twitclone.spaces.models import Space, SpaceMembership
@@ -58,7 +58,7 @@ def test_export_is_private_download_with_stable_scope(client, app):
     assert 'attachment; filename="ripple-export-export_owner.json"' == response.headers["Content-Disposition"]
     payload = response.get_json()
     assert payload["format"] == "ripple-portable-export"
-    assert payload["version"] == 2
+    assert payload["version"] == 3
     assert payload["account"]["email"] == "owner@example.com"
     assert payload["social_graph"] == {"following": ["export_follower"], "followers": ["export_follower"]}
     assert [item["content"] for item in payload["posts"]] == ["Owner portable post", "Owner removed post"]
@@ -125,10 +125,62 @@ def test_export_includes_only_messages_visible_to_requester(client, app):
     assert "deleted_by_receiver" not in exported_text
 
 
+def test_export_includes_billing_state_without_provider_identifiers(client, app):
+    with app.app_context():
+        owner = User(username="billing_owner", email="billing-owner@example.com", password="owner-secret")
+        outsider = User(username="billing_outsider", email="billing-outsider@example.com", password="outsider-secret")
+        plan = Plan(key="portable_monthly", name="Portable Monthly", description="Export test", amount_cents=799, currency="USD", interval="month", entitlement_key="portable")
+        db.session.add_all([owner, outsider, plan]); db.session.flush()
+        subscription = Subscription(
+            user_id=owner.id,
+            plan_id=plan.id,
+            provider="stripe",
+            provider_customer_id="cus_secret_owner",
+            provider_subscription_id="sub_secret_owner",
+            status="active",
+        )
+        outsider_subscription = Subscription(
+            user_id=outsider.id,
+            plan_id=plan.id,
+            provider="stripe",
+            provider_customer_id="cus_secret_outsider",
+            provider_subscription_id="sub_secret_outsider",
+            status="active",
+        )
+        db.session.add_all([subscription, outsider_subscription]); db.session.flush()
+        db.session.add(Entitlement(user_id=owner.id, key="portable", source="subscription", subscription_id=subscription.id, active=True))
+        db.session.commit(); owner_id = owner.id
+
+    _login(client, owner_id)
+    payload = client.get("/profile/export.json").get_json()
+
+    assert payload["subscriptions"] == [{
+        "id": payload["subscriptions"][0]["id"],
+        "plan": {"key": "portable_monthly", "name": "Portable Monthly", "catalog_amount_cents": 799, "currency": "USD", "interval": "month"},
+        "provider": "stripe",
+        "status": "active",
+        "current_period_start": None,
+        "current_period_end": None,
+        "created_at": payload["subscriptions"][0]["created_at"],
+        "updated_at": payload["subscriptions"][0]["updated_at"],
+    }]
+    assert payload["entitlements"][0]["key"] == "portable"
+    assert payload["entitlements"][0]["subscription_id"] == payload["subscriptions"][0]["id"]
+    assert payload["creator_support_transactions"]["status"] == "not_available"
+    exported_text = str(payload)
+    assert "cus_secret_owner" not in exported_text
+    assert "sub_secret_owner" not in exported_text
+    assert "cus_secret_outsider" not in exported_text
+    assert "sub_secret_outsider" not in exported_text
+    assert "provider_customer_id" not in exported_text
+    assert "provider_subscription_id" not in exported_text
+
+
 def test_profile_edit_explains_export_scope(client, app):
     owner_id = _seed_export(app); _login(client, owner_id)
     response = client.get("/profile/edit")
     assert b"Download your Ripple data" in response.data
     assert b"Download JSON export" in response.data
-    assert b"direct messages still visible to you" in response.data
+    assert b"visible direct messages" in response.data
     assert b"messages you deleted from your view" in response.data
+    assert b"does not currently process creator-support payments" in response.data
