@@ -1,5 +1,7 @@
 """Regression coverage for Stripe-backed verified badge billing."""
 
+from datetime import UTC, datetime, timedelta
+
 from twitclone.billing import ensure_default_plans
 from twitclone.extensions import db
 from twitclone.models import Entitlement, Subscription, User
@@ -52,14 +54,15 @@ def test_verified_webhook_controls_badge_entitlement(client, app, monkeypatch):
 
     app.config.update(STRIPE_WEBHOOK_SECRET='whsec_test', STRIPE_BILLING_ENABLED=True, STRIPE_SECRET_KEY='sk_test_fake')
 
+    now = datetime.now(UTC)
     active_event = {
         'type': 'customer.subscription.updated',
         'data': {'object': {
             'id': 'sub_test_123',
             'customer': 'cus_test_123',
             'status': 'active',
-            'current_period_start': 1787000000,
-            'current_period_end': 1789678400,
+            'current_period_start': int((now - timedelta(days=1)).timestamp()),
+            'current_period_end': int((now + timedelta(days=30)).timestamp()),
             'metadata': {
                 'ripple_user_id': str(user_id),
                 'ripple_plan_key': 'verified_individual_monthly',
