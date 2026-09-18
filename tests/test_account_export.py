@@ -1,7 +1,7 @@
 """Sprint 18 Story 18.1 user-controlled portability coverage."""
 
 from twitclone.extensions import db
-from twitclone.models import Follows, Quote, Tweet, User
+from twitclone.models import DirectMessage, Follows, Quote, Tweet, User
 from twitclone.reply_models import Reply
 from twitclone.resource_models import Resource, ResourceRevision
 from twitclone.spaces.models import Space, SpaceMembership
@@ -58,7 +58,7 @@ def test_export_is_private_download_with_stable_scope(client, app):
     assert 'attachment; filename="ripple-export-export_owner.json"' == response.headers["Content-Disposition"]
     payload = response.get_json()
     assert payload["format"] == "ripple-portable-export"
-    assert payload["version"] == 1
+    assert payload["version"] == 2
     assert payload["account"]["email"] == "owner@example.com"
     assert payload["social_graph"] == {"following": ["export_follower"], "followers": ["export_follower"]}
     assert [item["content"] for item in payload["posts"]] == ["Owner portable post", "Owner removed post"]
@@ -82,9 +82,53 @@ def test_export_excludes_secrets_and_other_accounts_content(client, app):
     assert "authentication_secrets" in text
 
 
+def test_export_includes_only_messages_visible_to_requester(client, app):
+    with app.app_context():
+        owner = User(username="message_owner", email="message-owner@example.com", password="owner-secret")
+        partner = User(username="message_partner", email="message-partner@example.com", password="partner-secret")
+        outsider = User(username="message_outsider", email="message-outsider@example.com", password="outsider-secret")
+        db.session.add_all([owner, partner, outsider]); db.session.flush()
+        db.session.add_all([
+            DirectMessage(content="visible sent", sender_id=owner.id, receiver_id=partner.id),
+            DirectMessage(content="visible received", sender_id=partner.id, receiver_id=owner.id, read=True),
+            DirectMessage(content="deleted sent", sender_id=owner.id, receiver_id=partner.id, deleted_by_sender=True),
+            DirectMessage(content="deleted received", sender_id=partner.id, receiver_id=owner.id, deleted_by_receiver=True),
+            DirectMessage(content="unrelated conversation", sender_id=partner.id, receiver_id=outsider.id),
+        ])
+        db.session.commit(); owner_id = owner.id
+
+    _login(client, owner_id)
+    payload = client.get("/profile/export.json").get_json()
+
+    assert payload["private_messages"] == [
+        {
+            "id": payload["private_messages"][0]["id"],
+            "direction": "sent",
+            "participant": "message_partner",
+            "content": "visible sent",
+            "sent_at": payload["private_messages"][0]["sent_at"],
+        },
+        {
+            "id": payload["private_messages"][1]["id"],
+            "direction": "received",
+            "participant": "message_partner",
+            "content": "visible received",
+            "sent_at": payload["private_messages"][1]["sent_at"],
+        },
+    ]
+    exported_text = str(payload)
+    assert "deleted sent" not in exported_text
+    assert "deleted received" not in exported_text
+    assert "unrelated conversation" not in exported_text
+    assert "read" not in payload["private_messages"][1]
+    assert "deleted_by_sender" not in exported_text
+    assert "deleted_by_receiver" not in exported_text
+
+
 def test_profile_edit_explains_export_scope(client, app):
     owner_id = _seed_export(app); _login(client, owner_id)
     response = client.get("/profile/edit")
     assert b"Download your Ripple data" in response.data
     assert b"Download JSON export" in response.data
-    assert b"does not include passwords, private messages" in response.data
+    assert b"direct messages still visible to you" in response.data
+    assert b"messages you deleted from your view" in response.data

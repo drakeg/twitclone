@@ -8,7 +8,7 @@ Continue the low-risk interoperability direction approved by Sprint 17 by giving
 
 ## Story 18.1 — Portable public-content export
 
-**Status:** Completed in this branch.
+**Status:** Completed in PR #241.
 
 - Add a free, authenticated JSON export with an explicit format name, version, timestamp, and scope.
 - Include profile identity, social connections, authored posts, Quotes, Replies, durable resources/revisions, and explicit space memberships.
@@ -27,9 +27,27 @@ Continue the low-risk interoperability direction approved by Sprint 17 by giving
 - The profile editor provides a plainly labeled download control and scope explanation.
 - Tests cover authentication, headers, stable shape, inclusion, isolation, secrets, and UI disclosure.
 
+## Story 18.2 — Private-message portability boundary
+
+**Status:** Completed in this branch.
+
+- Advance the portable document to version 2 and add direct messages still visible to the requester.
+- Identify only direction and the other participant's username; do not export the other account's email, identity metadata, or internal account state.
+- Exclude messages the requester deleted from their own view.
+- Do not expose the other participant's deletion state or message-read state.
+- Keep unrelated conversations excluded even when they involve a known participant.
+
+### Acceptance criteria
+
+- Sent and received messages still visible to the requester are exported in deterministic chronological order.
+- Direction and participant username make each record understandable without copying another account profile.
+- Requester-deleted messages and unrelated conversations are absent.
+- Read state and either participant's deletion flags are absent.
+- The profile UI explains that visible direct messages are included and requester-deleted messages are not.
+- The version and omission list accurately describe the expanded format.
+
 ## Planned follow-up stories
 
-- Evaluate export of private communications with participant privacy and redaction rules.
 - Evaluate billing and support-transaction portability with financial-data handling requirements.
 - Add media manifests or packaged media only after size limits, storage cost, and authorization are defined.
 - Document import mappings and provenance before accepting any portable data back into Ripple.

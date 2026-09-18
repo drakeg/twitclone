@@ -2,7 +2,9 @@
 
 from datetime import UTC
 
-from twitclone.models import Quote, Tweet
+from sqlalchemy import and_, or_
+
+from twitclone.models import DirectMessage, Quote, Tweet
 from twitclone.reply_models import Reply
 from twitclone.resource_models import Resource, ResourceRevision
 from twitclone.spaces.models import SpaceMembership
@@ -27,9 +29,10 @@ def _removal(item):
 def build_portable_export(user, *, exported_at):
     """Return the first stable Ripple portability document for ``user``.
 
-    This intentionally covers account identity, social connections, and authored
-    public content. Private messages, moderation records, billing records,
-    analytics, media bytes, and authentication secrets are outside v1.
+    This covers account identity, social connections, authored public content,
+    and direct messages still visible to the requester. Moderation records,
+    billing records, analytics, media bytes, and authentication secrets remain
+    outside version 2.
     """
 
     posts = Tweet.query.filter_by(user_id=user.id).order_by(Tweet.id.asc()).all()
@@ -37,10 +40,20 @@ def build_portable_export(user, *, exported_at):
     replies = Reply.query.filter_by(user_id=user.id).order_by(Reply.id.asc()).all()
     resources = Resource.query.filter_by(owner_id=user.id).order_by(Resource.id.asc()).all()
     memberships = SpaceMembership.query.filter_by(user_id=user.id).order_by(SpaceMembership.id.asc()).all()
+    messages = (
+        DirectMessage.query.filter(
+            or_(
+                and_(DirectMessage.sender_id == user.id, DirectMessage.deleted_by_sender.is_(False)),
+                and_(DirectMessage.receiver_id == user.id, DirectMessage.deleted_by_receiver.is_(False)),
+            )
+        )
+        .order_by(DirectMessage.timestamp.asc(), DirectMessage.id.asc())
+        .all()
+    )
 
     return {
         "format": "ripple-portable-export",
-        "version": 1,
+        "version": 2,
         "exported_at": _iso(exported_at),
         "scope": "account-profile-social-graph-and-authored-public-content",
         "account": {
@@ -123,9 +136,18 @@ def build_portable_export(user, *, exported_at):
             }
             for item in memberships
         ],
+        "private_messages": [
+            {
+                "id": item.id,
+                "direction": "sent" if item.sender_id == user.id else "received",
+                "participant": item.receiver.username if item.sender_id == user.id else item.sender.username,
+                "content": item.content,
+                "sent_at": _iso(item.timestamp),
+            }
+            for item in messages
+        ],
         "not_included": [
             "authentication_secrets",
-            "private_messages",
             "billing_records",
             "moderation_records",
             "analytics",
