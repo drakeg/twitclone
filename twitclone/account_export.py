@@ -4,7 +4,7 @@ from datetime import UTC
 
 from sqlalchemy import and_, or_
 
-from twitclone.models import DirectMessage, Quote, Tweet
+from twitclone.models import DirectMessage, Entitlement, Quote, Subscription, Tweet
 from twitclone.reply_models import Reply
 from twitclone.resource_models import Resource, ResourceRevision
 from twitclone.spaces.models import SpaceMembership
@@ -31,8 +31,8 @@ def build_portable_export(user, *, exported_at):
 
     This covers account identity, social connections, authored public content,
     and direct messages still visible to the requester. Moderation records,
-    billing records, analytics, media bytes, and authentication secrets remain
-    outside version 2.
+    subscription/entitlement state. Analytics, media bytes, payment credentials,
+    provider identifiers, and authentication secrets remain outside version 3.
     """
 
     posts = Tweet.query.filter_by(user_id=user.id).order_by(Tweet.id.asc()).all()
@@ -50,12 +50,14 @@ def build_portable_export(user, *, exported_at):
         .order_by(DirectMessage.timestamp.asc(), DirectMessage.id.asc())
         .all()
     )
+    subscriptions = Subscription.query.filter_by(user_id=user.id).order_by(Subscription.id.asc()).all()
+    entitlements = Entitlement.query.filter_by(user_id=user.id).order_by(Entitlement.id.asc()).all()
 
     return {
         "format": "ripple-portable-export",
-        "version": 2,
+        "version": 3,
         "exported_at": _iso(exported_at),
-        "scope": "account-profile-social-graph-and-authored-public-content",
+        "scope": "account-profile-social-graph-authored-content-visible-messages-and-billing-state",
         "account": {
             "id": user.id,
             "username": user.username,
@@ -146,9 +148,46 @@ def build_portable_export(user, *, exported_at):
             }
             for item in messages
         ],
+        "subscriptions": [
+            {
+                "id": item.id,
+                "plan": {
+                    "key": item.plan.key,
+                    "name": item.plan.name,
+                    "catalog_amount_cents": item.plan.amount_cents,
+                    "currency": item.plan.currency,
+                    "interval": item.plan.interval,
+                },
+                "provider": item.provider,
+                "status": item.status,
+                "current_period_start": _iso(item.current_period_start),
+                "current_period_end": _iso(item.current_period_end),
+                "created_at": _iso(item.created_at),
+                "updated_at": _iso(item.updated_at),
+            }
+            for item in subscriptions
+        ],
+        "entitlements": [
+            {
+                "id": item.id,
+                "key": item.key,
+                "active": item.active,
+                "source": item.source,
+                "subscription_id": item.subscription_id,
+                "granted_at": _iso(item.granted_at),
+                "expires_at": _iso(item.expires_at),
+            }
+            for item in entitlements
+        ],
+        "creator_support_transactions": {
+            "status": "not_available",
+            "reason": "Ripple does not currently process or persist creator-support transactions.",
+        },
         "not_included": [
             "authentication_secrets",
-            "billing_records",
+            "payment_credentials",
+            "provider_customer_and_subscription_identifiers",
+            "invoices_and_charge_receipts",
             "moderation_records",
             "analytics",
             "media_file_bytes",

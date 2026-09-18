@@ -29,7 +29,7 @@ Continue the low-risk interoperability direction approved by Sprint 17 by giving
 
 ## Story 18.2 — Private-message portability boundary
 
-**Status:** Completed in this branch.
+**Status:** Completed in PR #244.
 
 - Advance the portable document to version 2 and add direct messages still visible to the requester.
 - Identify only direction and the other participant's username; do not export the other account's email, identity metadata, or internal account state.
@@ -46,9 +46,28 @@ Continue the low-risk interoperability direction approved by Sprint 17 by giving
 - The profile UI explains that visible direct messages are included and requester-deleted messages are not.
 - The version and omission list accurately describe the expanded format.
 
+## Story 18.3 — Subscription and entitlement portability
+
+**Status:** Completed in this branch.
+
+- Advance the portable document to version 3 with the requester's subscription and entitlement state.
+- Export plan identity, current catalog amount, currency, interval, provider name, subscription status/period, and local timestamps.
+- Label plan prices as current catalog amounts rather than claiming they are historical charges or receipts.
+- Exclude provider customer/subscription identifiers, payment credentials, invoices, and charge receipts.
+- Export only the requester's entitlement records and local subscription links.
+- State explicitly that creator-support transactions are unavailable because Ripple does not process or persist them.
+
+### Acceptance criteria
+
+- Only the requesting account's subscriptions and entitlements are included.
+- Provider name may be present, but opaque provider customer/subscription identifiers are absent.
+- Current catalog price is clearly named and never represented as an amount charged.
+- No payment credential, invoice, receipt, or another account's billing state is exposed.
+- The export does not fabricate creator-support transaction history.
+- UI and documentation accurately explain included records and omissions.
+
 ## Planned follow-up stories
 
-- Evaluate billing and support-transaction portability with financial-data handling requirements.
 - Add media manifests or packaged media only after size limits, storage cost, and authorization are defined.
 - Document import mappings and provenance before accepting any portable data back into Ripple.
 
