@@ -218,6 +218,18 @@ The following numbered sprints are the agreed product direction after Sprint 9. 
 - Produce an ADR with proceed/defer/reject recommendation and an incremental implementation plan only if justified.
 - Do not add recurring infrastructure or operational burden merely to claim federation support.
 
+## Sprint 18 — User-controlled portability
+
+**Goal:** Continue low-risk interoperability by giving people useful exports of their Ripple identity and authored work without activating federation or adding infrastructure spend.
+
+**Planned direction:**
+
+- Versioned, provider-neutral exports with explicit scope and omissions.
+- Free authenticated access independent of payment, verification, popularity, or moderation authority.
+- Strong account isolation and unconditional exclusion of authentication secrets.
+- Phased review of private communications, financial records, media packaging, and future imports before those capabilities are enabled.
+- No claim that a portability download is federation, a full operational backup, or legal-compliance certification.
+
 ## Cross-cutting release gates and deferred work
 
 These are not new product sprints and remain independently tracked:

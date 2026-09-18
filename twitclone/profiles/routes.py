@@ -1,9 +1,12 @@
 """Profile and social graph routes."""
 
-from flask import Response, flash, jsonify, redirect, render_template, request, url_for
+from datetime import UTC, datetime
+
+from flask import Response, current_app, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from twitclone.analytics_tracking import record_profile_visit, snapshot_followers
+from twitclone.account_export import build_portable_export
 from twitclone.auth.recovery import (
     generate_email_verification_token,
     send_email_verification_email,
@@ -108,6 +111,21 @@ def creator_analytics_export():
 
 
 @login_required
+def account_data_export():
+    payload = build_portable_export(current_user, exported_at=datetime.now(UTC))
+    filename = f"ripple-export-{current_user.username}.json"
+    return Response(
+        current_app.json.dumps(payload, sort_keys=True, indent=2),
+        mimetype="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+@login_required
 def creator_support_settings():
     support_profile = CreatorSupportProfile.query.filter_by(user_id=current_user.id).first()
     if request.method == 'POST':
@@ -171,4 +189,4 @@ def unfollow_from_list(user_id):
 
 @profiles_blueprint.record_once
 def register_profile_routes(state):
-    state.app.add_url_rule('/follow/<username>',endpoint='follow',view_func=follow,methods=['POST']); state.app.add_url_rule('/unfollow/<username>',endpoint='unfollow',view_func=unfollow,methods=['POST']); state.app.add_url_rule('/profile/<username>',endpoint='profile',view_func=profile); state.app.add_url_rule('/support/<username>',endpoint='creator_support',view_func=creator_support); state.app.add_url_rule('/analytics',endpoint='analytics',view_func=analytics); state.app.add_url_rule('/creator/analytics',endpoint='creator_analytics',view_func=creator_analytics); state.app.add_url_rule('/creator/analytics/export.csv',endpoint='creator_analytics_export',view_func=creator_analytics_export); state.app.add_url_rule('/creator/support',endpoint='creator_support_settings',view_func=creator_support_settings,methods=['GET','POST']); state.app.add_url_rule('/profile/edit',endpoint='edit_profile',view_func=edit_profile,methods=['GET','POST']); state.app.add_url_rule('/followers/<username>',endpoint='followers',view_func=followers); state.app.add_url_rule('/following/<username>',endpoint='following',view_func=following); state.app.add_url_rule('/unfollow_from_list/<int:user_id>',endpoint='unfollow_from_list',view_func=unfollow_from_list)
+    state.app.add_url_rule('/follow/<username>',endpoint='follow',view_func=follow,methods=['POST']); state.app.add_url_rule('/unfollow/<username>',endpoint='unfollow',view_func=unfollow,methods=['POST']); state.app.add_url_rule('/profile/<username>',endpoint='profile',view_func=profile); state.app.add_url_rule('/profile/export.json',endpoint='account_data_export',view_func=account_data_export); state.app.add_url_rule('/support/<username>',endpoint='creator_support',view_func=creator_support); state.app.add_url_rule('/analytics',endpoint='analytics',view_func=analytics); state.app.add_url_rule('/creator/analytics',endpoint='creator_analytics',view_func=creator_analytics); state.app.add_url_rule('/creator/analytics/export.csv',endpoint='creator_analytics_export',view_func=creator_analytics_export); state.app.add_url_rule('/creator/support',endpoint='creator_support_settings',view_func=creator_support_settings,methods=['GET','POST']); state.app.add_url_rule('/profile/edit',endpoint='edit_profile',view_func=edit_profile,methods=['GET','POST']); state.app.add_url_rule('/followers/<username>',endpoint='followers',view_func=followers); state.app.add_url_rule('/following/<username>',endpoint='following',view_func=following); state.app.add_url_rule('/unfollow_from_list/<int:user_id>',endpoint='unfollow_from_list',view_func=unfollow_from_list)
