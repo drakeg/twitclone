@@ -48,7 +48,7 @@ Continue the low-risk interoperability direction approved by Sprint 17 by giving
 
 ## Story 18.3 — Subscription and entitlement portability
 
-**Status:** Completed in this branch.
+**Status:** Completed in PR #245.
 
 - Advance the portable document to version 3 with the requester's subscription and entitlement state.
 - Export plan identity, current catalog amount, currency, interval, provider name, subscription status/period, and local timestamps.
@@ -66,9 +66,29 @@ Continue the low-risk interoperability direction approved by Sprint 17 by giving
 - The export does not fabricate creator-support transaction history.
 - UI and documentation accurately explain included records and omissions.
 
+## Story 18.4 — Owned-media portability manifest
+
+**Status:** In implementation.
+
+- Advance the portable document to version 4 with a manifest of media references owned by the requester.
+- Include the requester's profile-banner reference plus image/original-image references attached to the requester's own posts.
+- Keep media bytes, signed URLs, storage credentials, and another account's media references out of the JSON document.
+- State explicitly that the manifest is metadata only and does not guarantee that referenced media is still physically retained.
+- Preserve deterministic ordering: profile banner first, then post image references by post ID, followed by original-image references by post ID.
+- Add no archive generation, object-store reads, network fetches, or recurring infrastructure spend.
+
+### Acceptance criteria
+
+- The export format advances to version 4.
+- Only media references owned through the requesting account's profile/posts appear.
+- Another account's media reference is absent even when its post is referenced by a Quote or Reply.
+- `packaged_bytes` is explicitly false and `media_file_bytes` remains in `not_included`.
+- The profile UI explains the distinction between media references and packaged files.
+- Tests cover manifest shape, ordering, account isolation, and the no-bytes boundary.
+
 ## Planned follow-up stories
 
-- Add media manifests or packaged media only after size limits, storage cost, and authorization are defined.
+- Evaluate packaged media only after archive size limits, storage/network cost, retention behavior, and authorization are defined.
 - Document import mappings and provenance before accepting any portable data back into Ripple.
 
 ## Story boundary

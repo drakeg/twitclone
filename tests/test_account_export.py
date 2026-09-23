@@ -1,4 +1,4 @@
-"""Sprint 18 Story 18.1 user-controlled portability coverage."""
+"""Sprint 18 user-controlled portability coverage."""
 
 from twitclone.extensions import db
 from twitclone.models import DirectMessage, Entitlement, Follows, Plan, Quote, Subscription, Tweet, User
@@ -15,7 +15,7 @@ def _login(client, user_id):
 
 def _seed_export(app):
     with app.app_context():
-        owner = User(username="export_owner", email="owner@example.com", password="secret-hash", bio="Portable profile")
+        owner = User(username="export_owner", email="owner@example.com", password="secret-hash", bio="Portable profile", profile_banner="owner-banner.png")
         follower = User(username="export_follower", email="follower@example.com", password="other-secret")
         outsider = User(username="export_outsider", email="outsider@example.com", password="outside-secret")
         db.session.add_all([owner, follower, outsider]); db.session.flush()
@@ -23,8 +23,8 @@ def _seed_export(app):
             Follows(follower_id=owner.id, followed_id=follower.id),
             Follows(follower_id=follower.id, followed_id=owner.id),
         ])
-        owner_post = Tweet(content="Owner portable post", user_id=owner.id)
-        outsider_post = Tweet(content="Outsider private-to-export post", user_id=outsider.id)
+        owner_post = Tweet(content="Owner portable post", user_id=owner.id, image="owner-post.jpg", original_image="owner-post-original.jpg")
+        outsider_post = Tweet(content="Outsider private-to-export post", user_id=outsider.id, image="outsider-post.jpg")
         db.session.add_all([owner_post, outsider_post]); db.session.flush()
         db.session.add(Quote(content="Owner quote", user_id=owner.id, tweet_id=outsider_post.id))
         db.session.add(Reply(content="Owner reply", user_id=owner.id, tweet_id=outsider_post.id))
@@ -58,7 +58,7 @@ def test_export_is_private_download_with_stable_scope(client, app):
     assert 'attachment; filename="ripple-export-export_owner.json"' == response.headers["Content-Disposition"]
     payload = response.get_json()
     assert payload["format"] == "ripple-portable-export"
-    assert payload["version"] == 3
+    assert payload["version"] == 4
     assert payload["account"]["email"] == "owner@example.com"
     assert payload["social_graph"] == {"following": ["export_follower"], "followers": ["export_follower"]}
     assert [item["content"] for item in payload["posts"]] == ["Owner portable post", "Owner removed post"]
@@ -176,6 +176,23 @@ def test_export_includes_billing_state_without_provider_identifiers(client, app)
     assert "provider_subscription_id" not in exported_text
 
 
+def test_export_media_manifest_only_references_requesters_owned_media(client, app):
+    owner_id = _seed_export(app); _login(client, owner_id)
+    payload = client.get("/profile/export.json").get_json()
+
+    assert payload["media_manifest"] == {
+        "packaged_bytes": False,
+        "assets": [
+            {"kind": "profile_banner", "source_id": None, "reference": "owner-banner.png"},
+            {"kind": "post_image", "source_id": payload["posts"][0]["id"], "reference": "owner-post.jpg"},
+            {"kind": "post_original_image", "source_id": payload["posts"][0]["id"], "reference": "owner-post-original.jpg"},
+        ],
+    }
+    exported_text = str(payload["media_manifest"])
+    assert "outsider-post.jpg" not in exported_text
+    assert "media_file_bytes" in payload["not_included"]
+
+
 def test_profile_edit_explains_export_scope(client, app):
     owner_id = _seed_export(app); _login(client, owner_id)
     response = client.get("/profile/edit")
@@ -184,3 +201,5 @@ def test_profile_edit_explains_export_scope(client, app):
     assert b"visible direct messages" in response.data
     assert b"messages you deleted from your view" in response.data
     assert b"does not currently process creator-support payments" in response.data
+    assert b"media references" in response.data
+    assert b"does not package the media files themselves" in response.data
