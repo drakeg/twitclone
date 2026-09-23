@@ -69,7 +69,7 @@ Turn Ripple's existing launch prerequisites into a clear, auditable, zero-spend 
 
 ## Story 19.4 — Sanitized readiness snapshot
 
-**Status:** In implementation.
+**Status:** Completed in PR #258.
 
 - Allow maintainers to write a versioned local JSON snapshot of the current readiness report for attachment to an approved release record.
 - Include status, review date, incomplete gates, missing repository artifacts, freshness-attention items, sanitized evidence-record metadata, and an optional immutable release SHA.
@@ -88,7 +88,29 @@ Turn Ripple's existing launch prerequisites into a clear, auditable, zero-spend 
 - Snapshot generation preserves `spend_authorized: false` and `provisioning_performed: false`.
 - Tests cover shape, identity validation, timestamp validation, and sensitive-input exclusion.
 
+## Story 19.5 — Snapshot integrity checksum
+
+**Status:** In implementation.
+
+- Add a deterministic SHA-256 checksum over the canonical snapshot payload.
+- Store the checksum algorithm and value in the snapshot itself.
+- Provide a local verification mode for previously written snapshots.
+- Detect accidental or unreviewed snapshot modification after capture.
+- Keep the checksum explicitly distinct from cryptographic signing, signer identity, approval, launch authorization, or spend authorization.
+- Add no key management, signing service, external dependency, or infrastructure spend.
+
+### Acceptance criteria
+
+- Identical sanitized snapshot content produces the same checksum.
+- A newly built snapshot verifies successfully.
+- Modifying snapshot content after capture causes verification to fail.
+- Verification rejects a missing, malformed, or unsupported checksum.
+- Snapshot checksum support preserves `spend_authorized: false` and `provisioning_performed: false`.
+- Documentation states that the checksum proves content integrity only, not authorship or approval.
+- Tests cover deterministic hashing, successful verification, tamper detection, and non-authorization semantics.
+
 ## Deferred stories
 
+- Cryptographic signing may be considered only if an approved signing-key lifecycle and operational owner are defined; a checksum is not a signature.
 - Stronger validation against approved operational records may be considered only if it can be done without copying private operational data into source control or contacting a new paid service.
 - AWS provisioning remains separately authorized work and is not part of Sprint 19 by default.
