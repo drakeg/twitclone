@@ -48,7 +48,7 @@ Turn Ripple's existing launch prerequisites into a clear, auditable, zero-spend 
 
 ## Story 19.3 — Advisory evidence freshness review
 
-**Status:** In implementation.
+**Status:** Completed in PR #257.
 
 - Let sanitized evidence metadata optionally declare a `review_after_days` window per record.
 - Compare dated evidence against an explicit report `--as-of-date` or the local current date.
@@ -66,6 +66,27 @@ Turn Ripple's existing launch prerequisites into a clear, auditable, zero-spend 
 - `--as-of-date` supports deterministic review/testing.
 - Human-readable output includes age and review-window details for fresh/stale records.
 - Tests cover stale, not-evaluated, invalid, advisory-only, and rendered-output behavior.
+
+## Story 19.4 — Sanitized readiness snapshot
+
+**Status:** In implementation.
+
+- Allow maintainers to write a versioned local JSON snapshot of the current readiness report for attachment to an approved release record.
+- Include status, review date, incomplete gates, missing repository artifacts, freshness-attention items, sanitized evidence-record metadata, and an optional immutable release SHA.
+- Exclude environment-variable names/values, secrets, full operational records, infrastructure identifiers, and provisioning details from the snapshot.
+- Require any supplied release SHA to be an exact 40-character lowercase Git SHA.
+- Record a timezone-aware UTC capture timestamp.
+- Keep snapshot generation read-only and local; writing a snapshot must not change launch readiness, provision infrastructure, or authorize spend.
+
+### Acceptance criteria
+
+- Snapshot output has an explicit format name and version.
+- A deterministic capture time and release SHA can be represented in tests.
+- Invalid/non-immutable release SHA values are rejected.
+- Naive capture timestamps are rejected.
+- Snapshot serialization excludes evidence environment-variable names and unrelated secret values.
+- Snapshot generation preserves `spend_authorized: false` and `provisioning_performed: false`.
+- Tests cover shape, identity validation, timestamp validation, and sensitive-input exclusion.
 
 ## Deferred stories
 
