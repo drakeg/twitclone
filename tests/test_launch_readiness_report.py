@@ -1,6 +1,7 @@
 """Sprint 19 launch-readiness reporting coverage."""
 
 import importlib.util
+from datetime import date
 from pathlib import Path
 
 
@@ -126,3 +127,90 @@ def test_rendered_report_shows_supplied_record_metadata():
 
     assert "accessibility_evidence: metadata present (2026-09-22)" in rendered
     assert "restore_rehearsal: no metadata supplied" in rendered
+
+
+
+def test_freshness_marks_record_stale_only_when_metadata_defines_review_window():
+    module = _module()
+    metadata = {
+        "restore_rehearsal": {
+            "date": "2026-06-01",
+            "reference": "ops-record:restore-2026-06-01",
+            "review_after_days": 90,
+        },
+        "accessibility_evidence": {
+            "date": "2026-09-20",
+            "reference": "ops-record:a11y-2026-09-20",
+        },
+    }
+
+    report = module.build_report(ROOT, {}, metadata, as_of=date(2026, 9, 23))
+
+    assert report["evidence_records"]["restore_rehearsal"]["freshness"]["status"] == "stale"
+    assert report["evidence_records"]["restore_rehearsal"]["freshness"]["age_days"] == 114
+    assert report["evidence_records"]["accessibility_evidence"]["freshness"]["status"] == "not_evaluated"
+    assert report["freshness_attention"] == ["restore_rehearsal"]
+    assert report["status"] == "blocked"
+
+
+def test_freshness_is_advisory_and_does_not_override_completed_gate():
+    module = _module()
+    env = {
+        "RIPPLE_COST_REVIEWED": "true",
+        "RIPPLE_COST_REVIEW_DATE": "2026-09-23",
+        "RIPPLE_RESTORE_REHEARSAL_PASSED": "true",
+        "RIPPLE_ACCESSIBILITY_EVIDENCE_PASSED": "true",
+        "RIPPLE_BACKUP_ALERT_PATH_TESTED": "true",
+        "RIPPLE_RELEASE_RECORD_PREPARED": "true",
+    }
+    metadata = {
+        "restore_rehearsal": {
+            "date": "2026-01-01",
+            "reference": "ops-record:restore-2026-01-01",
+            "review_after_days": 30,
+        }
+    }
+
+    report = module.build_report(ROOT, env, metadata, as_of=date(2026, 9, 23))
+
+    assert report["status"] == "ready_for_launch_gate_review"
+    assert report["freshness_attention"] == ["restore_rehearsal"]
+
+
+def test_invalid_freshness_metadata_is_flagged_for_attention():
+    module = _module()
+    metadata = {
+        "backup_alert_path": {
+            "date": "not-a-date",
+            "reference": "ops-record:backup-alert",
+            "review_after_days": 90,
+        },
+        "release_record": {
+            "date": "2026-09-23",
+            "reference": "ops-record:release",
+            "review_after_days": -1,
+        },
+    }
+
+    report = module.build_report(ROOT, {}, metadata, as_of=date(2026, 9, 23))
+
+    assert report["evidence_records"]["backup_alert_path"]["freshness"]["status"] == "invalid"
+    assert report["evidence_records"]["release_record"]["freshness"]["status"] == "invalid"
+    assert report["freshness_attention"] == ["backup_alert_path", "release_record"]
+
+
+def test_rendered_report_shows_stale_freshness_details():
+    module = _module()
+    metadata = {
+        "cost_review": {
+            "date": "2026-08-01",
+            "reference": "ops-record:cost-review",
+            "review_after_days": 30,
+        }
+    }
+
+    rendered = module.render_text(
+        module.build_report(ROOT, {}, metadata, as_of=date(2026, 9, 23))
+    )
+
+    assert "freshness=stale, age=53d, review_after=30d" in rendered

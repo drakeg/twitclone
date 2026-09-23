@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 import re
+from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,13 +54,36 @@ def load_evidence_metadata(path: Path | None) -> dict:
     return payload
 
 
+def _record_freshness(record: dict, as_of: date) -> dict:
+    record_date = record.get("date")
+    review_after_days = record.get("review_after_days")
+    if not record_date or review_after_days is None:
+        return {"status": "not_evaluated", "age_days": None, "review_after_days": review_after_days}
+    if not isinstance(review_after_days, int) or review_after_days < 0:
+        return {"status": "invalid", "age_days": None, "review_after_days": review_after_days}
+    try:
+        recorded = date.fromisoformat(record_date)
+    except (TypeError, ValueError):
+        return {"status": "invalid", "age_days": None, "review_after_days": review_after_days}
+    age_days = (as_of - recorded).days
+    if age_days < 0:
+        return {"status": "invalid", "age_days": age_days, "review_after_days": review_after_days}
+    return {
+        "status": "stale" if age_days > review_after_days else "fresh",
+        "age_days": age_days,
+        "review_after_days": review_after_days,
+    }
+
+
 def build_report(
     root: Path = ROOT,
     environ: dict[str, str] | None = None,
     metadata: dict | None = None,
+    as_of: date | None = None,
 ) -> dict:
     env = os.environ if environ is None else environ
     metadata = {} if metadata is None else metadata
+    as_of = date.today() if as_of is None else as_of
     artifacts = {path: {"present": (root / path).is_file()} for path in REQUIRED_ARTIFACTS}
 
     evidence = {}
@@ -67,12 +91,14 @@ def build_report(
         record = metadata.get(name, {})
         if not isinstance(record, dict):
             record = {}
+        freshness = _record_freshness(record, as_of)
         evidence[name] = {
             "complete": _is_true(env.get(variable)),
             "source": variable,
             "record_present": bool(record),
             "record_date": record.get("date"),
             "record_reference": record.get("reference"),
+            "freshness": freshness,
         }
 
     cost_date = env.get("RIPPLE_COST_REVIEW_DATE")
@@ -91,9 +117,15 @@ def build_report(
             "present": item["record_present"],
             "date": item["record_date"],
             "reference": item["record_reference"],
+            "freshness": item["freshness"],
         }
         for name, item in evidence.items()
     }
+    freshness_attention = sorted(
+        name
+        for name, item in evidence_records.items()
+        if item["freshness"]["status"] in {"stale", "invalid"}
+    )
 
     return {
         "status": "ready_for_launch_gate_review" if not missing_artifacts and not incomplete_evidence else "blocked",
@@ -103,6 +135,8 @@ def build_report(
         "artifacts": artifacts,
         "evidence": evidence,
         "evidence_records": evidence_records,
+        "freshness_attention": freshness_attention,
+        "as_of_date": as_of.isoformat(),
         "missing_artifacts": missing_artifacts,
         "incomplete_evidence": incomplete_evidence,
     }
@@ -120,7 +154,16 @@ def render_text(report: dict) -> str:
     for name, item in report["evidence_records"].items():
         if item["present"]:
             suffix = f" ({item['date']})" if item["date"] else ""
-            lines.append(f"- {name}: metadata present{suffix}")
+            freshness = item["freshness"]["status"]
+            detail = ""
+            if freshness in {"fresh", "stale"}:
+                detail = (
+                    f"; freshness={freshness}, age={item['freshness']['age_days']}d, "
+                    f"review_after={item['freshness']['review_after_days']}d"
+                )
+            elif freshness == "invalid":
+                detail = "; freshness=invalid"
+            lines.append(f"- {name}: metadata present{suffix}{detail}")
         else:
             lines.append(f"- {name}: no metadata supplied")
 
@@ -148,9 +191,14 @@ def main() -> int:
         type=Path,
         help="optional path to sanitized evidence-record metadata JSON",
     )
+    parser.add_argument(
+        "--as-of-date",
+        type=date.fromisoformat,
+        help="optional YYYY-MM-DD date for deterministic freshness review",
+    )
     args = parser.parse_args()
     metadata = load_evidence_metadata(args.evidence_metadata)
-    report = build_report(metadata=metadata)
+    report = build_report(metadata=metadata, as_of=args.as_of_date)
     print(json.dumps(report, indent=2, sort_keys=True) if args.json else render_text(report))
     return 0
 
