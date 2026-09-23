@@ -202,6 +202,22 @@ absent, freshness is reported as `not_evaluated`. Stale or malformed metadata
 is advisory evidence for operator review and does not replace or alter the
 authoritative launch gate.
 
+To capture the exact sanitized readiness state for attachment to an approved
+release record, write a local versioned snapshot:
+
+```bash
+python scripts/report-launch-readiness.py \
+  --evidence-metadata /secure/path/launch-evidence-metadata.json \
+  --release-sha 0123456789abcdef0123456789abcdef01234567 \
+  --snapshot /secure/path/readiness-snapshot.json
+```
+
+The snapshot contains readiness status, missing/incomplete gate names, freshness
+attention, sanitized record references, the review date, and the optional exact
+release SHA. It deliberately omits evidence environment-variable names/values,
+secrets, full operational records, and infrastructure details. Snapshot creation
+is local and read-only and is not launch or spend authorization.
+
 ## Launch gate
 
 Public traffic is not approved until all of these are true:
