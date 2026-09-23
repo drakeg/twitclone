@@ -166,6 +166,34 @@ for every public release. A reviewer must confirm every applicable launch-gate
 item and record an explicit approved, blocked, or rolled-back decision. Completed
 records belong in the approved operational system and must not contain secrets.
 
+## Read-only launch readiness report
+
+Before using the authoritative launch gate, maintainers can inspect the current
+repository/evidence status without contacting AWS:
+
+```bash
+python scripts/report-launch-readiness.py
+python scripts/report-launch-readiness.py --json
+```
+
+The report reads the same manual evidence environment variables required by
+`scripts/check-aws-launch-readiness.sh launch`, but it never provisions
+infrastructure or authorizes spend.
+
+Optionally, provide sanitized metadata that points to records held in the
+approved operational system:
+
+```bash
+python scripts/report-launch-readiness.py \
+  --evidence-metadata /secure/path/launch-evidence-metadata.json
+```
+
+Use `docs/templates/launch-evidence-metadata.example.json` only as a shape
+example. Do not commit completed operational records, credentials, private
+infrastructure identifiers, secret values, or customer data. Metadata is
+traceability only: it does not satisfy a gate whose corresponding evidence
+acknowledgment is incomplete.
+
 ## Launch gate
 
 Public traffic is not approved until all of these are true:
