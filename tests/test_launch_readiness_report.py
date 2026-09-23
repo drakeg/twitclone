@@ -301,3 +301,52 @@ def test_snapshot_shape_does_not_capture_evidence_environment_values():
         "RIPPLE_RELEASE_RECORD_PREPARED",
     ):
         assert variable not in serialized
+
+
+
+def test_snapshot_checksum_is_deterministic_and_verifiable():
+    module = _module()
+    report = module.build_report(ROOT, {}, as_of=date(2026, 9, 23))
+    snapshot = module.build_snapshot(
+        report,
+        release_sha="b" * 40,
+        captured_at=datetime(2026, 9, 23, 4, 0, tzinfo=timezone.utc),
+    )
+
+    assert snapshot["checksum"]["algorithm"] == "sha256"
+    assert len(snapshot["checksum"]["value"]) == 64
+    assert module.verify_snapshot_checksum(snapshot) is True
+
+    second = module.build_snapshot(
+        report,
+        release_sha="b" * 40,
+        captured_at=datetime(2026, 9, 23, 4, 0, tzinfo=timezone.utc),
+    )
+    assert second["checksum"] == snapshot["checksum"]
+
+
+def test_snapshot_checksum_detects_accidental_modification():
+    module = _module()
+    report = module.build_report(ROOT, {}, as_of=date(2026, 9, 23))
+    snapshot = module.build_snapshot(
+        report,
+        captured_at=datetime(2026, 9, 23, 4, 0, tzinfo=timezone.utc),
+    )
+
+    snapshot["status"] = "changed-after-capture"
+
+    assert module.verify_snapshot_checksum(snapshot) is False
+
+
+def test_snapshot_checksum_is_not_a_signature_or_authorization():
+    module = _module()
+    report = module.build_report(ROOT, {}, as_of=date(2026, 9, 23))
+    snapshot = module.build_snapshot(
+        report,
+        captured_at=datetime(2026, 9, 23, 4, 0, tzinfo=timezone.utc),
+    )
+
+    assert snapshot["spend_authorized"] is False
+    assert snapshot["provisioning_performed"] is False
+    assert "signature" not in snapshot
+    assert module.verify_snapshot_checksum(snapshot) is True

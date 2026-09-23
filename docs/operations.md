@@ -218,6 +218,19 @@ release SHA. It deliberately omits evidence environment-variable names/values,
 secrets, full operational records, and infrastructure details. Snapshot creation
 is local and read-only and is not launch or spend authorization.
 
+Each snapshot includes a deterministic SHA-256 checksum over its canonical
+sanitized payload. Verify an archived snapshot locally with:
+
+```bash
+python scripts/report-launch-readiness.py \
+  --verify-snapshot /secure/path/readiness-snapshot.json
+```
+
+A matching checksum shows that the snapshot content has not changed since the
+checksum was created. It is **not** a digital signature, does not establish
+operator identity or approval, and does not authorize a launch or infrastructure
+spend. No signing keys or external verification service are introduced.
+
 ## Launch gate
 
 Public traffic is not approved until all of these are true:
