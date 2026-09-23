@@ -78,3 +78,51 @@ def test_rendered_report_states_zero_spend_boundary():
     assert "does not contact AWS" in rendered
     assert "authorize spend" in rendered
     assert "check-aws-launch-readiness.sh launch" in rendered
+
+
+
+def test_evidence_metadata_adds_traceability_without_authorizing_gate():
+    module = _module()
+    metadata = {
+        "restore_rehearsal": {
+            "date": "2026-09-20",
+            "reference": "ops-record:restore-2026-09-20",
+        }
+    }
+
+    report = module.build_report(ROOT, {}, metadata)
+
+    assert report["evidence"]["restore_rehearsal"]["complete"] is False
+    assert report["evidence"]["restore_rehearsal"]["record_present"] is True
+    assert report["evidence_records"]["restore_rehearsal"]["reference"] == (
+        "ops-record:restore-2026-09-20"
+    )
+    assert report["status"] == "blocked"
+
+
+def test_load_evidence_metadata_requires_json_object(tmp_path):
+    module = _module()
+    path = tmp_path / "metadata.json"
+    path.write_text("[]", encoding="utf-8")
+
+    try:
+        module.load_evidence_metadata(path)
+    except ValueError as exc:
+        assert "JSON object" in str(exc)
+    else:
+        raise AssertionError("non-object metadata should fail")
+
+
+def test_rendered_report_shows_supplied_record_metadata():
+    module = _module()
+    metadata = {
+        "accessibility_evidence": {
+            "date": "2026-09-22",
+            "reference": "ops-record:a11y-2026-09-22",
+        }
+    }
+
+    rendered = module.render_text(module.build_report(ROOT, {}, metadata))
+
+    assert "accessibility_evidence: metadata present (2026-09-22)" in rendered
+    assert "restore_rehearsal: no metadata supplied" in rendered
