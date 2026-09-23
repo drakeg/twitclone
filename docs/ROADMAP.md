@@ -226,6 +226,19 @@ The following numbered sprints are the agreed product direction after Sprint 9. 
 
 Delivered capabilities include a versioned provider-neutral JSON export, requester-visible direct-message portability, subscription/entitlement metadata without provider secrets, an owned-media reference manifest without packaged bytes, and a non-mutating import/provenance compatibility contract. Import writes remain disabled. Packaged media and actual import execution require separately authorized future work.
 
+## Sprint 19 — Launch readiness evidence
+
+**Goal:** Make Ripple's existing public-launch prerequisites visible as a clear, auditable, zero-spend readiness status without provisioning infrastructure or weakening the authoritative launch gate.
+
+**Status:** In implementation. Detailed acceptance criteria are maintained in `docs/sprints/SPRINT_19.md`.
+
+**Planned direction:**
+
+- Read-only reporting of required repository artifacts and manual launch evidence.
+- Human-readable and machine-readable readiness output for maintainers.
+- Alignment with the existing Sprint 8 launch-gate variables and zero-spend safeguards.
+- No AWS calls, Terraform apply, provisioning, or spend authorization.
+
 ## Cross-cutting release gates and deferred work
 
 These are not new product sprints and remain independently tracked:
