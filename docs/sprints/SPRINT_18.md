@@ -1,6 +1,6 @@
 # Sprint 18 — User-Controlled Portability
 
-**Status:** In implementation.
+**Status:** Completed.
 
 ## Goal
 
@@ -88,7 +88,7 @@ Continue the low-risk interoperability direction approved by Sprint 17 by giving
 
 ## Story 18.5 — Import mapping and provenance contract
 
-**Status:** In implementation.
+**Status:** Completed in PR #253.
 
 - Keep portable-data import execution disabled while defining a non-mutating compatibility contract.
 - Recognize only the reviewed `ripple-portable-export` version 4 envelope.
@@ -110,10 +110,23 @@ Continue the low-risk interoperability direction approved by Sprint 17 by giving
 - Documentation defines duplicate, identity, relationship, authorization, rollback, moderation, and activation gates before any write endpoint is allowed.
 - Tests cover compatibility, unsupported formats/versions, prohibited collections, reference-only media, unknown fields, and provenance requirements.
 
-## Planned follow-up stories
+## Sprint outcome
 
-- Evaluate packaged media only after archive size limits, storage/network cost, retention behavior, and authorization are defined.
+Sprint 18 delivered a versioned, provider-neutral portability export through version 4 with explicit account-isolation and omission boundaries. The completed export covers account/profile data, social graph references, authored posts, Quotes, Replies, durable resources/revisions, explicit space memberships, direct messages still visible to the requester, subscription/entitlement state without provider secrets, and owned-media references without packaging media bytes.
+
+The sprint also established the future-import boundary before any write capability exists. Import execution remains disabled; the compatibility assessor is non-mutating; privilege, billing, entitlement, private-message, and space-role state cannot be granted from portable data; and future imported records must preserve source provenance.
+
+No Sprint 18 story activates federation, AWS infrastructure, paid services, remote media retrieval, or recurring spend.
+
+## Deferred follow-up
+
+- Evaluate packaged media only after archive size limits, storage/network cost, retention behavior, malware/file validation, and authorization are defined.
 - Enable no import writes until a separate implementation story satisfies the Story 18.5 activation gate.
+- Treat any future new export version as requiring a corresponding compatibility-contract review before import assessment recognizes it.
+
+## Definition of done
+
+Completed. Ripple provides a free authenticated portability export with explicit versioning, account isolation, sensitive-data exclusions, private-message and financial boundaries, a no-bytes owned-media manifest, and a documented/tested non-mutating import/provenance contract. Future import writes remain deliberately disabled.
 
 ## Story boundary
 

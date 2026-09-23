@@ -81,3 +81,12 @@ def test_provenance_contract_identifies_minimum_source_identity():
         "source_collection",
         "source_record_id",
     )
+
+
+def test_no_portable_import_route_or_write_endpoint_is_registered(app):
+    import_routes = [
+        rule.rule
+        for rule in app.url_map.iter_rules()
+        if "import" in rule.rule.lower() or "import" in rule.endpoint.lower()
+    ]
+    assert import_routes == []
