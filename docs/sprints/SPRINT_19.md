@@ -1,6 +1,6 @@
 # Sprint 19 — Launch Readiness Evidence
 
-**Status:** In implementation.
+**Status:** Completed.
 
 ## Goal
 
@@ -90,7 +90,7 @@ Turn Ripple's existing launch prerequisites into a clear, auditable, zero-spend 
 
 ## Story 19.5 — Snapshot integrity checksum
 
-**Status:** In implementation.
+**Status:** Completed in PR #259.
 
 - Add a deterministic SHA-256 checksum over the canonical snapshot payload.
 - Store the checksum algorithm and value in the snapshot itself.
@@ -114,3 +114,20 @@ Turn Ripple's existing launch prerequisites into a clear, auditable, zero-spend 
 - Cryptographic signing may be considered only if an approved signing-key lifecycle and operational owner are defined; a checksum is not a signature.
 - Stronger validation against approved operational records may be considered only if it can be done without copying private operational data into source control or contacting a new paid service.
 - AWS provisioning remains separately authorized work and is not part of Sprint 19 by default.
+
+
+## Sprint outcome
+
+Sprint 19 delivered a zero-spend launch-readiness evidence layer on top of Ripple's existing Sprint 8 launch gate. Maintainers can inspect launch prerequisites in human-readable or JSON form, associate sanitized record metadata with evidence acknowledgments, flag stale/invalid record metadata for review, capture a versioned sanitized readiness snapshot, and verify that snapshot later with a deterministic SHA-256 checksum.
+
+The readiness tooling remains deliberately non-authoritative for infrastructure activation: it does not contact AWS, run Terraform apply, provision resources, validate private operational systems, establish signer identity, or authorize spend. The authoritative launch gate remains `scripts/check-aws-launch-readiness.sh launch`, and all previously documented manual evidence requirements remain intact.
+
+## Definition of done
+
+Completed. Ripple now has an auditable, test-covered, local readiness-reporting and snapshot workflow that preserves the no-spend boundary while making unresolved launch prerequisites explicit.
+
+## Deferred follow-up
+
+- Cryptographic signing requires a separately approved signing-key lifecycle and operational owner.
+- Stronger validation against approved operational records requires an explicitly approved private-data integration design.
+- AWS provisioning and recurring spend remain separately authorized work.

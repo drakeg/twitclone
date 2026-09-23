@@ -230,14 +230,9 @@ Delivered capabilities include a versioned provider-neutral JSON export, request
 
 **Goal:** Make Ripple's existing public-launch prerequisites visible as a clear, auditable, zero-spend readiness status without provisioning infrastructure or weakening the authoritative launch gate.
 
-**Status:** In implementation. Detailed acceptance criteria are maintained in `docs/sprints/SPRINT_19.md`.
+**Status:** Completed. Detailed implementation and boundaries are maintained in `docs/sprints/SPRINT_19.md`.
 
-**Planned direction:**
-
-- Read-only reporting of required repository artifacts and manual launch evidence.
-- Human-readable and machine-readable readiness output for maintainers.
-- Alignment with the existing Sprint 8 launch-gate variables and zero-spend safeguards.
-- No AWS calls, Terraform apply, provisioning, or spend authorization.
+Delivered capabilities include read-only human/JSON readiness reporting, sanitized evidence-record metadata, advisory freshness review, versioned readiness snapshots, and deterministic SHA-256 integrity verification. The authoritative Sprint 8 launch gate remains unchanged. No AWS calls, Terraform apply, provisioning, signing infrastructure, or spend authorization were added.
 
 ## Cross-cutting release gates and deferred work
 
