@@ -194,6 +194,14 @@ infrastructure identifiers, secret values, or customer data. Metadata is
 traceability only: it does not satisfy a gate whose corresponding evidence
 acknowledgment is incomplete.
 
+A sanitized metadata record may also declare `review_after_days`. The readiness
+report then shows whether that record is fresh or stale as of the current date,
+or a deterministic date supplied with `--as-of-date YYYY-MM-DD`. No default
+freshness period is invented by the repository: if `review_after_days` is
+absent, freshness is reported as `not_evaluated`. Stale or malformed metadata
+is advisory evidence for operator review and does not replace or alter the
+authoritative launch gate.
+
 ## Launch gate
 
 Public traffic is not approved until all of these are true:
