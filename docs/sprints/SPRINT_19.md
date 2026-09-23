@@ -28,7 +28,7 @@ Turn Ripple's existing launch prerequisites into a clear, auditable, zero-spend 
 
 ## Story 19.2 — Sanitized evidence-record metadata
 
-**Status:** In implementation.
+**Status:** Completed in PR #256.
 
 - Allow the readiness report to consume an optional local JSON file containing only sanitized evidence-record dates and opaque references.
 - Keep evidence metadata advisory: a supplied record reference must never turn an incomplete gate into a completed one.
@@ -45,6 +45,27 @@ Turn Ripple's existing launch prerequisites into a clear, auditable, zero-spend 
 - Text output shows the sanitized record date when supplied.
 - Tests prove metadata cannot authorize a launch gate.
 - Documentation explains that completed operational records remain outside the repository.
+
+## Story 19.3 — Advisory evidence freshness review
+
+**Status:** In implementation.
+
+- Let sanitized evidence metadata optionally declare a `review_after_days` window per record.
+- Compare dated evidence against an explicit report `--as-of-date` or the local current date.
+- Classify records as fresh, stale, invalid, or not evaluated.
+- Keep freshness advisory: stale metadata must be surfaced for human review but must not silently pass or fail the authoritative launch gate.
+- Define no repository-wide default freshness periods; review windows remain explicit operational policy supplied with the sanitized metadata.
+- Treat future-dated records, invalid dates, and invalid review windows as review-attention items.
+
+### Acceptance criteria
+
+- A record with an explicit review window becomes stale only when its age exceeds that window.
+- Records without a review window remain `not_evaluated` rather than receiving an invented policy.
+- Stale or invalid record metadata appears in a `freshness_attention` list.
+- Freshness status does not override the existing evidence acknowledgments or authoritative launch gate.
+- `--as-of-date` supports deterministic review/testing.
+- Human-readable output includes age and review-window details for fresh/stale records.
+- Tests cover stale, not-evaluated, invalid, advisory-only, and rendered-output behavior.
 
 ## Deferred stories
 
