@@ -7,7 +7,7 @@ import argparse
 import json
 import os
 import re
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -142,6 +142,33 @@ def build_report(
     }
 
 
+def build_snapshot(
+    report: dict,
+    release_sha: str | None = None,
+    captured_at: datetime | None = None,
+) -> dict:
+    captured_at = datetime.now(timezone.utc) if captured_at is None else captured_at
+    if captured_at.tzinfo is None:
+        raise ValueError("captured_at must be timezone-aware")
+    if release_sha is not None and not re.fullmatch(r"[0-9a-f]{40}", release_sha):
+        raise ValueError("release_sha must be a 40-character lowercase Git SHA")
+    return {
+        "format": "ripple-launch-readiness-snapshot",
+        "version": 1,
+        "captured_at": captured_at.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "release_sha": release_sha,
+        "status": report["status"],
+        "authoritative_gate": report["authoritative_gate"],
+        "spend_authorized": False,
+        "provisioning_performed": False,
+        "as_of_date": report["as_of_date"],
+        "missing_artifacts": report["missing_artifacts"],
+        "incomplete_evidence": report["incomplete_evidence"],
+        "freshness_attention": report["freshness_attention"],
+        "evidence_records": report["evidence_records"],
+    }
+
+
 def render_text(report: dict) -> str:
     lines = [f"Launch readiness status: {report['status']}", "", "Evidence gates:"]
     for name, item in report["evidence"].items():
@@ -196,9 +223,24 @@ def main() -> int:
         type=date.fromisoformat,
         help="optional YYYY-MM-DD date for deterministic freshness review",
     )
+    parser.add_argument(
+        "--snapshot",
+        type=Path,
+        help="write a sanitized JSON readiness snapshot to this local path",
+    )
+    parser.add_argument(
+        "--release-sha",
+        help="optional exact 40-character lowercase Git SHA to record in the snapshot",
+    )
     args = parser.parse_args()
     metadata = load_evidence_metadata(args.evidence_metadata)
     report = build_report(metadata=metadata, as_of=args.as_of_date)
+    if args.snapshot:
+        snapshot = build_snapshot(report, release_sha=args.release_sha)
+        args.snapshot.write_text(
+            json.dumps(snapshot, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
     print(json.dumps(report, indent=2, sort_keys=True) if args.json else render_text(report))
     return 0
 
