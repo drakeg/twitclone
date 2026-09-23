@@ -222,13 +222,9 @@ The following numbered sprints are the agreed product direction after Sprint 9. 
 
 **Goal:** Continue low-risk interoperability by giving people useful exports of their Ripple identity and authored work without activating federation or adding infrastructure spend.
 
-**Planned direction:**
+**Status:** Completed. Detailed implementation and boundaries are maintained in `docs/sprints/SPRINT_18.md`.
 
-- Versioned, provider-neutral exports with explicit scope and omissions.
-- Free authenticated access independent of payment, verification, popularity, or moderation authority.
-- Strong account isolation and unconditional exclusion of authentication secrets.
-- Phased review of private communications, financial records, media packaging, and future imports before those capabilities are enabled.
-- No claim that a portability download is federation, a full operational backup, or legal-compliance certification.
+Delivered capabilities include a versioned provider-neutral JSON export, requester-visible direct-message portability, subscription/entitlement metadata without provider secrets, an owned-media reference manifest without packaged bytes, and a non-mutating import/provenance compatibility contract. Import writes remain disabled. Packaged media and actual import execution require separately authorized future work.
 
 ## Cross-cutting release gates and deferred work
 
