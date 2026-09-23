@@ -68,7 +68,7 @@ Continue the low-risk interoperability direction approved by Sprint 17 by giving
 
 ## Story 18.4 — Owned-media portability manifest
 
-**Status:** In implementation.
+**Status:** Completed in PR #252.
 
 - Advance the portable document to version 4 with a manifest of media references owned by the requester.
 - Include the requester's profile-banner reference plus image/original-image references attached to the requester's own posts.
@@ -86,10 +86,34 @@ Continue the low-risk interoperability direction approved by Sprint 17 by giving
 - The profile UI explains the distinction between media references and packaged files.
 - Tests cover manifest shape, ordering, account isolation, and the no-bytes boundary.
 
+## Story 18.5 — Import mapping and provenance contract
+
+**Status:** In implementation.
+
+- Keep portable-data import execution disabled while defining a non-mutating compatibility contract.
+- Recognize only the reviewed `ripple-portable-export` version 4 envelope.
+- Classify each exported collection as candidate, review-required, reference-only, dependency-blocked, or prohibited.
+- Require source provenance before any future imported record can be written.
+- Prohibit portable data from granting space roles, follower relationships, subscriptions, entitlements, or financial state.
+- Keep private-message import prohibited until multi-party identity/deletion semantics receive a separate design.
+- Treat media references as opaque metadata and perform no filesystem, object-store, or network reads during assessment.
+- Surface unknown fields for review instead of trusting or silently importing them.
+
+### Acceptance criteria
+
+- A compatibility assessor can identify recognized format/version documents without mutating application state.
+- Import execution remains explicitly disabled.
+- Billing, entitlements, private messages, and space memberships are classified as prohibited import sources.
+- Quotes and Replies are blocked until their referenced records can be resolved safely.
+- Media remains reference-only and cannot trigger arbitrary retrieval.
+- Minimum provenance fields are documented and represented in code.
+- Documentation defines duplicate, identity, relationship, authorization, rollback, moderation, and activation gates before any write endpoint is allowed.
+- Tests cover compatibility, unsupported formats/versions, prohibited collections, reference-only media, unknown fields, and provenance requirements.
+
 ## Planned follow-up stories
 
 - Evaluate packaged media only after archive size limits, storage/network cost, retention behavior, and authorization are defined.
-- Document import mappings and provenance before accepting any portable data back into Ripple.
+- Enable no import writes until a separate implementation story satisfies the Story 18.5 activation gate.
 
 ## Story boundary
 
