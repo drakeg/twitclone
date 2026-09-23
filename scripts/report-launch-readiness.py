@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -142,6 +143,16 @@ def build_report(
     }
 
 
+def _snapshot_checksum(payload: dict) -> str:
+    canonical = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def build_snapshot(
     report: dict,
     release_sha: str | None = None,
@@ -152,7 +163,7 @@ def build_snapshot(
         raise ValueError("captured_at must be timezone-aware")
     if release_sha is not None and not re.fullmatch(r"[0-9a-f]{40}", release_sha):
         raise ValueError("release_sha must be a 40-character lowercase Git SHA")
-    return {
+    snapshot = {
         "format": "ripple-launch-readiness-snapshot",
         "version": 1,
         "captured_at": captured_at.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -167,6 +178,25 @@ def build_snapshot(
         "freshness_attention": report["freshness_attention"],
         "evidence_records": report["evidence_records"],
     }
+    snapshot["checksum"] = {
+        "algorithm": "sha256",
+        "value": _snapshot_checksum(snapshot),
+    }
+    return snapshot
+
+
+def verify_snapshot_checksum(snapshot: dict) -> bool:
+    checksum = snapshot.get("checksum")
+    if not isinstance(checksum, dict):
+        return False
+    if checksum.get("algorithm") != "sha256":
+        return False
+    expected = checksum.get("value")
+    if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected):
+        return False
+    payload = dict(snapshot)
+    payload.pop("checksum", None)
+    return _snapshot_checksum(payload) == expected
 
 
 def render_text(report: dict) -> str:
@@ -232,7 +262,20 @@ def main() -> int:
         "--release-sha",
         help="optional exact 40-character lowercase Git SHA to record in the snapshot",
     )
+    parser.add_argument(
+        "--verify-snapshot",
+        type=Path,
+        help="verify a previously written readiness snapshot checksum and exit",
+    )
     args = parser.parse_args()
+    if args.verify_snapshot:
+        payload = json.loads(args.verify_snapshot.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict) or not verify_snapshot_checksum(payload):
+            print("INVALID: readiness snapshot checksum does not match", file=os.sys.stderr)
+            return 1
+        print("OK: readiness snapshot checksum verified")
+        return 0
+
     metadata = load_evidence_metadata(args.evidence_metadata)
     report = build_report(metadata=metadata, as_of=args.as_of_date)
     if args.snapshot:
