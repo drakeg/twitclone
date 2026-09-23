@@ -1,7 +1,7 @@
 """Sprint 19 launch-readiness reporting coverage."""
 
 import importlib.util
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 
@@ -214,3 +214,90 @@ def test_rendered_report_shows_stale_freshness_details():
     )
 
     assert "freshness=stale, age=53d, review_after=30d" in rendered
+
+
+
+def test_snapshot_contains_sanitized_readiness_state():
+    module = _module()
+    metadata = {
+        "restore_rehearsal": {
+            "date": "2026-09-20",
+            "reference": "ops-record:restore-2026-09-20",
+            "review_after_days": 90,
+        }
+    }
+    report = module.build_report(ROOT, {}, metadata, as_of=date(2026, 9, 23))
+
+    snapshot = module.build_snapshot(
+        report,
+        release_sha="a" * 40,
+        captured_at=datetime(2026, 9, 23, 3, 55, tzinfo=timezone.utc),
+    )
+
+    assert snapshot["format"] == "ripple-launch-readiness-snapshot"
+    assert snapshot["version"] == 1
+    assert snapshot["captured_at"] == "2026-09-23T03:55:00Z"
+    assert snapshot["release_sha"] == "a" * 40
+    assert snapshot["spend_authorized"] is False
+    assert snapshot["provisioning_performed"] is False
+    assert snapshot["evidence_records"]["restore_rehearsal"]["reference"] == (
+        "ops-record:restore-2026-09-20"
+    )
+    assert "evidence" not in snapshot
+    assert "artifacts" not in snapshot
+
+
+def test_snapshot_rejects_non_immutable_release_sha():
+    module = _module()
+    report = module.build_report(ROOT, {}, as_of=date(2026, 9, 23))
+
+    try:
+        module.build_snapshot(report, release_sha="main")
+    except ValueError as exc:
+        assert "40-character lowercase Git SHA" in str(exc)
+    else:
+        raise AssertionError("non-immutable release SHA should fail")
+
+
+def test_snapshot_requires_timezone_aware_capture_time():
+    module = _module()
+    report = module.build_report(ROOT, {}, as_of=date(2026, 9, 23))
+
+    try:
+        module.build_snapshot(
+            report,
+            captured_at=datetime(2026, 9, 23, 3, 55),
+        )
+    except ValueError as exc:
+        assert "timezone-aware" in str(exc)
+    else:
+        raise AssertionError("naive snapshot time should fail")
+
+
+def test_snapshot_shape_does_not_capture_evidence_environment_values():
+    module = _module()
+    env = {
+        "RIPPLE_COST_REVIEWED": "true",
+        "RIPPLE_COST_REVIEW_DATE": "2026-09-23",
+        "RIPPLE_RESTORE_REHEARSAL_PASSED": "true",
+        "RIPPLE_ACCESSIBILITY_EVIDENCE_PASSED": "true",
+        "RIPPLE_BACKUP_ALERT_PATH_TESTED": "true",
+        "RIPPLE_RELEASE_RECORD_PREPARED": "true",
+        "UNRELATED_SECRET": "must-not-appear",
+    }
+    report = module.build_report(ROOT, env, as_of=date(2026, 9, 23))
+    snapshot = module.build_snapshot(
+        report,
+        captured_at=datetime(2026, 9, 23, 3, 55, tzinfo=timezone.utc),
+    )
+
+    serialized = repr(snapshot)
+    assert "must-not-appear" not in serialized
+    for variable in (
+        "RIPPLE_COST_REVIEWED",
+        "RIPPLE_RESTORE_REHEARSAL_PASSED",
+        "RIPPLE_ACCESSIBILITY_EVIDENCE_PASSED",
+        "RIPPLE_BACKUP_ALERT_PATH_TESTED",
+        "RIPPLE_RELEASE_RECORD_PREPARED",
+    ):
+        assert variable not in serialized
