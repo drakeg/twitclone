@@ -31,8 +31,9 @@ def build_portable_export(user, *, exported_at):
 
     This covers account identity, social connections, authored public content,
     and direct messages still visible to the requester. Moderation records,
-    subscription/entitlement state. Analytics, media bytes, payment credentials,
-    provider identifiers, and authentication secrets remain outside version 3.
+    subscription/entitlement state, and an owned-media reference manifest.
+    Analytics, media bytes, payment credentials, provider identifiers, and
+    authentication secrets remain outside version 4.
     """
 
     posts = Tweet.query.filter_by(user_id=user.id).order_by(Tweet.id.asc()).all()
@@ -55,9 +56,9 @@ def build_portable_export(user, *, exported_at):
 
     return {
         "format": "ripple-portable-export",
-        "version": 3,
+        "version": 4,
         "exported_at": _iso(exported_at),
-        "scope": "account-profile-social-graph-authored-content-visible-messages-and-billing-state",
+        "scope": "account-profile-social-graph-authored-content-visible-messages-billing-state-and-media-manifest",
         "account": {
             "id": user.id,
             "username": user.username,
@@ -182,6 +183,34 @@ def build_portable_export(user, *, exported_at):
         "creator_support_transactions": {
             "status": "not_available",
             "reason": "Ripple does not currently process or persist creator-support transactions.",
+        },
+        "media_manifest": {
+            "packaged_bytes": False,
+            "assets": (
+                ([{
+                    "kind": "profile_banner",
+                    "source_id": None,
+                    "reference": user.profile_banner,
+                }] if user.profile_banner else [])
+                + [
+                    {
+                        "kind": "post_image",
+                        "source_id": item.id,
+                        "reference": item.image,
+                    }
+                    for item in posts
+                    if item.image
+                ]
+                + [
+                    {
+                        "kind": "post_original_image",
+                        "source_id": item.id,
+                        "reference": item.original_image,
+                    }
+                    for item in posts
+                    if item.original_image
+                ]
+            ),
         },
         "not_included": [
             "authentication_secrets",
