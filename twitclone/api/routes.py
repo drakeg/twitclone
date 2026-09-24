@@ -96,6 +96,12 @@ def _invalid_token_response(message):
 
 
 def _post_etag(tweet):
+    topic_state = ",".join(
+        sorted(
+            f"{association.topic.slug}:{association.source}"
+            for association in public_topic_associations(tweet)
+        )
+    )
     material = "|".join(
         [
             str(tweet.id),
@@ -103,6 +109,7 @@ def _post_etag(tweet):
             (tweet.scheduled_at or tweet.timestamp).isoformat(),
             tweet.edited_at.isoformat() if tweet.edited_at else "",
             "1" if tweet.is_removed else "0",
+            topic_state,
         ]
     )
     return '"' + hashlib.sha256(material.encode("utf-8")).hexdigest() + '"'
