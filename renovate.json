@@ -13,6 +13,16 @@
         "python"
       ],
       "allowedVersions": "3.12"
+    },
+    {
+      "description": "Keep Docker Python aligned with the tested 3.12 runtime",
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "matchPackageNames": [
+        "python"
+      ],
+      "allowedVersions": "3.12"
     }
   ]
 }
