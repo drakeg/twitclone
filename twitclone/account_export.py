@@ -66,7 +66,7 @@ def build_portable_export(user, *, exported_at):
 
     return {
         "format": "ripple-portable-export",
-        "version": 5,
+        "version": 6,
         "exported_at": _iso(exported_at),
         "scope": "account-profile-social-graph-authored-content-visible-messages-billing-state-and-media-manifest",
         "account": {
