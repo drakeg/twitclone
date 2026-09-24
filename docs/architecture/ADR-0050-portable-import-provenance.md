@@ -13,7 +13,7 @@ A portable file can contain stale identifiers, references to other accounts, bil
 ## Decision
 
 - Keep portable-data import execution disabled.
-- Add a non-mutating compatibility contract for recognized `ripple-portable-export` version 4 documents.
+- Add a non-mutating compatibility contract for recognized `ripple-portable-export` version 4 and version 5 documents.
 - Classify every exported collection as candidate, review-required, reference-only, dependency-blocked, or prohibited.
 - Require persisted source provenance before any future record writes are enabled.
 - Never allow portable data to grant subscriptions, entitlements, space roles, followers, or financial state.
@@ -28,3 +28,10 @@ A portable file can contain stale identifiers, references to other accounts, bil
 - Future import development must preserve record origin rather than silently converting imported data into indistinguishable native records.
 - Privilege and relationship state remain controlled by the destination system.
 - Actual importing remains deferred until preview, authorization, provenance persistence, duplicate handling, rollback, limits, and moderation behavior are implemented.
+
+
+## Portability version 5 compatibility
+
+Sprint 22 advances the export document to version 5 to include `edited_at` for authored original posts. Version 4 remains structurally recognized by the non-mutating compatibility assessor so previously downloaded exports do not become immediately unreadable for future compatibility review.
+
+This does not enable import execution. Version 5 adds lifecycle metadata only; all existing import prohibitions and provenance requirements remain unchanged.
