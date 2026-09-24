@@ -61,3 +61,12 @@ All operations use the existing credential rate limit.
 ## Follow-up
 
 Broader automation capabilities require separate contracts. Idempotency keys, conditional writes, OAuth, or additional mutable content types should be introduced only when an integration need justifies their complexity and security review.
+
+
+## Conditional-write follow-up
+
+Sprint 23 Story 23.2 adds strong ETag preconditions before wider automation use.
+
+Public post GET, successful create, and successful edit responses return an ETag derived from the mutable public representation. PATCH and DELETE require the exact current ETag through `If-Match`; missing preconditions return 428 and stale preconditions return 412.
+
+This guards against lost updates between concurrent clients or browser/API workflows without expanding the `posts:write` privilege. POST idempotency is intentionally not bundled into this decision because duplicate-create retry semantics require a separate request-key/storage contract.
