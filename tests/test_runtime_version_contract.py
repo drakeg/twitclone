@@ -13,10 +13,13 @@ def test_python_runtime_contract_is_consistent():
     dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     renovate = json.loads((ROOT / "renovate.json").read_text(encoding="utf-8"))
+    verifier = (ROOT / "scripts" / "verify_dependencies.py").read_text(encoding="utf-8")
 
     assert supported == "3.12"
     assert re.search(r"^FROM python:3\.12-slim AS base$", dockerfile, re.MULTILINE)
     assert 'python-version: "3.12"' in ci
+    assert "sys.version_info[:2] != (3, 12)" in verifier
+    assert "Python 3.12.x is required" in verifier
 
     python_rules = [
         rule
