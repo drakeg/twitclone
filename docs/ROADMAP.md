@@ -242,6 +242,19 @@ Delivered capabilities include read-only human/JSON readiness reporting, sanitiz
 
 Delivered capabilities include an enforced Python 3.12 runtime contract, an explicit direct-dependency manifest plus checked-in lock validation, local dependency-surface inventorying, and conservative Renovate patch grouping with auto-merge disabled. Automatic lock generation remains deliberately deferred until a pinned compiler/resolver workflow and security-bot interaction can be specified and proven reproducible.
 
+## Sprint 21 — Author-controlled post lifecycle
+
+**Goal:** Give authors safe, understandable control over the lifecycle of their own original posts without weakening ownership, moderation, conversation-history, or topic-integrity boundaries.
+
+**Status:** In implementation. Detailed acceptance criteria are maintained in `docs/sprints/SPRINT_21.md`.
+
+**Planned direction:**
+
+- Owner-only editing of original post text with visible edit state and preserved publish identity.
+- Deterministic refresh of text-derived mentions/topics without rewriting unrelated metadata.
+- Explicit owner-removal semantics before any destructive/cascade behavior is introduced.
+- Historical integrity for replies, quotes, moderation records, bookmarks, notifications, and community context.
+
 ## Cross-cutting release gates and deferred work
 
 These are not new product sprints and remain independently tracked:
