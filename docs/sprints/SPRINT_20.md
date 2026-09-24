@@ -1,6 +1,6 @@
 # Sprint 20 — Dependency Health and Upgrade Safety
 
-**Status:** In implementation.
+**Status:** Completed.
 
 ## Goal
 
@@ -74,7 +74,7 @@ Make Ripple's dependency and runtime upgrade process explicit, reproducible, and
 
 ## Story 20.4 — Conservative automated-update grouping
 
-**Status:** In implementation.
+**Status:** Completed in PR #265.
 
 - Keep Renovate auto-merge disabled globally and in all explicit grouping rules.
 - Group patch updates by dependency surface so low-risk changes can be reviewed coherently.
@@ -94,10 +94,33 @@ Make Ripple's dependency and runtime upgrade process explicit, reproducible, and
 - Tests fail if auto-merge is enabled or grouping/guardrails drift.
 - Documentation describes the review policy and why minor/major changes stay separate.
 
-## Planned follow-up stories
+## Lock-generation decision
 
-- Evaluate reproducible lock generation only after tool/version and security-bot behavior are specified.
+Automatic lock generation is deferred.
+
+The repository now has an explicit direct-dependency manifest, a checked-in runtime lock, CI verification that the two remain aligned, a local dependency inventory, and conservative automated-update grouping. There is no pinned lock compiler, documented resolver behavior, or established Renovate/Mend/Snyk workflow for a generated lock. Adding a compiler now would create a new maintenance dependency without yet improving the review contract.
+
+A future lock-generation story must first define:
+
+- the exact tool and pinned tool version;
+- the exact generation command and Python runtime;
+- deterministic resolver/upgrade behavior;
+- how direct-dependency changes and transitive changes are represented in review;
+- how Renovate, Mend, Snyk, and other security automation interact with the generated file;
+- CI proof that a regenerated lock is reproducible and does not introduce unreviewed drift.
+
+Until then, `requirements.in` remains the direct-dependency intent manifest and `requirements.txt` remains the checked-in reproducible install lock.
+
 
 ## Boundary
 
 Sprint 20 changes dependency/runtime maintenance only. It does not authorize AWS provisioning, new paid services, dependency auto-merge, or skipping application compatibility tests.
+
+
+## Sprint outcome
+
+Sprint 20 established a coherent dependency-maintenance contract without enabling unattended upgrades. Python runtime alignment is enforced across local tooling, CI, Docker, Renovate, and dependency verification. Direct runtime intent is separated from the install lock and checked in CI. Dependency surfaces can be inventoried locally without network access, and Renovate patch updates are grouped conservatively while minor/major updates stay isolated.
+
+## Definition of done
+
+Completed. Dependency/runtime drift now has explicit repository contracts and regression coverage, while automatic lock generation remains intentionally deferred until its tooling and security-automation semantics can be specified and tested.
