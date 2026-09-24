@@ -11,6 +11,7 @@ TwitClone currently targets **Python 3.12.x**. The repository-level `.python-ver
 - `requirements-dev.txt` adds development and test tooling on top of the runtime lock.
 - `scripts/verify_dependencies.py` verifies the supported Python version and imports the packages used directly by the application.
 - `scripts/verify_dependency_lock.py` proves every direct runtime dependency is represented in `requirements.txt` with the same declared version/specifier.
+- `scripts/report_dependency_inventory.py` inventories checked-in Python, container-image, GitHub Actions, and Terraform dependency surfaces without network access.
 
 Psycopg 3 with its binary extra is pinned as the production PostgreSQL driver.
 SQLite remains part of Python's standard library and needs no package entry.
@@ -24,6 +25,7 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python scripts/verify_dependencies.py
 python scripts/verify_dependency_lock.py
+python scripts/report_dependency_inventory.py
 ```
 
 On Windows PowerShell, activate with:
@@ -85,3 +87,27 @@ The supported Python **minor** version must stay aligned across:
 - `scripts/verify_dependencies.py`
 
 Patch releases within Python 3.12 remain allowed. Moving to Python 3.13 or newer requires an explicit compatibility story with CI and release-image validation rather than an isolated bot update.
+
+
+## Dependency inventory
+
+Run:
+
+```bash
+python scripts/report_dependency_inventory.py
+python scripts/report_dependency_inventory.py --json
+```
+
+The inventory is intentionally local-only. It records the dependency names,
+versions/constraints, classifications, and source files currently checked into
+the repository. It distinguishes direct, locked, and development Python
+dependencies; Dockerfile and production Compose images; GitHub Actions; and
+Terraform CLI/provider constraints.
+
+The report does **not** contact package registries, GitHub Marketplace, Docker
+registries, or Terraform registries, and it does not claim that a dependency is
+current, outdated, vulnerable, or safe. Those judgments still require the
+existing security/update tooling plus application compatibility review.
+
+CI runs the inventory command so newly introduced syntax that the repository
+cannot classify is surfaced immediately rather than silently omitted.

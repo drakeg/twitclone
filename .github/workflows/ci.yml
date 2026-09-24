@@ -50,6 +50,9 @@ jobs:
       - name: Verify direct dependency lock
         run: python scripts/verify_dependency_lock.py
 
+      - name: Inventory dependency surfaces
+        run: python scripts/report_dependency_inventory.py --json
+
       - name: Verify database migrations
         run: python scripts/verify_migrations.py
 
