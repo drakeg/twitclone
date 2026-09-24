@@ -43,7 +43,7 @@ def build_portable_export(user, *, exported_at):
     and direct messages still visible to the requester. Moderation records,
     subscription/entitlement state, and an owned-media reference manifest.
     Analytics, media bytes, payment credentials, provider identifiers, and
-    authentication secrets remain outside version 4.
+    authentication secrets remain outside the current portable-export contract.
     """
 
     posts = Tweet.query.filter_by(user_id=user.id).order_by(Tweet.id.asc()).all()
