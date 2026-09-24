@@ -111,3 +111,24 @@ existing security/update tooling plus application compatibility review.
 
 CI runs the inventory command so newly introduced syntax that the repository
 cannot classify is surfaced immediately rather than silently omitted.
+
+
+## Automated update grouping
+
+Renovate remains advisory and **never auto-merges** dependency changes.
+
+Patch updates are grouped by dependency surface so closely related low-risk
+changes can be reviewed together:
+
+- direct/runtime Python patch updates across `requirements.in` and
+  `requirements.txt`;
+- development-only Python patch updates;
+- GitHub Actions patch updates;
+- Terraform patch updates.
+
+Minor and major updates remain isolated rather than grouped. They require a
+focused compatibility review because they are more likely to change behavior or
+upgrade contracts.
+
+The Python 3.12 runtime constraints for pyenv and the Docker base image remain
+separate guardrails and take precedence over convenience grouping.

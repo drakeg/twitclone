@@ -50,7 +50,7 @@ Make Ripple's dependency and runtime upgrade process explicit, reproducible, and
 
 ## Story 20.3 — Local dependency-surface inventory
 
-**Status:** In implementation.
+**Status:** Completed in PR #264.
 
 - Add a repository-local dependency inventory that uses no network access.
 - Distinguish direct, locked, and development Python dependencies.
@@ -72,9 +72,30 @@ Make Ripple's dependency and runtime upgrade process explicit, reproducible, and
 - CI runs the inventory on every pull request.
 - Tests cover all supported surfaces plus local-only/non-currency semantics.
 
+## Story 20.4 — Conservative automated-update grouping
+
+**Status:** In implementation.
+
+- Keep Renovate auto-merge disabled globally and in all explicit grouping rules.
+- Group patch updates by dependency surface so low-risk changes can be reviewed coherently.
+- Group runtime Python patch updates across `requirements.in` and `requirements.txt` so the direct manifest and lock move together.
+- Keep development-only Python, GitHub Actions, and Terraform patch updates in separate review groups.
+- Leave minor and major updates ungrouped for focused compatibility review.
+- Preserve the existing Python 3.12 pyenv/Docker constraints.
+- Add regression coverage for grouping, no-auto-merge, and runtime guardrails.
+
+### Acceptance criteria
+
+- Renovate cannot auto-merge any dependency update under the repository config.
+- Runtime Python patch changes are grouped across the direct manifest and runtime lock.
+- Development Python, GitHub Actions, and Terraform patch changes use separate surface-specific groups.
+- Minor and major updates remain isolated.
+- Python 3.12 runtime constraints remain present.
+- Tests fail if auto-merge is enabled or grouping/guardrails drift.
+- Documentation describes the review policy and why minor/major changes stay separate.
+
 ## Planned follow-up stories
 
-- Define coherent grouping/review rules for automated dependency PRs so overlapping bot changes are easier to reconcile.
 - Evaluate reproducible lock generation only after tool/version and security-bot behavior are specified.
 
 ## Boundary

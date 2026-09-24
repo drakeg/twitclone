@@ -23,6 +23,67 @@
         "python"
       ],
       "allowedVersions": "3.12"
+    },
+    {
+      "description": "Group Python runtime patch updates for one compatibility review",
+      "matchManagers": [
+        "pip_requirements"
+      ],
+      "matchFileNames": [
+        "requirements.in",
+        "requirements.txt"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "groupName": "python runtime patch updates",
+      "automerge": false
+    },
+    {
+      "description": "Group development-only Python patch updates",
+      "matchManagers": [
+        "pip_requirements"
+      ],
+      "matchFileNames": [
+        "requirements-dev.txt"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "groupName": "python development patch updates",
+      "automerge": false
+    },
+    {
+      "description": "Group GitHub Actions patch updates",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "groupName": "github actions patch updates",
+      "automerge": false
+    },
+    {
+      "description": "Group Terraform patch updates",
+      "matchManagers": [
+        "terraform"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "groupName": "terraform patch updates",
+      "automerge": false
+    },
+    {
+      "description": "Keep minor and major dependency updates isolated for focused review",
+      "matchUpdateTypes": [
+        "minor",
+        "major"
+      ],
+      "groupName": null,
+      "automerge": false
     }
-  ]
+  ],
+  "automerge": false
 }
