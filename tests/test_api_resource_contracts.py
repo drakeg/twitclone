@@ -211,6 +211,7 @@ def test_api_edit_accepts_only_content_and_noop_preserves_unedited_state(client,
     assert invalid.get_json()["error"]["code"] == "invalid_post"
     assert noop.status_code == 200
     assert noop.get_json()["data"]["edited_at"] is None
+    assert noop.headers["ETag"] == etag
     with app.app_context():
         tweet = db.session.get(Tweet, tweet_id)
         assert tweet.content == "same text"
@@ -393,3 +394,43 @@ def test_api_remove_rejects_stale_etag(client, app):
     assert remove.get_json()["error"]["code"] == "precondition_failed"
     with app.app_context():
         assert db.session.get(Tweet, tweet_id).is_removed is False
+
+
+
+def test_public_topic_change_invalidates_previous_api_etag(client, app):
+    user_id, _, raw_token = _user_and_token(app, {"posts:write"}, username="api_topic_etag")
+    with app.app_context():
+        tweet = Tweet(content="topic state", user_id=user_id)
+        db.session.add(tweet)
+        db.session.flush()
+        first_topic = Topic(name="First", slug="first")
+        db.session.add(first_topic)
+        db.session.flush()
+        db.session.add(TweetTopic(tweet_id=tweet.id, topic_id=first_topic.id, source="explicit"))
+        db.session.commit()
+        tweet_id = tweet.id
+
+    stale_etag = _etag(client, tweet_id)
+
+    with app.app_context():
+        second_topic = Topic(name="Second", slug="second")
+        db.session.add(second_topic)
+        db.session.flush()
+        db.session.add(TweetTopic(tweet_id=tweet_id, topic_id=second_topic.id, source="explicit"))
+        db.session.commit()
+
+    current = client.get(f"/api/v1/posts/{tweet_id}")
+    assert current.status_code == 200
+    assert current.headers["ETag"] != stale_etag
+
+    edit = client.patch(
+        f"/api/v1/posts/{tweet_id}",
+        headers={"Authorization": f"Bearer {raw_token}", "If-Match": stale_etag},
+        json={"content": "must not overwrite newer topic state"},
+    )
+
+    assert edit.status_code == 412
+    assert edit.get_json()["error"]["code"] == "precondition_failed"
+    with app.app_context():
+        tweet = db.session.get(Tweet, tweet_id)
+        assert tweet.content == "topic state"
