@@ -105,6 +105,7 @@ def _public_post(tweet):
         "content": tweet.content,
         "author": {"id": tweet.user.id, "username": tweet.user.username},
         "published_at": (tweet.scheduled_at or tweet.timestamp).isoformat() + "Z",
+        "edited_at": tweet.edited_at.isoformat() + "Z" if tweet.edited_at else None,
         "topics": topics,
         "url": f"/post/{tweet.id}",
     }
