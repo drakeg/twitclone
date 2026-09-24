@@ -18,11 +18,21 @@ def _iso(value):
     return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
-def _removal(item):
+def _removal(item, *, owner_id):
+    if not item.is_removed:
+        origin = None
+    elif item.removed_by_id is None:
+        origin = "unknown"
+    elif item.removed_by_id == owner_id:
+        origin = "owner"
+    else:
+        origin = "moderation"
+
     return {
         "is_removed": item.is_removed,
         "removed_at": _iso(item.removed_at),
         "removal_reason": item.removal_reason,
+        "removal_origin": origin,
     }
 
 
@@ -33,7 +43,7 @@ def build_portable_export(user, *, exported_at):
     and direct messages still visible to the requester. Moderation records,
     subscription/entitlement state, and an owned-media reference manifest.
     Analytics, media bytes, payment credentials, provider identifiers, and
-    authentication secrets remain outside version 4.
+    authentication secrets remain outside the current portable-export contract.
     """
 
     posts = Tweet.query.filter_by(user_id=user.id).order_by(Tweet.id.asc()).all()
@@ -56,7 +66,7 @@ def build_portable_export(user, *, exported_at):
 
     return {
         "format": "ripple-portable-export",
-        "version": 5,
+        "version": 6,
         "exported_at": _iso(exported_at),
         "scope": "account-profile-social-graph-authored-content-visible-messages-billing-state-and-media-manifest",
         "account": {
@@ -83,7 +93,7 @@ def build_portable_export(user, *, exported_at):
                 "image_reference": item.image,
                 "original_image_reference": item.original_image,
                 "scheduled_at": _iso(item.scheduled_at),
-                **_removal(item),
+                **_removal(item, owner_id=user.id),
             }
             for item in posts
         ],
@@ -93,7 +103,7 @@ def build_portable_export(user, *, exported_at):
                 "root_post_id": item.tweet_id,
                 "content": item.content,
                 "created_at": _iso(item.timestamp),
-                **_removal(item),
+                **_removal(item, owner_id=user.id),
             }
             for item in quotes
         ],
@@ -104,7 +114,7 @@ def build_portable_export(user, *, exported_at):
                 "parent_reply_id": item.parent_reply_id,
                 "content": item.content,
                 "created_at": _iso(item.created_at),
-                **_removal(item),
+                **_removal(item, owner_id=user.id),
             }
             for item in replies
         ],
@@ -114,7 +124,7 @@ def build_portable_export(user, *, exported_at):
                 "title": item.title,
                 "created_at": _iso(item.created_at),
                 "updated_at": _iso(item.updated_at),
-                **_removal(item),
+                **_removal(item, owner_id=user.id),
                 "revisions": [
                     {
                         "id": revision.id,

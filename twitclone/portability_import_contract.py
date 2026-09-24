@@ -6,7 +6,7 @@ for a future import and which require explicit review or remain prohibited.
 """
 
 PORTABLE_FORMAT = "ripple-portable-export"
-SUPPORTED_SOURCE_VERSIONS = {4, 5}
+SUPPORTED_SOURCE_VERSIONS = {4, 5, 6}
 IMPORT_ENABLED = False
 
 IMPORT_COLLECTION_POLICIES = {
