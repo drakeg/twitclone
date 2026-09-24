@@ -26,16 +26,39 @@ A successful create returns `201 Created`, the same bounded public post represen
 
 API-created posts are ordinary global Ripple posts. They participate in existing mention notifications, conversation intent, explicit-topic association, moderation, reporting, and public visibility rules. They do not receive special ranking, reputation, verification, or paid treatment.
 
+### Edit an owned public post
+
+Sprint 23 adds `PATCH /api/v1/posts/<id>` for the credential owner's globally public original posts. It requires `posts:write` and accepts exactly one JSON field:
+
+- `content` — required, nonblank, maximum 144 characters.
+
+Edits reuse Ripple's existing owner-only post lifecycle semantics: original publish identity is preserved, `edited_at` is updated only when text changes, hashtag-derived topics are refreshed while explicit topics remain intact, and only newly added valid @mentions generate notifications.
+
+### Remove an owned public post
+
+Sprint 23 adds `DELETE /api/v1/posts/<id>` for the credential owner's globally public original posts. It requires `posts:write` and performs the same soft-removal contract used by the browser workflow:
+
+- `is_removed = true`;
+- `removed_at` is recorded;
+- `removed_by_id` is the author/credential owner; and
+- `removal_reason` is `Removed by author.`.
+
+A successful removal returns `204 No Content`. Existing relational/moderation history is retained, and the removed post is no longer readable through the public API.
+
+### Mutation privacy and visibility
+
+Mutation endpoints operate only on globally public original posts. Future-scheduled, Space-scoped, already removed, or nonexistent posts return the same 404-style resource boundary before ownership is evaluated. A different credential attempting to modify another currently public post receives `403 post_not_owned`.
+
 ## Deliberate exclusions
 
-Story 16.4 does not expose API media upload, scheduling, deletion, editing, replies, reposts, polls, Space posting, moderation actions, billing, verification, credential self-service, OAuth, or admin capabilities.
+The API still does not expose media replacement/upload, scheduling changes, replies, reposts, polls, Space posting, moderation actions, billing, verification, credential self-service, OAuth, admin capabilities, restore/undo, or physical erasure.
 
 Those workflows have additional state and authorization semantics and require separately specified contracts rather than accidental ORM exposure.
 
 ## Scope boundaries
 
 - `posts:read` allows protected read/account operations already defined by Story 16.2.
-- `posts:write` allows the bounded post-create operation only.
+- `posts:write` allows bounded create, owner edit, and owner soft-removal operations for global original posts.
 - A read-only credential cannot create a post.
 - Browser session authentication is not an API credential.
 - Credentials remain independently expiring and revocable.
@@ -45,6 +68,6 @@ Those workflows have additional state and authorization semantics and require se
 
 The v1 contract is explicit and additive. Internal model fields are not serialized wholesale. New internal columns do not automatically become public API fields, and existing v1 clients do not need to understand unrelated Ripple model changes.
 
-Sprint 22 adds nullable `edited_at` to the public post representation so API consumers receive the same edit-state signal as web viewers. This does not authorize API editing or deletion.
+Sprint 22 adds nullable `edited_at` to the public post representation so API consumers receive the same edit-state signal as web viewers. Sprint 23 then authorizes bounded owner edit/removal under the existing `posts:write` scope without adding a broader privilege.
 
-No migration, paid service, AWS activation, or recurring infrastructure cost is introduced by Story 16.4.
+No migration, paid service, AWS activation, or recurring infrastructure cost is introduced by the Sprint 23 lifecycle mutation contract.
