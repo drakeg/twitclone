@@ -47,6 +47,9 @@ jobs:
       - name: Verify dependency imports
         run: python scripts/verify_dependencies.py
 
+      - name: Verify direct dependency lock
+        run: python scripts/verify_dependency_lock.py
+
       - name: Verify database migrations
         run: python scripts/verify_migrations.py
 
