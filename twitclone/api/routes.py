@@ -153,10 +153,10 @@ def _owned_mutable_post(tweet_id, credential):
     tweet = db.session.get(Tweet, tweet_id)
     if tweet is None:
         return None, _api_error(404, "post_not_found", "The requested post was not found.")
-    if tweet.user_id != credential.user_id:
-        return None, _api_error(403, "post_not_owned", "The credential owner cannot modify this post.")
     if not _is_public_post(tweet, _utcnow_naive()):
         return None, _api_error(404, "post_not_found", "The requested mutable post was not found.")
+    if tweet.user_id != credential.user_id:
+        return None, _api_error(403, "post_not_owned", "The credential owner cannot modify this post.")
     return tweet, None
 
 
