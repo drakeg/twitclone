@@ -28,9 +28,11 @@ Requires `posts:write` and ownership of the currently public original post. Acce
 
 The edit is text-only. It preserves original publication identity and explicit topics, refreshes hashtag-derived topics, notifies only newly added mentions, and sets `edited_at` only when content actually changes.
 
+The request must include `If-Match` with the current post `ETag`.
+
 ### `DELETE /api/v1/posts/{id}`
 
-Requires `posts:write` and ownership of the currently public original post. Performs author soft removal and returns `204 No Content`. It does not physically delete relational/moderation history.
+Requires `posts:write`, ownership of the currently public original post, and `If-Match` with the current post `ETag`. Performs author soft removal and returns `204 No Content`. It does not physically delete relational/moderation history.
 
 ### `GET /api/v1/account`
 
@@ -46,6 +48,17 @@ Current scopes:
 - `posts:write` — bounded create, owner edit, and owner soft-removal operations for globally public original posts.
 
 A write credential does not grant moderation, admin, Space, billing, verification, or private-data authority.
+
+## Conditional mutation contract
+
+GET, successful POST, and successful PATCH post responses include a strong `ETag`.
+
+PATCH and DELETE require the exact current `ETag` in `If-Match`:
+
+- missing precondition: `428 precondition_required`;
+- stale precondition: `412 precondition_failed`.
+
+The ETag changes when the public post representation changes, including text/edit state and public topic associations. This prevents lost updates between browser/API or multiple API clients.
 
 ## Mutation visibility boundary
 

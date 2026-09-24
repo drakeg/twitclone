@@ -6,6 +6,13 @@ from twitclone.models import Notification, Tweet, User
 from twitclone.topic_models import Topic, TweetTopic
 
 
+def _etag(client, tweet_id):
+    response = client.get(f"/api/v1/posts/{tweet_id}")
+    assert response.status_code == 200
+    assert response.headers["ETag"].startswith('"')
+    return response.headers["ETag"]
+
+
 def _user_and_token(app, scopes, username="api_writer"):
     with app.app_context():
         user = User(username=username, email=f"{username}@example.com", password="hash")
@@ -38,11 +45,13 @@ def test_posts_write_scope_can_create_public_post(client, app):
     assert payload["author"]["id"] == user_id
     assert payload["edited_at"] is None
     assert response.headers["Location"] == f"/api/v1/posts/{payload['id']}"
+    assert response.headers["ETag"]
     assert {topic["slug"] for topic in payload["topics"]} == {"aws", "automation"}
 
     follow_up = client.get(f"/api/v1/posts/{payload['id']}")
     assert follow_up.status_code == 200
     assert follow_up.get_json()["data"]["content"] == "API created post"
+    assert follow_up.headers["ETag"] == response.headers["ETag"]
 
 
 def test_posts_read_scope_cannot_create_post(client, app):
@@ -131,9 +140,10 @@ def test_posts_write_scope_can_edit_owned_public_post(client, app):
         bob_id = bob.id
         carol_id = carol.id
 
+    etag = _etag(client, tweet_id)
     response = client.patch(
         f"/api/v1/posts/{tweet_id}",
-        headers={"Authorization": f"Bearer {raw_token}"},
+        headers={"Authorization": f"Bearer {raw_token}", "If-Match": etag},
         json={"content": "after @api_bob @api_carol #new"},
     )
 
@@ -185,14 +195,15 @@ def test_api_edit_accepts_only_content_and_noop_preserves_unedited_state(client,
         db.session.commit()
         tweet_id = tweet.id
 
+    etag = _etag(client, tweet_id)
     invalid = client.patch(
         f"/api/v1/posts/{tweet_id}",
-        headers={"Authorization": f"Bearer {raw_token}"},
+        headers={"Authorization": f"Bearer {raw_token}", "If-Match": etag},
         json={"content": "changed", "topics": ["unexpected"]},
     )
     noop = client.patch(
         f"/api/v1/posts/{tweet_id}",
-        headers={"Authorization": f"Bearer {raw_token}"},
+        headers={"Authorization": f"Bearer {raw_token}", "If-Match": etag},
         json={"content": "same text"},
     )
 
@@ -200,6 +211,7 @@ def test_api_edit_accepts_only_content_and_noop_preserves_unedited_state(client,
     assert invalid.get_json()["error"]["code"] == "invalid_post"
     assert noop.status_code == 200
     assert noop.get_json()["data"]["edited_at"] is None
+    assert noop.headers["ETag"] == etag
     with app.app_context():
         tweet = db.session.get(Tweet, tweet_id)
         assert tweet.content == "same text"
@@ -214,9 +226,10 @@ def test_posts_write_scope_can_soft_remove_owned_public_post(client, app):
         db.session.commit()
         tweet_id = tweet.id
 
+    etag = _etag(client, tweet_id)
     response = client.delete(
         f"/api/v1/posts/{tweet_id}",
-        headers={"Authorization": f"Bearer {raw_token}"},
+        headers={"Authorization": f"Bearer {raw_token}", "If-Match": etag},
     )
 
     assert response.status_code == 204
@@ -292,3 +305,132 @@ def test_api_mutations_hide_future_scheduled_post_existence(client, app):
         tweet = db.session.get(Tweet, tweet_id)
         assert tweet.content == "future hidden"
         assert tweet.is_removed is False
+
+
+
+def test_api_lifecycle_mutations_require_if_match(client, app):
+    user_id, _, raw_token = _user_and_token(app, {"posts:write"}, username="api_precondition")
+    with app.app_context():
+        tweet = Tweet(content="conditional", user_id=user_id)
+        db.session.add(tweet)
+        db.session.commit()
+        tweet_id = tweet.id
+
+    edit = client.patch(
+        f"/api/v1/posts/{tweet_id}",
+        headers={"Authorization": f"Bearer {raw_token}"},
+        json={"content": "changed"},
+    )
+    remove = client.delete(
+        f"/api/v1/posts/{tweet_id}",
+        headers={"Authorization": f"Bearer {raw_token}"},
+    )
+
+    assert edit.status_code == 428
+    assert edit.get_json()["error"]["code"] == "precondition_required"
+    assert edit.headers["ETag"]
+    assert remove.status_code == 428
+    assert remove.get_json()["error"]["code"] == "precondition_required"
+    assert remove.headers["ETag"]
+
+    with app.app_context():
+        tweet = db.session.get(Tweet, tweet_id)
+        assert tweet.content == "conditional"
+        assert tweet.is_removed is False
+
+
+def test_api_edit_rejects_stale_etag_without_lost_update(client, app):
+    user_id, _, raw_token = _user_and_token(app, {"posts:write"}, username="api_stale")
+    with app.app_context():
+        tweet = Tweet(content="version one", user_id=user_id)
+        db.session.add(tweet)
+        db.session.commit()
+        tweet_id = tweet.id
+
+    first_etag = _etag(client, tweet_id)
+    first = client.patch(
+        f"/api/v1/posts/{tweet_id}",
+        headers={"Authorization": f"Bearer {raw_token}", "If-Match": first_etag},
+        json={"content": "version two"},
+    )
+    assert first.status_code == 200
+    assert first.headers["ETag"] != first_etag
+
+    stale = client.patch(
+        f"/api/v1/posts/{tweet_id}",
+        headers={"Authorization": f"Bearer {raw_token}", "If-Match": first_etag},
+        json={"content": "version three"},
+    )
+
+    assert stale.status_code == 412
+    assert stale.get_json()["error"]["code"] == "precondition_failed"
+    assert stale.headers["ETag"] == first.headers["ETag"]
+    with app.app_context():
+        assert db.session.get(Tweet, tweet_id).content == "version two"
+
+
+def test_api_remove_rejects_stale_etag(client, app):
+    user_id, _, raw_token = _user_and_token(app, {"posts:write"}, username="api_remove_stale")
+    with app.app_context():
+        tweet = Tweet(content="remove race", user_id=user_id)
+        db.session.add(tweet)
+        db.session.commit()
+        tweet_id = tweet.id
+
+    stale_etag = _etag(client, tweet_id)
+    edit = client.patch(
+        f"/api/v1/posts/{tweet_id}",
+        headers={"Authorization": f"Bearer {raw_token}", "If-Match": stale_etag},
+        json={"content": "changed before remove"},
+    )
+    assert edit.status_code == 200
+
+    remove = client.delete(
+        f"/api/v1/posts/{tweet_id}",
+        headers={"Authorization": f"Bearer {raw_token}", "If-Match": stale_etag},
+    )
+
+    assert remove.status_code == 412
+    assert remove.get_json()["error"]["code"] == "precondition_failed"
+    with app.app_context():
+        assert db.session.get(Tweet, tweet_id).is_removed is False
+
+
+
+def test_public_topic_change_invalidates_previous_api_etag(client, app):
+    user_id, _, raw_token = _user_and_token(app, {"posts:write"}, username="api_topic_etag")
+    with app.app_context():
+        tweet = Tweet(content="topic state", user_id=user_id)
+        db.session.add(tweet)
+        db.session.flush()
+        first_topic = Topic(name="First", slug="first")
+        db.session.add(first_topic)
+        db.session.flush()
+        db.session.add(TweetTopic(tweet_id=tweet.id, topic_id=first_topic.id, source="explicit"))
+        db.session.commit()
+        tweet_id = tweet.id
+
+    stale_etag = _etag(client, tweet_id)
+
+    with app.app_context():
+        second_topic = Topic(name="Second", slug="second")
+        db.session.add(second_topic)
+        db.session.flush()
+        db.session.add(TweetTopic(tweet_id=tweet_id, topic_id=second_topic.id, source="explicit"))
+        db.session.commit()
+
+    current = client.get(f"/api/v1/posts/{tweet_id}")
+    assert current.status_code == 200
+    assert current.headers["ETag"] != stale_etag
+
+    edit = client.patch(
+        f"/api/v1/posts/{tweet_id}",
+        headers={"Authorization": f"Bearer {raw_token}", "If-Match": stale_etag},
+        json={"content": "must not overwrite newer topic state"},
+    )
+
+    assert edit.status_code == 412
+    assert edit.get_json()["error"]["code"] == "precondition_failed"
+    with app.app_context():
+        tweet = db.session.get(Tweet, tweet_id)
+        assert tweet.content == "topic state"

@@ -1,6 +1,7 @@
 """Version 1 public API routes."""
 
 from datetime import UTC, datetime
+import hashlib
 
 from flask import current_app, jsonify, request
 
@@ -92,6 +93,53 @@ def _invalid_token_response(message):
     if not result.allowed:
         return _rate_limited_response(result)
     return _with_rate_limit_headers(_api_error(401, "invalid_token", message), result)
+
+
+def _post_etag(tweet):
+    topic_state = ",".join(
+        sorted(
+            f"{association.topic.slug}:{association.source}"
+            for association in public_topic_associations(tweet)
+        )
+    )
+    material = "|".join(
+        [
+            str(tweet.id),
+            tweet.content,
+            (tweet.scheduled_at or tweet.timestamp).isoformat(),
+            tweet.edited_at.isoformat() if tweet.edited_at else "",
+            "1" if tweet.is_removed else "0",
+            topic_state,
+        ]
+    )
+    return '"' + hashlib.sha256(material.encode("utf-8")).hexdigest() + '"'
+
+
+def _with_post_etag(response, tweet):
+    response.headers["ETag"] = _post_etag(tweet)
+    return response
+
+
+def _require_current_etag(tweet):
+    supplied = request.headers.get("If-Match")
+    current = _post_etag(tweet)
+    if supplied is None:
+        response = _api_error(
+            428,
+            "precondition_required",
+            "Supply If-Match with the current post ETag before mutating this resource.",
+        )
+        response.headers["ETag"] = current
+        return response
+    if supplied != current:
+        response = _api_error(
+            412,
+            "precondition_failed",
+            "The post changed since the supplied ETag was issued.",
+        )
+        response.headers["ETag"] = current
+        return response
+    return None
 
 
 def _public_post(tweet):
@@ -218,10 +266,9 @@ def get_post(tweet_id):
             _api_error(404, "post_not_found", "The requested public post was not found."),
             limit_result,
         )
-    return _with_rate_limit_headers(
-        jsonify({"data": _public_post(tweet)}),
-        limit_result,
-    )
+    response = jsonify({"data": _public_post(tweet)})
+    _with_post_etag(response, tweet)
+    return _with_rate_limit_headers(response, limit_result)
 
 
 @api_blueprint.post("/posts")
@@ -252,6 +299,7 @@ def create_post():
     response = jsonify({"data": _public_post(tweet)})
     response.status_code = 201
     response.headers["Location"] = f"/api/v1/posts/{tweet.id}"
+    _with_post_etag(response, tweet)
     return _with_rate_limit_headers(response, limit_result)
 
 
@@ -264,6 +312,10 @@ def edit_post(tweet_id):
     tweet, ownership_error = _owned_mutable_post(tweet_id, credential)
     if ownership_error is not None:
         return _with_rate_limit_headers(ownership_error, limit_result)
+
+    precondition_error = _require_current_etag(tweet)
+    if precondition_error is not None:
+        return _with_rate_limit_headers(precondition_error, limit_result)
 
     payload = request.get_json(silent=True)
     payload_error = _edit_payload_error(payload)
@@ -293,10 +345,9 @@ def edit_post(tweet_id):
         )
         db.session.commit()
 
-    return _with_rate_limit_headers(
-        jsonify({"data": _public_post(tweet)}),
-        limit_result,
-    )
+    response = jsonify({"data": _public_post(tweet)})
+    _with_post_etag(response, tweet)
+    return _with_rate_limit_headers(response, limit_result)
 
 
 @api_blueprint.delete("/posts/<int:tweet_id>")
@@ -308,6 +359,10 @@ def remove_post(tweet_id):
     tweet, ownership_error = _owned_mutable_post(tweet_id, credential)
     if ownership_error is not None:
         return _with_rate_limit_headers(ownership_error, limit_result)
+
+    precondition_error = _require_current_etag(tweet)
+    if precondition_error is not None:
+        return _with_rate_limit_headers(precondition_error, limit_result)
 
     tweet.is_removed = True
     tweet.removed_at = _utcnow_naive()
