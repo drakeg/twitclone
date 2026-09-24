@@ -234,6 +234,19 @@ Delivered capabilities include a versioned provider-neutral JSON export, request
 
 Delivered capabilities include read-only human/JSON readiness reporting, sanitized evidence-record metadata, advisory freshness review, versioned readiness snapshots, and deterministic SHA-256 integrity verification. The authoritative Sprint 8 launch gate remains unchanged. No AWS calls, Terraform apply, provisioning, signing infrastructure, or spend authorization were added.
 
+## Sprint 20 — Dependency health and upgrade safety
+
+**Goal:** Keep Ripple's runtime and dependency upgrade process explicit, reproducible, and aligned across local development, CI, release images, and automated update tooling.
+
+**Status:** In implementation. Detailed acceptance criteria are maintained in `docs/sprints/SPRINT_20.md`.
+
+**Planned direction:**
+
+- Single-source Python runtime-version contract across `.python-version`, CI, Docker, Renovate, and dependency verification.
+- Reproducible dependency-lock maintenance with clear direct/transitive intent.
+- Auditable dependency-drift reporting across Python packages, container images, CI actions, and Terraform providers.
+- Coherent automated-update grouping/review rules without dependency auto-merge.
+
 ## Cross-cutting release gates and deferred work
 
 These are not new product sprints and remain independently tracked:
