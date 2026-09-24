@@ -35,7 +35,7 @@ Give authors safe, understandable control over the lifecycle of their own origin
 
 ## Story 21.2 — Owner-requested original post removal
 
-**Status:** In implementation.
+**Status:** Completed in PR #268.
 
 - Let only the authenticated owner remove a published original post.
 - Reuse Ripple's existing soft-removal fields rather than physically deleting the post row.
@@ -58,10 +58,29 @@ Give authors safe, understandable control over the lifecycle of their own origin
 - Only owners see the removal control.
 - Tests cover authorization, soft-removal state, public hiding, relational preservation, moderation-state preservation, and scheduled-post boundaries.
 
+## Story 21.3 — Legacy TODO reconciliation
+
+**Status:** In implementation.
+
+- Convert the root `TODO.md` from a competing backlog into a historical-status document.
+- Point all new work to `docs/ROADMAP.md` and the active sprint records.
+- Mark already-delivered legacy items as completed rather than continuing to advertise them as pending.
+- Preserve genuinely deferred ideas as non-commitments unless they are promoted into a numbered sprint.
+- Keep AWS production activation explicitly separate from roadmap inclusion and spend authorization.
+- Retain the historical origin of the old "Twitter Clone" wording without treating it as current product specification.
+
+### Acceptance criteria
+
+- `TODO.md` no longer presents delivered features as unfinished.
+- The file names the roadmap/sprint/ADR hierarchy as the source of truth.
+- Password recovery, profiles, search, notifications, PostgreSQL readiness, CI/deployment contracts, and the UI refresh are recognized as delivered.
+- Social login and real-time/WebSocket notifications are identified as deferred ideas rather than silently promised work.
+- AWS activation remains explicitly conditional on separate authorization.
+- Sprint 21 is identified as the current active development record.
+
 ## Planned follow-up stories
 
 - Evaluate whether edit history beyond the visible edited timestamp is necessary before allowing edits to quote/reply content.
-- Reconcile the legacy root `TODO.md` against delivered functionality and the numbered roadmap.
 
 ## Boundary
 
