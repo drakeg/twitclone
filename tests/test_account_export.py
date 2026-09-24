@@ -23,7 +23,13 @@ def _seed_export(app):
             Follows(follower_id=owner.id, followed_id=follower.id),
             Follows(follower_id=follower.id, followed_id=owner.id),
         ])
-        owner_post = Tweet(content="Owner portable post", user_id=owner.id, image="owner-post.jpg", original_image="owner-post-original.jpg")
+        owner_post = Tweet(
+            content="Owner portable post",
+            user_id=owner.id,
+            image="owner-post.jpg",
+            original_image="owner-post-original.jpg",
+            edited_at=db.func.now(),
+        )
         outsider_post = Tweet(content="Outsider private-to-export post", user_id=outsider.id, image="outsider-post.jpg")
         db.session.add_all([owner_post, outsider_post]); db.session.flush()
         db.session.add(Quote(content="Owner quote", user_id=owner.id, tweet_id=outsider_post.id))
@@ -58,10 +64,11 @@ def test_export_is_private_download_with_stable_scope(client, app):
     assert 'attachment; filename="ripple-export-export_owner.json"' == response.headers["Content-Disposition"]
     payload = response.get_json()
     assert payload["format"] == "ripple-portable-export"
-    assert payload["version"] == 4
+    assert payload["version"] == 5
     assert payload["account"]["email"] == "owner@example.com"
     assert payload["social_graph"] == {"following": ["export_follower"], "followers": ["export_follower"]}
     assert [item["content"] for item in payload["posts"]] == ["Owner portable post", "Owner removed post"]
+    assert payload["posts"][0]["edited_at"] is not None
     assert payload["posts"][1]["is_removed"] is True
     assert [item["content"] for item in payload["quotes"]] == ["Owner quote"]
     assert [item["content"] for item in payload["replies"]] == ["Owner reply"]
