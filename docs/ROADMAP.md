@@ -246,14 +246,9 @@ Delivered capabilities include an enforced Python 3.12 runtime contract, an expl
 
 **Goal:** Give authors safe, understandable control over the lifecycle of their own original posts without weakening ownership, moderation, conversation-history, or topic-integrity boundaries.
 
-**Status:** In implementation. Detailed acceptance criteria are maintained in `docs/sprints/SPRINT_21.md`.
+**Status:** Completed. Detailed implementation and boundaries are maintained in `docs/sprints/SPRINT_21.md`.
 
-**Planned direction:**
-
-- Owner-only editing of original post text with visible edit state and preserved publish identity.
-- Deterministic refresh of text-derived mentions/topics without rewriting unrelated metadata.
-- Explicit owner-removal semantics before any destructive/cascade behavior is introduced.
-- Historical integrity for replies, quotes, moderation records, bookmarks, notifications, and community context.
+Delivered capabilities include owner-only editing of published original-post text, visible edit state, deterministic reconciliation of text-derived mentions/topics, and owner-requested soft removal that preserves relational and moderation history. Full post revision history is deliberately deferred until a concrete product, moderation, portability, or compliance requirement needs prior wording.
 
 ## Cross-cutting release gates and deferred work
 
