@@ -6,9 +6,11 @@ TwitClone currently targets **Python 3.12.x**. The repository-level `.python-ver
 
 ## Dependency files
 
-- `requirements.txt` is the current reproducible runtime lock set.
-- `requirements-dev.txt` adds development and test tooling on top of the runtime set.
+- `requirements.in` records the direct runtime dependency intent owned by the application.
+- `requirements.txt` is the current reproducible runtime install lock, including retained transitive pins and security overrides.
+- `requirements-dev.txt` adds development and test tooling on top of the runtime lock.
 - `scripts/verify_dependencies.py` verifies the supported Python version and imports the packages used directly by the application.
+- `scripts/verify_dependency_lock.py` proves every direct runtime dependency is represented in `requirements.txt` with the same declared version/specifier.
 
 Psycopg 3 with its binary extra is pinned as the production PostgreSQL driver.
 SQLite remains part of Python's standard library and needs no package entry.
@@ -21,6 +23,7 @@ source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python scripts/verify_dependencies.py
+python scripts/verify_dependency_lock.py
 ```
 
 On Windows PowerShell, activate with:
@@ -45,13 +48,15 @@ This organization does not claim that every transitive pin must remain forever. 
 ## Upgrade procedure
 
 1. Create a dedicated dependency branch from the latest `main`.
-2. Change one coherent dependency group at a time.
-3. Install into a clean Python 3.12 virtual environment.
-4. Run `python scripts/verify_dependencies.py`.
-5. Run the full automated test suite; CI already enforces it on every pull request.
-6. Confirm the Docker release image still uses the same Python minor line as `.python-version`.
-7. Record vulnerability scan results and any compatibility decisions in the PR.
-8. Do not merge multiple overlapping bot PRs without reconciling the final combined result.
+2. For a direct runtime dependency, update `requirements.in` and the matching entry in `requirements.txt` together.
+3. Change one coherent dependency group at a time.
+4. Install into a clean Python 3.12 virtual environment.
+5. Run `python scripts/verify_dependencies.py`.
+6. Run `python scripts/verify_dependency_lock.py`.
+7. Run the full automated test suite; CI already enforces it on every pull request.
+8. Confirm the Docker release image still uses the same Python minor line as `.python-version`.
+9. Record vulnerability scan results and any compatibility decisions in the PR.
+10. Do not merge multiple overlapping bot PRs without reconciling the final combined result.
 
 ## Security bot policy
 
@@ -64,9 +69,9 @@ Dependabot, Mend, Renovate, and Snyk findings are inputs to the engineering proc
 - successful clean installation;
 - successful application tests and startup checks.
 
-## Future improvement
+## Lock-generation boundary
 
-CI and application tests are established. A future dependency-hygiene story may evaluate generating the locked runtime file from a smaller direct-dependency input file, but only with a clearly documented generation workflow, reproducible output, and compatibility with the existing security automation.
+`requirements.in` is currently a direct-dependency **manifest**, not an instruction that `requirements.txt` is generated automatically. The lock remains checked in and deliberately reviewable. A future story may introduce reproducible lock generation only after the exact tool/version, update command, transitive-resolution behavior, and security-bot interaction are documented and tested.
 
 
 ## Runtime version contract
