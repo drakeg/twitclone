@@ -258,6 +258,19 @@ Delivered capabilities include owner-only editing of published original-post tex
 
 Delivered capabilities include nullable edit state in the public API, portability schema evolution through v6, non-sensitive removal origin for exported authored content, and backward-recognizable v4/v5/v6 compatibility review with import writes still disabled. The sprint deliberately avoids propagating lifecycle fields into unrelated contracts without a concrete consumer need.
 
+## Sprint 23 — API post lifecycle parity
+
+**Goal:** Let authorized API clients manage the lifecycle of their own globally public original posts under the same safety and history semantics already established for the browser workflow.
+
+**Status:** In implementation. Detailed acceptance criteria are maintained in `docs/sprints/SPRINT_23.md`.
+
+**Planned direction:**
+
+- Owner-only text editing under the existing `posts:write` scope.
+- Owner-requested soft removal without cascade deletion.
+- Reuse browser validation, mention/topic reconciliation, and lifecycle metadata semantics.
+- Preserve non-public post privacy and existing API rate-limit boundaries.
+
 ## Cross-cutting release gates and deferred work
 
 These are not new product sprints and remain independently tracked:
