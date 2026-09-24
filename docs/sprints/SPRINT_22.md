@@ -1,6 +1,6 @@
 # Sprint 22 — Lifecycle Contract Consistency
 
-**Status:** In implementation.
+**Status:** Completed.
 
 ## Goal
 
@@ -33,7 +33,7 @@ Keep Ripple's external and portable representations aligned with user-visible co
 
 ## Story 22.2 — Non-sensitive removal origin in portability
 
-**Status:** In implementation.
+**Status:** Completed in PR #272.
 
 - Advance the portable export from version 5 to version 6 rather than silently mutating the already-merged v5 schema.
 - Add `removal_origin` to exported authored posts, quotes, replies, and resources that already expose removal state.
@@ -54,10 +54,26 @@ Keep Ripple's external and portable representations aligned with user-visible co
 - The import assessor accepts v4, v5, and v6 for compatibility review and remains non-mutating.
 - Tests cover all four origin values plus identity non-disclosure.
 
-## Planned follow-up stories
+## Story 22.3 — External lifecycle representation audit
 
-- Audit other mature lifecycle-bearing representations for consistency only where they already expose post state.
-- Avoid adding lifecycle fields to unrelated contracts solely for completeness.
+**Status:** Completed by audit in this closeout.
+
+The mature external representations now have consistent lifecycle semantics:
+
+- Public API v1 exposes nullable `edited_at` for public original posts.
+- Removed/non-public posts remain unavailable through the public API.
+- Portable export v6 includes authored post edit state plus removal time, reason, and non-sensitive removal origin.
+- Portability compatibility review recognizes v4, v5, and v6 while import execution remains disabled.
+
+No additional lifecycle fields are being added to unrelated internal views, analytics, or contracts solely for symmetry. Future additions require an existing consumer contract or a concrete product/compliance need.
+
+## Sprint outcome
+
+Sprint 22 aligned Ripple's mature public and portable representations with the author-controlled lifecycle introduced in Sprint 21. Edit state is now visible consistently to API consumers and export owners, portability schema evolution remains explicit and backward-recognizable, and removal provenance is useful without exposing moderator identity.
+
+## Definition of done
+
+Completed. External lifecycle contracts are aligned, removed-content visibility boundaries remain intact, portable imports remain disabled, and the sprint stops before speculative field propagation into unrelated surfaces.
 
 ## Boundary
 

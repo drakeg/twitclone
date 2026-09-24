@@ -254,14 +254,9 @@ Delivered capabilities include owner-only editing of published original-post tex
 
 **Goal:** Keep Ripple's external and portable representations aligned with user-visible content lifecycle semantics so editing/removal state does not exist only in the browser UI.
 
-**Status:** In implementation. Detailed acceptance criteria are maintained in `docs/sprints/SPRINT_22.md`.
+**Status:** Completed. Detailed implementation and boundaries are maintained in `docs/sprints/SPRINT_22.md`.
 
-**Planned direction:**
-
-- Propagate original-post edit state into mature public/portable contracts.
-- Preserve removed-content visibility boundaries.
-- Keep portability schema changes versioned and backward-recognizable.
-- Avoid exposing prior wording or enabling new mutation/import behavior merely for contract symmetry.
+Delivered capabilities include nullable edit state in the public API, portability schema evolution through v6, non-sensitive removal origin for exported authored content, and backward-recognizable v4/v5/v6 compatibility review with import writes still disabled. The sprint deliberately avoids propagating lifecycle fields into unrelated contracts without a concrete consumer need.
 
 ## Cross-cutting release gates and deferred work
 
