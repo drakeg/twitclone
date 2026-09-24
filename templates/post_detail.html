@@ -16,7 +16,14 @@
         {% if tweet.image %}<img src="{{ url_for('uploaded_file', filename=tweet.image) }}" class="tweet-image" alt="Image attached to post">{% endif %}
 
         {% if current_user.is_authenticated and current_user.id == tweet.user_id %}
-        <div class="mt-3"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('edit_post', tweet_id=tweet.id) }}"><i class="fa-regular fa-pen-to-square" aria-hidden="true"></i> Edit post</a></div>
+        <div class="mt-3 d-flex flex-wrap gap-2">
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('edit_post', tweet_id=tweet.id) }}"><i class="fa-regular fa-pen-to-square" aria-hidden="true"></i> Edit post</a>
+            <form method="POST" action="{{ url_for('remove_post', tweet_id=tweet.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-danger" type="submit"><i class="fa-regular fa-trash-can" aria-hidden="true"></i> Remove post</button>
+            </form>
+        </div>
+        <p class="form-text mt-2">Removing hides the original from public view but retains related historical records such as replies, reports, bookmarks, notifications, and community context.</p>
         <section class="border rounded p-3 mt-3" aria-labelledby="conversation-controls-heading">
             <span class="auth-kicker">Author controls</span>
             <h2 class="h6" id="conversation-controls-heading">Conversation health</h2>

@@ -186,6 +186,27 @@ def edit_post(tweet_id):
 
 
 @login_required
+def remove_post(tweet_id):
+    tweet = db.get_or_404(Tweet, tweet_id)
+    now = datetime.now(UTC).replace(tzinfo=None)
+    if tweet.is_removed or (tweet.scheduled_at is not None and tweet.scheduled_at > now):
+        abort(404)
+    if tweet.user_id != current_user.id:
+        abort(403)
+
+    tweet.is_removed = True
+    tweet.removed_at = now
+    tweet.removed_by_id = current_user.id
+    tweet.removal_reason = "Removed by author."
+    db.session.commit()
+    flash(
+        "Your post has been removed from public view. Existing historical records are retained.",
+        "success",
+    )
+    return redirect(url_for("index"))
+
+
+@login_required
 def update_post_topics(tweet_id):
     tweet = db.get_or_404(Tweet, tweet_id)
     if tweet.is_removed: abort(404)
@@ -244,6 +265,7 @@ def register_timeline_routes(state):
     state.app.add_url_rule("/post/<int:tweet_id>", endpoint="post_detail", view_func=post_detail)
     state.app.add_url_rule("/tweet", endpoint="tweet", view_func=tweet, methods=["POST"])
     state.app.add_url_rule("/post/<int:tweet_id>/edit", endpoint="edit_post", view_func=edit_post, methods=["GET", "POST"])
+    state.app.add_url_rule("/post/<int:tweet_id>/remove", endpoint="remove_post", view_func=remove_post, methods=["POST"])
     state.app.add_url_rule("/post/<int:tweet_id>/topics", endpoint="update_post_topics", view_func=update_post_topics, methods=["POST"])
     state.app.add_url_rule("/uploads/<filename>", endpoint="uploaded_file", view_func=uploaded_file)
     state.app.add_url_rule("/retweet/<int:tweet_id>", endpoint="retweet", view_func=retweet, methods=["POST"])
