@@ -16,11 +16,11 @@ from twitclone.api.rate_limits import (
 from twitclone.conversation_intent import normalize_conversation_intent
 from twitclone.conversation_models import TweetConversationIntent
 from twitclone.extensions import db
-from twitclone.mentions import add_mention_notifications
+from twitclone.mentions import add_mention_notifications, mentioned_usernames
 from twitclone.models import Tweet
 from twitclone.spaces.models import SpacePost
 from twitclone.timeline.validation import validate_post_content
-from twitclone.topic_models import associate_topics, public_topic_associations
+from twitclone.topic_models import associate_topics, public_topic_associations, replace_explicit_topics
 
 
 def _utcnow_naive():
@@ -149,6 +149,25 @@ def _bearer_credential(required_scope):
     return credential, None, result
 
 
+def _owned_mutable_post(tweet_id, credential):
+    tweet = db.session.get(Tweet, tweet_id)
+    if tweet is None:
+        return None, _api_error(404, "post_not_found", "The requested post was not found.")
+    if tweet.user_id != credential.user_id:
+        return None, _api_error(403, "post_not_owned", "The credential owner cannot modify this post.")
+    if not _is_public_post(tweet, _utcnow_naive()):
+        return None, _api_error(404, "post_not_found", "The requested mutable post was not found.")
+    return tweet, None
+
+
+def _edit_payload_error(payload):
+    if not isinstance(payload, dict):
+        return "Request body must be a JSON object."
+    if set(payload) != {"content"}:
+        return "Edit requests accept only the content field."
+    return validate_post_content(payload.get("content"), post_type="Post")
+
+
 def _post_payload_error(payload):
     if not isinstance(payload, dict):
         return "Request body must be a JSON object."
@@ -233,6 +252,70 @@ def create_post():
     response = jsonify({"data": _public_post(tweet)})
     response.status_code = 201
     response.headers["Location"] = f"/api/v1/posts/{tweet.id}"
+    return _with_rate_limit_headers(response, limit_result)
+
+
+@api_blueprint.patch("/posts/<int:tweet_id>")
+def edit_post(tweet_id):
+    credential, error, limit_result = _bearer_credential("posts:write")
+    if error is not None:
+        return error
+
+    tweet, ownership_error = _owned_mutable_post(tweet_id, credential)
+    if ownership_error is not None:
+        return _with_rate_limit_headers(ownership_error, limit_result)
+
+    payload = request.get_json(silent=True)
+    payload_error = _edit_payload_error(payload)
+    if payload_error:
+        return _with_rate_limit_headers(
+            _api_error(400, "invalid_post", payload_error),
+            limit_result,
+        )
+
+    content = payload["content"].strip()
+    if content != tweet.content:
+        previous_mentions = mentioned_usernames(tweet.content)
+        current_mentions = mentioned_usernames(content)
+        explicit_topics = ", ".join(
+            row.topic.name
+            for row in tweet.topic_associations
+            if row.source == "explicit"
+        )
+        tweet.content = content
+        replace_explicit_topics(tweet, explicit_topics)
+        tweet.edited_at = _utcnow_naive()
+        add_mention_notifications(
+            content=content,
+            author=credential.user,
+            tweet_id=tweet.id,
+            usernames=current_mentions - previous_mentions,
+        )
+        db.session.commit()
+
+    return _with_rate_limit_headers(
+        jsonify({"data": _public_post(tweet)}),
+        limit_result,
+    )
+
+
+@api_blueprint.delete("/posts/<int:tweet_id>")
+def remove_post(tweet_id):
+    credential, error, limit_result = _bearer_credential("posts:write")
+    if error is not None:
+        return error
+
+    tweet, ownership_error = _owned_mutable_post(tweet_id, credential)
+    if ownership_error is not None:
+        return _with_rate_limit_headers(ownership_error, limit_result)
+
+    tweet.is_removed = True
+    tweet.removed_at = _utcnow_naive()
+    tweet.removed_by_id = credential.user_id
+    tweet.removal_reason = "Removed by author."
+    db.session.commit()
+
+    response = current_app.response_class(status=204)
     return _with_rate_limit_headers(response, limit_result)
 
 
