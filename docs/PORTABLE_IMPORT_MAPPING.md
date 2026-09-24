@@ -5,7 +5,7 @@ Ripple does **not** currently import portable-export documents. This document de
 ## Current state
 
 - Export format: `ripple-portable-export`
-- Current reviewed source version: `4`
+- Current reviewed source versions: `4`, `5`, `6`
 - Import execution: **disabled**
 - Import assessment: non-mutating compatibility inspection only
 - No account, content, relationship, billing, entitlement, or media records are created from an uploaded document.
@@ -72,7 +72,7 @@ No source record should silently become ordinary native content with its origin 
 
 ## Media boundary
 
-Version 4 exports only media references. Assessment must treat these as opaque metadata:
+Current exports provide media references only. Assessment must treat these as opaque metadata:
 
 - no local filesystem traversal;
 - no arbitrary URL retrieval;
@@ -86,7 +86,7 @@ Packaged-media import requires its own archive, file-type, size, malware, storag
 
 The non-mutating assessor may report a document as structurally compatible while `import_enabled` remains false. Compatibility means only that the source format/version is recognized for review; it is **not** permission to write data.
 
-Unknown collections or fields are surfaced for review rather than ignored as trusted input.
+Unknown collections or fields are surfaced for review rather than ignored as trusted input. Version 6 adds non-sensitive removal origin metadata; that field is descriptive source provenance and never grants moderation authority.
 
 ## Activation gate
 
