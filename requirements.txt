@@ -1,3 +1,6 @@
+# Reproducible runtime install lock.
+# Direct dependency intent is recorded in requirements.in and verified in CI.
+
 # Runtime dependencies
 APScheduler==3.11.3
 Flask==3.1.3
@@ -21,8 +24,9 @@ tzlocal==5.4.4
 WTForms==3.2.2
 
 # Transitive dependencies retained as exact pins after the July 2026
-# Dependabot, Mend, Renovate, and Snyk security updates. Issue #13 will
-# validate this complete lock set in CI before future cleanup.
+# Dependabot, Mend, Renovate, and Snyk security updates. The direct-dependency
+# manifest/lock relationship is now validated in CI; transitive cleanup remains
+# a separately reviewed future change.
 alembic==1.20.0
 blinker==1.9.0
 click==8.5.0
