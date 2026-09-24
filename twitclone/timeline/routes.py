@@ -11,7 +11,7 @@ from twitclone.conversation_intent import CONVERSATION_INTENTS, conversation_int
 from twitclone.conversation_models import TweetConversationIntent
 from twitclone.extensions import db
 from twitclone.feed_preferences import UserFeedPreference
-from twitclone.mentions import add_mention_notifications
+from twitclone.mentions import add_mention_notifications, mentioned_usernames
 from twitclone.media_storage import MediaNotFound, get_media_storage
 from twitclone.models import DirectMessage, Notification, Quote, Retweet, Tweet, User
 from twitclone.timeline import timeline_blueprint
@@ -144,6 +144,48 @@ def tweet():
 
 
 @login_required
+def edit_post(tweet_id):
+    tweet = db.get_or_404(Tweet, tweet_id)
+    now = datetime.now(UTC).replace(tzinfo=None)
+    if tweet.is_removed or (tweet.scheduled_at is not None and tweet.scheduled_at > now):
+        abort(404)
+    if tweet.user_id != current_user.id:
+        abort(403)
+
+    if request.method == "POST":
+        content = request.form.get("content")
+        validation_error = validate_post_content(content, post_type="Tweet")
+        if validation_error:
+            flash(validation_error, "danger")
+            return render_template("edit_post.html", tweet=tweet), 400
+
+        if content != tweet.content:
+            previous_mentions = mentioned_usernames(tweet.content)
+            current_mentions = mentioned_usernames(content)
+            explicit_topics = ", ".join(
+                row.topic.name
+                for row in tweet.topic_associations
+                if row.source == "explicit"
+            )
+            tweet.content = content
+            replace_explicit_topics(tweet, explicit_topics)
+            tweet.edited_at = datetime.now(UTC).replace(tzinfo=None)
+            add_mention_notifications(
+                content=content,
+                author=current_user,
+                tweet_id=tweet.id,
+                usernames=current_mentions - previous_mentions,
+            )
+            db.session.commit()
+            flash("Your post has been updated.", "success")
+        else:
+            flash("No changes were made.", "info")
+        return redirect(url_for("post_detail", tweet_id=tweet.id))
+
+    return render_template("edit_post.html", tweet=tweet)
+
+
+@login_required
 def update_post_topics(tweet_id):
     tweet = db.get_or_404(Tweet, tweet_id)
     if tweet.is_removed: abort(404)
@@ -201,6 +243,7 @@ def register_timeline_routes(state):
     state.app.add_url_rule("/feed-preference", endpoint="set_feed_preference", view_func=set_feed_preference, methods=["POST"])
     state.app.add_url_rule("/post/<int:tweet_id>", endpoint="post_detail", view_func=post_detail)
     state.app.add_url_rule("/tweet", endpoint="tweet", view_func=tweet, methods=["POST"])
+    state.app.add_url_rule("/post/<int:tweet_id>/edit", endpoint="edit_post", view_func=edit_post, methods=["GET", "POST"])
     state.app.add_url_rule("/post/<int:tweet_id>/topics", endpoint="update_post_topics", view_func=update_post_topics, methods=["POST"])
     state.app.add_url_rule("/uploads/<filename>", endpoint="uploaded_file", view_func=uploaded_file)
     state.app.add_url_rule("/retweet/<int:tweet_id>", endpoint="retweet", view_func=retweet, methods=["POST"])

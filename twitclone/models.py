@@ -133,6 +133,7 @@ class Tweet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.String(144), nullable=False)
     timestamp = db.Column(db.DateTime, default=_utcnow)
+    edited_at = db.Column(db.DateTime, nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     image = db.Column(db.String(100), nullable=True)
     original_image = db.Column(db.String(100), nullable=True)
