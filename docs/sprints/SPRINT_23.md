@@ -8,7 +8,7 @@ Let authorized API clients manage the lifecycle of their own globally public ori
 
 ## Story 23.1 — Owner-only API edit and soft removal
 
-**Status:** In implementation.
+**Status:** Completed in PR #274.
 
 - Reuse the existing `posts:write` scope rather than introducing a broader lifecycle/admin scope.
 - Add `PATCH /api/v1/posts/<id>` for text-only owner edits.
@@ -36,9 +36,32 @@ Let authorized API clients manage the lifecycle of their own globally public ori
 - Removed posts immediately become unavailable through the public API.
 - No API restore, physical delete, media replacement, scheduling mutation, or moderation action is introduced.
 
+## Story 23.2 — Conditional lifecycle writes
+
+**Status:** In implementation.
+
+- Add strong `ETag` headers to public-post GET, successful create, and successful edit responses.
+- Require exact `If-Match` preconditions for PATCH and DELETE lifecycle mutations.
+- Return `428 precondition_required` when a mutation omits `If-Match`.
+- Return `412 precondition_failed` when the supplied ETag is stale and include the current ETag in the response.
+- Include text, edit/removal state, publication identity, and public topic associations in the ETag material.
+- Preserve the existing scope, ownership, privacy, and rate-limit boundaries.
+- Keep POST idempotency keys outside this story; creation retry semantics are a separate concern.
+
+### Acceptance criteria
+
+- GET/POST/PATCH return a stable quoted ETag for the represented post state.
+- A successful edit changes the ETag.
+- A no-op edit keeps the same ETag.
+- PATCH/DELETE without `If-Match` fail before mutation with 428.
+- PATCH/DELETE with a stale ETag fail before mutation with 412.
+- Browser-side topic changes make a previously issued API ETag stale.
+- Existing hidden/non-public resource and cross-user authorization semantics remain unchanged.
+- Tests prove stale writes cannot overwrite or remove the newer resource state.
+
 ## Planned follow-up stories
 
-- Evaluate whether API lifecycle responses need idempotency/conditional-write support before broader automation use.
+- Evaluate POST idempotency only if real automation clients need safe create retries.
 - Audit API documentation/examples after real integration use rather than adding speculative endpoints.
 - Keep API mutation scope bounded to mature browser semantics unless a separate story expands it.
 
