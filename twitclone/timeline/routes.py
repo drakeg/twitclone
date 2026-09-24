@@ -146,7 +146,8 @@ def tweet():
 @login_required
 def edit_post(tweet_id):
     tweet = db.get_or_404(Tweet, tweet_id)
-    if tweet.is_removed:
+    now = datetime.now(UTC).replace(tzinfo=None)
+    if tweet.is_removed or (tweet.scheduled_at is not None and tweet.scheduled_at > now):
         abort(404)
     if tweet.user_id != current_user.id:
         abort(403)
