@@ -36,6 +36,8 @@ def _seed_export(app):
         db.session.add(Reply(content="Owner reply", user_id=owner.id, tweet_id=outsider_post.id))
         removed = Tweet(content="Owner removed post", user_id=owner.id, is_removed=True, removal_reason="author record")
         db.session.add(removed)
+        db.session.flush()
+        removed.removed_by_id = owner.id
         resource = Resource(owner_id=owner.id, title="Owner guide")
         db.session.add(resource); db.session.flush()
         revision = ResourceRevision(resource_id=resource.id, editor_id=owner.id, revision_number=1, body="Portable knowledge")
@@ -64,12 +66,13 @@ def test_export_is_private_download_with_stable_scope(client, app):
     assert 'attachment; filename="ripple-export-export_owner.json"' == response.headers["Content-Disposition"]
     payload = response.get_json()
     assert payload["format"] == "ripple-portable-export"
-    assert payload["version"] == 5
+    assert payload["version"] == 6
     assert payload["account"]["email"] == "owner@example.com"
     assert payload["social_graph"] == {"following": ["export_follower"], "followers": ["export_follower"]}
     assert [item["content"] for item in payload["posts"]] == ["Owner portable post", "Owner removed post"]
     assert payload["posts"][0]["edited_at"] is not None
     assert payload["posts"][1]["is_removed"] is True
+    assert payload["posts"][1]["removal_origin"] == "owner"
     assert [item["content"] for item in payload["quotes"]] == ["Owner quote"]
     assert [item["content"] for item in payload["replies"]] == ["Owner reply"]
     assert payload["resources"][0]["revisions"][0]["body"] == "Portable knowledge"
@@ -210,3 +213,34 @@ def test_profile_edit_explains_export_scope(client, app):
     assert b"does not currently process creator-support payments" in response.data
     assert b"media references" in response.data
     assert b"does not package the media files themselves" in response.data
+
+
+
+def test_export_removal_origin_distinguishes_owner_moderation_unknown_and_visible(client, app):
+    with app.app_context():
+        owner = User(username="origin_owner", email="origin-owner@example.com", password="owner-secret")
+        moderator = User(username="origin_mod", email="origin-mod@example.com", password="mod-secret", is_admin=True)
+        db.session.add_all([owner, moderator])
+        db.session.flush()
+        rows = [
+            Tweet(content="visible", user_id=owner.id),
+            Tweet(content="owner removed", user_id=owner.id, is_removed=True, removed_by_id=owner.id, removal_reason="Removed by author."),
+            Tweet(content="moderated", user_id=owner.id, is_removed=True, removed_by_id=moderator.id, removal_reason="policy"),
+            Tweet(content="legacy removed", user_id=owner.id, is_removed=True, removed_by_id=None, removal_reason="legacy"),
+        ]
+        db.session.add_all(rows)
+        db.session.commit()
+        owner_id = owner.id
+
+    _login(client, owner_id)
+    payload = client.get("/profile/export.json").get_json()
+    by_content = {item["content"]: item for item in payload["posts"]}
+
+    assert by_content["visible"]["removal_origin"] is None
+    assert by_content["owner removed"]["removal_origin"] == "owner"
+    assert by_content["moderated"]["removal_origin"] == "moderation"
+    assert by_content["legacy removed"]["removal_origin"] == "unknown"
+
+    exported = str(payload)
+    assert "removed_by_id" not in exported
+    assert "origin_mod" not in exported
