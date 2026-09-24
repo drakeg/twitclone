@@ -8,7 +8,7 @@ Make Ripple's dependency and runtime upgrade process explicit, reproducible, and
 
 ## Story 20.1 — Python runtime-version contract
 
-**Status:** In implementation.
+**Status:** Completed in PR #262.
 
 - Treat `.python-version` as the source of truth for the supported Python minor line.
 - Align the Docker release image with the same Python 3.12 minor line used by CI.
@@ -26,11 +26,33 @@ Make Ripple's dependency and runtime upgrade process explicit, reproducible, and
 - Tests fail if runtime-version sources drift apart.
 - Dependency documentation no longer refers to already-completed Issue #13 as future work.
 
+## Story 20.2 — Direct dependency manifest and lock contract
+
+**Status:** In implementation.
+
+- Add `requirements.in` as the explicit application-owned direct runtime dependency manifest.
+- Keep `requirements.txt` as the checked-in reproducible install lock until a separately reviewed generation workflow exists.
+- Add a lightweight standard-library validator that ensures every direct dependency is present in the lock with the same declared version/specifier.
+- Run that validator in CI before migrations/tests.
+- Fail closed on unsupported requirement syntax rather than silently ignoring an entry.
+- Normalize Python distribution names and handle extras such as `psycopg[binary]`.
+- Remove stale Issue #13 commentary from the lock and document the current two-file update workflow.
+
+### Acceptance criteria
+
+- The current direct manifest matches the runtime lock.
+- A missing direct dependency causes validation to fail.
+- Version/specifier drift between the manifest and lock causes validation to fail.
+- Normalized names and extras are handled consistently.
+- Unsupported requirement syntax is reported explicitly.
+- CI runs the lock validator on every pull request.
+- Documentation states clearly that the lock is still reviewed/checked in and is not yet automatically generated.
+
 ## Planned follow-up stories
 
-- Evaluate a smaller direct-dependency input plus a reproducibly generated lock file.
 - Add dependency-drift reporting that distinguishes direct, transitive, runtime, CI action, Docker image, and Terraform provider updates.
 - Define coherent grouping/review rules for automated dependency PRs so overlapping bot changes are easier to reconcile.
+- Evaluate reproducible lock generation only after tool/version and security-bot behavior are specified.
 
 ## Boundary
 
