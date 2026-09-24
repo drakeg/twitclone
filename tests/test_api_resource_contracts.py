@@ -257,3 +257,38 @@ def test_api_remove_rejects_non_owner_and_read_only_credential(client, app):
     assert read_only.get_json()["error"]["code"] == "insufficient_scope"
     with app.app_context():
         assert db.session.get(Tweet, tweet_id).is_removed is False
+
+
+
+def test_api_mutations_hide_future_scheduled_post_existence(client, app):
+    user_id, _, raw_token = _user_and_token(app, {"posts:write"}, username="api_scheduled")
+    with app.app_context():
+        from datetime import datetime
+
+        tweet = Tweet(
+            content="future hidden",
+            user_id=user_id,
+            scheduled_at=datetime(2099, 1, 1, 12, 0),
+        )
+        db.session.add(tweet)
+        db.session.commit()
+        tweet_id = tweet.id
+
+    edit = client.patch(
+        f"/api/v1/posts/{tweet_id}",
+        headers={"Authorization": f"Bearer {raw_token}"},
+        json={"content": "should stay hidden"},
+    )
+    remove = client.delete(
+        f"/api/v1/posts/{tweet_id}",
+        headers={"Authorization": f"Bearer {raw_token}"},
+    )
+
+    assert edit.status_code == 404
+    assert edit.get_json()["error"]["code"] == "post_not_found"
+    assert remove.status_code == 404
+    assert remove.get_json()["error"]["code"] == "post_not_found"
+    with app.app_context():
+        tweet = db.session.get(Tweet, tweet_id)
+        assert tweet.content == "future hidden"
+        assert tweet.is_removed is False
