@@ -183,3 +183,24 @@ def test_edit_refreshes_hashtag_topics_but_preserves_explicit_topics(client, app
         assert ("aws", "explicit") in associations
         assert ("new", "hashtag") in associations
         assert ("old", "hashtag") not in associations
+
+
+
+def test_future_scheduled_post_is_not_editable_through_published_post_flow(client, app):
+    alice_id, _, _, tweet_id, _ = _users_and_post(app, content="scheduled")
+    with app.app_context():
+        tweet = db.session.get(Tweet, tweet_id)
+        tweet.scheduled_at = datetime(2099, 1, 1, 12, 0)
+        db.session.commit()
+    _login(client, alice_id)
+
+    get_response = client.get(f"/post/{tweet_id}/edit")
+    post_response = client.post(
+        f"/post/{tweet_id}/edit",
+        data={"content": "changed"},
+    )
+
+    assert get_response.status_code == 404
+    assert post_response.status_code == 404
+    with app.app_context():
+        assert db.session.get(Tweet, tweet_id).content == "scheduled"
