@@ -2,7 +2,7 @@
 
 ## Supported runtime
 
-TwitClone currently targets **Python 3.12**. The repository-level `.python-version` file is the source of truth for local tooling and the initial AWS deployment.
+TwitClone currently targets **Python 3.12.x**. The repository-level `.python-version` file is the source of truth for local tooling, CI, the Docker release image, and the initial AWS deployment.
 
 ## Dependency files
 
@@ -48,9 +48,10 @@ This organization does not claim that every transitive pin must remain forever. 
 2. Change one coherent dependency group at a time.
 3. Install into a clean Python 3.12 virtual environment.
 4. Run `python scripts/verify_dependencies.py`.
-5. Run the full automated test suite once Issue #13 is complete.
-6. Record vulnerability scan results and any compatibility decisions in the PR.
-7. Do not merge multiple overlapping bot PRs without reconciling the final combined result.
+5. Run the full automated test suite; CI already enforces it on every pull request.
+6. Confirm the Docker release image still uses the same Python minor line as `.python-version`.
+7. Record vulnerability scan results and any compatibility decisions in the PR.
+8. Do not merge multiple overlapping bot PRs without reconciling the final combined result.
 
 ## Security bot policy
 
@@ -65,4 +66,17 @@ Dependabot, Mend, Renovate, and Snyk findings are inputs to the engineering proc
 
 ## Future improvement
 
-After CI and application tests are established, the project should evaluate generating a locked runtime file from a smaller direct-dependency input file. That change should be handled as a separate story so the generated workflow, update process, and security tooling remain understandable.
+CI and application tests are established. A future dependency-hygiene story may evaluate generating the locked runtime file from a smaller direct-dependency input file, but only with a clearly documented generation workflow, reproducible output, and compatibility with the existing security automation.
+
+
+## Runtime version contract
+
+The supported Python **minor** version must stay aligned across:
+
+- `.python-version`
+- the Docker base image
+- GitHub Actions setup-python configuration
+- Renovate's Python update policy
+- `scripts/verify_dependencies.py`
+
+Patch releases within Python 3.12 remain allowed. Moving to Python 3.13 or newer requires an explicit compatibility story with CI and release-image validation rather than an isolated bot update.
