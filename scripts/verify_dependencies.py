@@ -31,9 +31,9 @@ REQUIRED_IMPORTS = {
 
 def verify_python_version() -> list[str]:
     errors: list[str] = []
-    if sys.version_info < (3, 12):
+    if sys.version_info[:2] != (3, 12):
         errors.append(
-            f"Python 3.12 or newer is required; found {sys.version.split()[0]}."
+            f"Python 3.12.x is required; found {sys.version.split()[0]}."
         )
     return errors
 
