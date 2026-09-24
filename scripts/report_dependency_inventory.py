@@ -25,7 +25,11 @@ def _normalize(name: str) -> str:
     return re.sub(r"[-_.]+", "-", name).lower()
 
 
-def _requirements(path: Path, classification: str) -> list[dict]:
+def _source(path: Path, root: Path) -> str:
+    return str(path.relative_to(root))
+
+
+def _requirements(path: Path, classification: str, root: Path) -> list[dict]:
     rows = []
     for raw in path.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
@@ -39,7 +43,7 @@ def _requirements(path: Path, classification: str) -> list[dict]:
                     "classification": classification,
                     "name": line,
                     "version": None,
-                    "source": str(path.relative_to(ROOT)),
+                    "source": _source(path, root),
                     "parse_status": "unrecognized",
                 }
             )
@@ -50,14 +54,14 @@ def _requirements(path: Path, classification: str) -> list[dict]:
                 "classification": classification,
                 "name": _normalize(match.group("name")),
                 "version": match.group("spec") + match.group("version"),
-                "source": str(path.relative_to(ROOT)),
+                "source": _source(path, root),
                 "parse_status": "ok",
             }
         )
     return rows
 
 
-def _docker_images(path: Path) -> list[dict]:
+def _docker_images(path: Path, root: Path) -> list[dict]:
     text = path.read_text(encoding="utf-8")
     rows = []
     for match in _DOCKER_RE.finditer(text):
@@ -68,7 +72,7 @@ def _docker_images(path: Path) -> list[dict]:
                 "classification": "runtime_image",
                 "name": image.split(":")[0],
                 "version": image.split(":", 1)[1] if ":" in image else None,
-                "source": str(path.relative_to(ROOT)),
+                "source": _source(path, root),
                 "stage": match.group("stage"),
                 "parse_status": "ok",
             }
@@ -76,7 +80,7 @@ def _docker_images(path: Path) -> list[dict]:
     return rows
 
 
-def _compose_images(path: Path) -> list[dict]:
+def _compose_images(path: Path, root: Path) -> list[dict]:
     text = path.read_text(encoding="utf-8")
     rows = []
     for match in _COMPOSE_IMAGE_RE.finditer(text):
@@ -87,7 +91,7 @@ def _compose_images(path: Path) -> list[dict]:
                 "classification": "compose_image",
                 "name": image.split(":")[0],
                 "version": image.split(":", 1)[1] if ":" in image else None,
-                "source": str(path.relative_to(ROOT)),
+                "source": _source(path, root),
                 "stage": None,
                 "parse_status": "ok",
             }
@@ -95,7 +99,7 @@ def _compose_images(path: Path) -> list[dict]:
     return rows
 
 
-def _actions(path: Path) -> list[dict]:
+def _actions(path: Path, root: Path) -> list[dict]:
     text = path.read_text(encoding="utf-8")
     return [
         {
@@ -103,14 +107,14 @@ def _actions(path: Path) -> list[dict]:
             "classification": "ci_action",
             "name": match.group("action"),
             "version": match.group("version"),
-            "source": str(path.relative_to(ROOT)),
+            "source": _source(path, root),
             "parse_status": "ok",
         }
         for match in _ACTION_RE.finditer(text)
     ]
 
 
-def _terraform(path: Path) -> list[dict]:
+def _terraform(path: Path, root: Path) -> list[dict]:
     text = path.read_text(encoding="utf-8")
     rows = []
     for match in _PROVIDER_RE.finditer(text):
@@ -120,7 +124,7 @@ def _terraform(path: Path) -> list[dict]:
                 "classification": "provider",
                 "name": match.group("source"),
                 "version": match.group("version"),
-                "source": str(path.relative_to(ROOT)),
+                "source": _source(path, root),
                 "parse_status": "ok",
             }
         )
@@ -132,7 +136,7 @@ def _terraform(path: Path) -> list[dict]:
                 "classification": "terraform_cli",
                 "name": "terraform",
                 "version": required.group(1),
-                "source": str(path.relative_to(ROOT)),
+                "source": _source(path, root),
                 "parse_status": "ok",
             }
         )
@@ -140,19 +144,13 @@ def _terraform(path: Path) -> list[dict]:
 
 
 def build_inventory(root: Path = ROOT) -> dict:
-    global ROOT
-    previous = ROOT
-    ROOT = root
-    try:
-        direct = _requirements(root / "requirements.in", "direct")
-        locked = _requirements(root / "requirements.txt", "locked")
-        dev = _requirements(root / "requirements-dev.txt", "development")
-        docker = _docker_images(root / "Dockerfile")
-        docker += _compose_images(root / "compose.production.yaml")
-        actions = _actions(root / ".github" / "workflows" / "ci.yml")
-        terraform = _terraform(root / "infra" / "terraform" / "versions.tf")
-    finally:
-        ROOT = previous
+    direct = _requirements(root / "requirements.in", "direct", root)
+    locked = _requirements(root / "requirements.txt", "locked", root)
+    dev = _requirements(root / "requirements-dev.txt", "development", root)
+    docker = _docker_images(root / "Dockerfile", root)
+    docker += _compose_images(root / "compose.production.yaml", root)
+    actions = _actions(root / ".github" / "workflows" / "ci.yml", root)
+    terraform = _terraform(root / "infra" / "terraform" / "versions.tf", root)
 
     entries = direct + locked + dev + docker + actions + terraform
     return {
