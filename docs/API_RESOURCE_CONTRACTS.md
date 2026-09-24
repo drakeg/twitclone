@@ -28,7 +28,7 @@ API-created posts are ordinary global Ripple posts. They participate in existing
 
 ### Edit an owned public post
 
-Sprint 23 adds `PATCH /api/v1/posts/<id>` for the credential owner's globally public original posts. It requires `posts:write` and accepts exactly one JSON field:
+Sprint 23 adds `PATCH /api/v1/posts/<id>` for the credential owner's globally public original posts. It requires `posts:write`, the current strong `ETag` supplied through `If-Match`, and exactly one JSON field:
 
 - `content` — required, nonblank, maximum 144 characters.
 
@@ -36,7 +36,7 @@ Edits reuse Ripple's existing owner-only post lifecycle semantics: original publ
 
 ### Remove an owned public post
 
-Sprint 23 adds `DELETE /api/v1/posts/<id>` for the credential owner's globally public original posts. It requires `posts:write` and performs the same soft-removal contract used by the browser workflow:
+Sprint 23 adds `DELETE /api/v1/posts/<id>` for the credential owner's globally public original posts. It requires `posts:write` plus the current strong `ETag` supplied through `If-Match`, and performs the same soft-removal contract used by the browser workflow:
 
 - `is_removed = true`;
 - `removed_at` is recorded;
@@ -44,6 +44,18 @@ Sprint 23 adds `DELETE /api/v1/posts/<id>` for the credential owner's globally p
 - `removal_reason` is `Removed by author.`.
 
 A successful removal returns `204 No Content`. Existing relational/moderation history is retained, and the removed post is no longer readable through the public API.
+
+### Conditional writes and lost-update protection
+
+Public post GET, successful POST, and successful PATCH responses include a strong `ETag` representing the current public post state, including text/edit/removal state and public topic associations.
+
+PATCH and DELETE require an exact single `If-Match` value:
+
+- missing `If-Match` returns `428 precondition_required`;
+- a stale/mismatched value returns `412 precondition_failed` plus the current `ETag`;
+- a successful PATCH returns the new `ETag`.
+
+This prevents an automation client from unknowingly overwriting a newer post/topic state. The contract does not introduce POST idempotency keys.
 
 ### Mutation privacy and visibility
 
