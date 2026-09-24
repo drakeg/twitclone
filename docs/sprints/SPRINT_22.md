@@ -8,7 +8,7 @@ Keep Ripple's external and portable representations aligned with user-visible co
 
 ## Story 22.1 — Propagate original-post edit state
 
-**Status:** In implementation.
+**Status:** Completed in PR #271.
 
 - Add nullable `edited_at` to the public API v1 post representation.
 - Keep removed posts excluded from the public API exactly as before.
@@ -31,10 +31,32 @@ Keep Ripple's external and portable representations aligned with user-visible co
 - No prior post wording is exposed.
 - Regression tests cover API null/non-null edit state, export v5 metadata, and v4 backward compatibility.
 
+## Story 22.2 — Non-sensitive removal origin in portability
+
+**Status:** In implementation.
+
+- Advance the portable export from version 5 to version 6 rather than silently mutating the already-merged v5 schema.
+- Add `removal_origin` to exported authored posts, quotes, replies, and resources that already expose removal state.
+- Use only the neutral values `owner`, `moderation`, `unknown`, or `null`.
+- Derive the value internally from ownership/removal metadata without exporting `removed_by_id`, moderator usernames, or other moderator identity.
+- Keep existing `is_removed`, `removed_at`, and `removal_reason` fields unchanged.
+- Preserve v4 and v5 recognition in the non-mutating import compatibility assessor while adding v6.
+- Keep import execution disabled.
+
+### Acceptance criteria
+
+- Visible/non-removed content exports `removal_origin: null`.
+- Content removed by its owner exports `removal_origin: owner`.
+- Content removed by a different authorized actor exports `removal_origin: moderation`.
+- Legacy removed content without actor metadata exports `removal_origin: unknown`.
+- `removed_by_id` and moderator identity are absent from the export.
+- Portable export version is 6.
+- The import assessor accepts v4, v5, and v6 for compatibility review and remains non-mutating.
+- Tests cover all four origin values plus identity non-disclosure.
+
 ## Planned follow-up stories
 
 - Audit other mature lifecycle-bearing representations for consistency only where they already expose post state.
-- Define whether author-removal provenance should appear in portable export beyond the existing non-sensitive removal reason/time contract.
 - Avoid adding lifecycle fields to unrelated contracts solely for completeness.
 
 ## Boundary
