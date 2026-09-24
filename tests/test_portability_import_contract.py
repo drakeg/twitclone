@@ -11,7 +11,7 @@ from twitclone.portability_import_contract import (
 def _document(**overrides):
     payload = {
         "format": "ripple-portable-export",
-        "version": 5,
+        "version": 6,
         "exported_at": "2026-09-23T03:00:00Z",
         "scope": "test",
         "account": {},
@@ -93,7 +93,8 @@ def test_no_portable_import_route_or_write_endpoint_is_registered(app):
 
 
 
-def test_import_contract_accepts_previous_v4_export_for_compatibility_review():
-    result = assess_portable_import(_document(version=4))
-    assert result["compatible"] is True
-    assert result["import_enabled"] is False
+def test_import_contract_accepts_previous_v4_and_v5_exports_for_compatibility_review():
+    for version in (4, 5):
+        result = assess_portable_import(_document(version=version))
+        assert result["compatible"] is True
+        assert result["import_enabled"] is False
