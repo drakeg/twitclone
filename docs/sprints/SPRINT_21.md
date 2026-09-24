@@ -1,6 +1,6 @@
 # Sprint 21 — Author-Controlled Post Lifecycle
 
-**Status:** In implementation.
+**Status:** Completed.
 
 ## Goal
 
@@ -60,7 +60,7 @@ Give authors safe, understandable control over the lifecycle of their own origin
 
 ## Story 21.3 — Legacy TODO reconciliation
 
-**Status:** In implementation.
+**Status:** Completed in PR #269.
 
 - Convert the root `TODO.md` from a competing backlog into a historical-status document.
 - Point all new work to `docs/ROADMAP.md` and the active sprint records.
@@ -78,9 +78,37 @@ Give authors safe, understandable control over the lifecycle of their own origin
 - AWS activation remains explicitly conditional on separate authorization.
 - Sprint 21 is identified as the current active development record.
 
-## Planned follow-up stories
+## Story 21.4 — Post edit-history decision
 
-- Evaluate whether edit history beyond the visible edited timestamp is necessary before allowing edits to quote/reply content.
+**Status:** Completed by decision in this closeout.
+
+Ripple will not add full revision-history persistence for ordinary original-post edits at this time.
+
+Durable collaborative resources have explicit revision models because exact edit provenance is part of their product purpose. Original posts are short conversational artifacts. Sprint 21 already preserves post identity, original publish time, moderation/removal state, related responses, and a visible `Edited` timestamp. No current moderation, portability, API, or user-facing contract requires reconstructing every prior wording.
+
+Adding post revisions now would introduce new retention, privacy, moderation, export, and UI obligations without a demonstrated product requirement.
+
+### Revisit criteria
+
+A future sprint may introduce post edit history only if at least one concrete requirement needs prior wording, such as:
+
+- moderation review that must compare historical text;
+- a public/user-visible revision history product decision;
+- portability requirements for previous post versions;
+- legal/privacy retention rules that explicitly require revision capture; or
+- quote/reply editing semantics that cannot be made understandable without version provenance.
+
+Until then, `edited_at` remains the intentional post-edit history contract.
+
+## Sprint outcome
+
+Sprint 21 delivered author-controlled lifecycle behavior for published original posts while preserving historical integrity. Authors can edit post text under owner-only authorization, viewers can see that a post was edited, text-derived mentions/topics are reconciled safely, and authors can soft-remove posts without cascading away replies, quotes, bookmarks, notifications, community context, or moderation records.
+
+The legacy root TODO was also reconciled so the numbered roadmap and sprint/ADR records remain the single source of truth.
+
+## Definition of done
+
+Completed. Original-post editing and removal now have explicit authorization, visibility, preservation, and history semantics. Full post revision storage remains deliberately deferred until a concrete product or compliance requirement justifies it.
 
 ## Boundary
 
