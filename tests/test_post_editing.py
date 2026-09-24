@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 from twitclone.extensions import db
 from twitclone.models import Notification, Tweet, User
+from twitclone.topic_models import Topic, TweetTopic
 
 
 def _login(client, user_id):
@@ -151,3 +152,34 @@ def test_non_owner_detail_does_not_expose_edit_control(client, app):
 
     assert response.status_code == 200
     assert b">Edit post<" not in response.data
+
+
+
+def test_edit_refreshes_hashtag_topics_but_preserves_explicit_topics(client, app):
+    alice_id, _, _, tweet_id, _ = _users_and_post(app, content="before #old")
+    with app.app_context():
+        explicit = Topic(name="AWS", slug="aws")
+        old_hashtag = Topic(name="old", slug="old")
+        db.session.add_all([explicit, old_hashtag])
+        db.session.flush()
+        db.session.add_all(
+            [
+                TweetTopic(tweet_id=tweet_id, topic_id=explicit.id, source="explicit"),
+                TweetTopic(tweet_id=tweet_id, topic_id=old_hashtag.id, source="hashtag"),
+            ]
+        )
+        db.session.commit()
+    _login(client, alice_id)
+
+    response = client.post(
+        f"/post/{tweet_id}/edit",
+        data={"content": "after #new"},
+    )
+
+    assert response.status_code == 302
+    with app.app_context():
+        rows = TweetTopic.query.filter_by(tweet_id=tweet_id).all()
+        associations = {(row.topic.slug, row.source) for row in rows}
+        assert ("aws", "explicit") in associations
+        assert ("new", "hashtag") in associations
+        assert ("old", "hashtag") not in associations
