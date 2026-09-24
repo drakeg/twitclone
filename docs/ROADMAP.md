@@ -238,14 +238,9 @@ Delivered capabilities include read-only human/JSON readiness reporting, sanitiz
 
 **Goal:** Keep Ripple's runtime and dependency upgrade process explicit, reproducible, and aligned across local development, CI, release images, and automated update tooling.
 
-**Status:** In implementation. Detailed acceptance criteria are maintained in `docs/sprints/SPRINT_20.md`.
+**Status:** Completed. Detailed implementation and boundaries are maintained in `docs/sprints/SPRINT_20.md`.
 
-**Planned direction:**
-
-- Single-source Python runtime-version contract across `.python-version`, CI, Docker, Renovate, and dependency verification.
-- Reproducible dependency-lock maintenance with clear direct/transitive intent.
-- Auditable dependency-drift reporting across Python packages, container images, CI actions, and Terraform providers.
-- Coherent automated-update grouping/review rules without dependency auto-merge.
+Delivered capabilities include an enforced Python 3.12 runtime contract, an explicit direct-dependency manifest plus checked-in lock validation, local dependency-surface inventorying, and conservative Renovate patch grouping with auto-merge disabled. Automatic lock generation remains deliberately deferred until a pinned compiler/resolver workflow and security-bot interaction can be specified and proven reproducible.
 
 ## Cross-cutting release gates and deferred work
 
