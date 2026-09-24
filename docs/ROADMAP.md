@@ -250,6 +250,19 @@ Delivered capabilities include an enforced Python 3.12 runtime contract, an expl
 
 Delivered capabilities include owner-only editing of published original-post text, visible edit state, deterministic reconciliation of text-derived mentions/topics, and owner-requested soft removal that preserves relational and moderation history. Full post revision history is deliberately deferred until a concrete product, moderation, portability, or compliance requirement needs prior wording.
 
+## Sprint 22 — Lifecycle contract consistency
+
+**Goal:** Keep Ripple's external and portable representations aligned with user-visible content lifecycle semantics so editing/removal state does not exist only in the browser UI.
+
+**Status:** In implementation. Detailed acceptance criteria are maintained in `docs/sprints/SPRINT_22.md`.
+
+**Planned direction:**
+
+- Propagate original-post edit state into mature public/portable contracts.
+- Preserve removed-content visibility boundaries.
+- Keep portability schema changes versioned and backward-recognizable.
+- Avoid exposing prior wording or enabling new mutation/import behavior merely for contract symmetry.
+
 ## Cross-cutting release gates and deferred work
 
 These are not new product sprints and remain independently tracked:
