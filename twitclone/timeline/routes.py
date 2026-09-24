@@ -161,7 +161,13 @@ def edit_post(tweet_id):
         if content != tweet.content:
             previous_mentions = mentioned_usernames(tweet.content)
             current_mentions = mentioned_usernames(content)
+            explicit_topics = ", ".join(
+                row.topic.name
+                for row in tweet.topic_associations
+                if row.source == "explicit"
+            )
             tweet.content = content
+            replace_explicit_topics(tweet, explicit_topics)
             tweet.edited_at = datetime.now(UTC).replace(tzinfo=None)
             add_mention_notifications(
                 content=content,
