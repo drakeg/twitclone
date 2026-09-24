@@ -14,6 +14,7 @@ _REQ_RE = re.compile(
 )
 _DOCKER_RE = re.compile(r"^FROM\s+(?P<image>[^\s]+)(?:\s+AS\s+(?P<stage>\S+))?$", re.MULTILINE)
 _ACTION_RE = re.compile(r"^\s*uses:\s*(?P<action>[^@\s]+)@(?P<version>\S+)\s*$", re.MULTILINE)
+_COMPOSE_IMAGE_RE = re.compile(r"^\s*image:\s*(?P<image>[^\s#]+)", re.MULTILINE)
 _PROVIDER_RE = re.compile(
     r"(?P<name>[A-Za-z0-9_-]+)\s*=\s*\{[^}]*?source\s*=\s*\"(?P<source>[^\"]+)\"[^}]*?version\s*=\s*\"(?P<version>[^\"]+)\"",
     re.DOTALL,
@@ -75,6 +76,25 @@ def _docker_images(path: Path) -> list[dict]:
     return rows
 
 
+def _compose_images(path: Path) -> list[dict]:
+    text = path.read_text(encoding="utf-8")
+    rows = []
+    for match in _COMPOSE_IMAGE_RE.finditer(text):
+        image = match.group("image")
+        rows.append(
+            {
+                "surface": "docker",
+                "classification": "compose_image",
+                "name": image.split(":")[0],
+                "version": image.split(":", 1)[1] if ":" in image else None,
+                "source": str(path.relative_to(ROOT)),
+                "stage": None,
+                "parse_status": "ok",
+            }
+        )
+    return rows
+
+
 def _actions(path: Path) -> list[dict]:
     text = path.read_text(encoding="utf-8")
     return [
@@ -128,6 +148,7 @@ def build_inventory(root: Path = ROOT) -> dict:
         locked = _requirements(root / "requirements.txt", "locked")
         dev = _requirements(root / "requirements-dev.txt", "development")
         docker = _docker_images(root / "Dockerfile")
+        docker += _compose_images(root / "compose.production.yaml")
         actions = _actions(root / ".github" / "workflows" / "ci.yml")
         terraform = _terraform(root / "infra" / "terraform" / "versions.tf")
     finally:
