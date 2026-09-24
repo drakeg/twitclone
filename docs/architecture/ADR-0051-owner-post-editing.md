@@ -50,4 +50,6 @@ A visible edit timestamp communicates that the text changed while avoiding a lar
 
 ## Follow-up
 
-Owner-requested removal must be designed separately because physical deletion could break relational history across replies, quotes, bookmarks, notifications, moderation records, community context, and analytics.
+Owner-requested removal was defined separately in ADR-0052 and implemented through soft removal.
+
+Full post revision-history persistence remains deferred. Durable collaborative resources retain revisions because provenance is intrinsic to that product surface; ordinary posts retain only a visible `edited_at` marker unless a future moderation, portability, compliance, or user-facing requirement needs prior wording.
