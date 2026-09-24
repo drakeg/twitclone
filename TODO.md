@@ -1,67 +1,56 @@
-### TODO.md
+# Legacy TODO Status
 
-## Twitter Clone Application
+This file used to act as the project's informal backlog. It is retained only as
+historical context.
 
-This document outlines the tasks to enhance and expand the Twitter clone application. These tasks are prioritized to improve user experience, functionality, and deployment readiness.
+The authoritative product roadmap is now:
 
-### Features to Add
+- `docs/ROADMAP.md`
+- active/completed sprint records under `docs/sprints/`
+- accepted architectural decisions under `docs/architecture/`
 
-1. **User Profile Pages**
-   - Implement individual profile pages for users.
-   - Display user-specific information such as tweets, retweets, followers, and following lists.
-   - Include an option to update profile information (e.g., profile picture, bio).
+Do not add new work to this file. New product work should be added to the
+numbered roadmap or the active sprint document so Ripple has one backlog source
+of truth.
 
-2. **Sophisticated Tweet Display**
-   - Enhance the tweet display to include clickable links for user mentions (`@username`) and hashtags (`#hashtag`).
-   - Implement routes to handle these links, directing users to the respective user profile or search results for the hashtag.
+## Reconciled items
 
-3. **Search Functionality**
-   - Implement a search bar to allow users to search for other users and hashtags.
-   - Display search results in a user-friendly format, showing matching users and tweets containing the searched hashtags.
+The following items from the original TODO are already delivered and should no
+longer be treated as pending work:
 
-4. **Adding Timestamps for Tweets**
-   - Ensure that all tweets and retweets display the timestamp of when they were posted.
-   - Format timestamps to be user-friendly, showing relative times (e.g., "2 hours ago") and exact times on hover.
+- user profile pages and profile customization;
+- clickable mentions/hashtags and topic discovery;
+- search/discovery across people and topics;
+- visible post timestamps;
+- server-side validation and authorization coverage;
+- PostgreSQL production support and migration tooling;
+- CI validation and production deployment contracts;
+- password/account recovery;
+- notifications for social activity and messages;
+- responsive UI refresh and accessibility hardening.
 
-### Backend Improvements
+## Still deferred or conditional
 
-1. **Error Handling and Validation**
-   - Implement more robust error handling throughout the application.
-   - Validate all user inputs to prevent SQL injection, XSS, and other security vulnerabilities.
-   - Provide user-friendly error messages for common issues (e.g., login failures, invalid inputs).
+These ideas were present in the legacy TODO but are **not** current roadmap
+commitments unless separately promoted into a numbered sprint:
 
-2. **Advanced Database**
-   - Transition from SQLite to a more advanced database like PostgreSQL for production use.
-   - Update database connection settings and ensure compatibility with the new database.
-   - Test the application thoroughly after the transition to ensure stability and performance.
+- social-login providers such as Google/Facebook;
+- real-time push/WebSocket notifications;
+- actual AWS production activation and recurring infrastructure spend;
+- usage-driven UX refinements that require real-user evidence.
 
-### Deployment
+AWS activation remains explicitly separate from roadmap inclusion and requires
+specific authorization before any paid resources are provisioned.
 
-1. **Deploying the App**
-   - Deploy the application to a platform like Heroku or AWS.
-   - Set up necessary environment variables and configuration settings for the deployment platform.
-   - Implement CI/CD pipelines to automate testing and deployment processes.
-   - Monitor the application for performance and errors post-deployment.
+## Current development
 
-### Additional Enhancements
+As of Sprint 21, active work is tracked in
+`docs/sprints/SPRINT_21.md`. The sprint covers author-controlled post lifecycle
+behavior, including owner-only editing and soft removal of original posts.
 
-1. **User Authentication**
-   - Implement password reset functionality.
-   - Add social login options (e.g., Google, Facebook) for easier user registration and login.
+## Historical note
 
-2. **Notifications**
-   - Add a notification system to alert users about new followers, retweets, and direct messages.
-   - Implement real-time notifications using WebSockets or a similar technology.
-
-3. **User Experience (UX) Improvements**
-   - Improve the overall UI/UX design for a more modern and intuitive interface.
-   - Conduct user testing to gather feedback and make iterative improvements based on user suggestions.
-
-4. **UI Cleanup and Visual Refresh**
-   - Status: initial responsive visual refresh delivered in the priority design sprint.
-   - Establish a consistent color, spacing, typography, button, card, and form system.
-   - Refresh the navigation, timeline hierarchy, empty states, polls, messages, and notifications.
-   - Improve responsive behavior and accessibility while preserving existing workflows.
-   - Deliver the refresh as a dedicated design sprint with visual regression coverage.
-
-By addressing these tasks, we aim to create a robust, feature-rich Twitter clone that provides an engaging and seamless user experience. Each task is crucial for enhancing the application's functionality, security, and scalability, ensuring it meets the needs of our users and is ready for production deployment.
+The original TODO predates Ripple's numbered sprint process and contains several
+descriptions using the old "Twitter Clone" terminology. Those descriptions are
+not current product specifications and should not override newer sprint or ADR
+decisions.
