@@ -8,7 +8,9 @@ Story 16.4 introduces Ripple's first bounded write contract while preserving the
 
 `GET /api/v1/posts/<id>` remains publicly readable and rate limited. A post is returned only when it is globally public: it must not be removed, future-scheduled, or scoped to a Ripple Space.
 
-The response exposes only the stable v1 post contract: ID, type, content, public author identity, publication time, public topic associations, and public post URL.
+The response exposes only the stable v1 post contract: ID, type, content, public author identity, publication time, nullable edit time, public topic associations, and public post URL.
+
+`edited_at` is `null` for never-edited posts and an ISO-8601 UTC timestamp for posts changed through Ripple's owner-only edit workflow. It is additive metadata; it does not expose prior wording.
 
 ### Create a public post
 
@@ -42,5 +44,7 @@ Those workflows have additional state and authorization semantics and require se
 ## Compatibility
 
 The v1 contract is explicit and additive. Internal model fields are not serialized wholesale. New internal columns do not automatically become public API fields, and existing v1 clients do not need to understand unrelated Ripple model changes.
+
+Sprint 22 adds nullable `edited_at` to the public post representation so API consumers receive the same edit-state signal as web viewers. This does not authorize API editing or deletion.
 
 No migration, paid service, AWS activation, or recurring infrastructure cost is introduced by Story 16.4.

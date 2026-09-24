@@ -35,6 +35,7 @@ def test_posts_write_scope_can_create_public_post(client, app):
     payload = response.get_json()["data"]
     assert payload["content"] == "API created post"
     assert payload["author"]["id"] == user_id
+    assert payload["edited_at"] is None
     assert response.headers["Location"] == f"/api/v1/posts/{payload['id']}"
     assert {topic["slug"] for topic in payload["topics"]} == {"aws", "automation"}
 
@@ -84,3 +85,22 @@ def test_api_index_advertises_bounded_write_scope(client):
     payload = response.get_json()
     assert payload["status"] == "limited-write-preview"
     assert payload["authentication"]["supported_scopes"] == ["posts:read", "posts:write"]
+
+
+
+def test_public_post_contract_exposes_edit_timestamp(client, app):
+    user_id, _, _ = _user_and_token(app, {"posts:read"})
+    with app.app_context():
+        tweet = Tweet(content="edited API post", user_id=user_id)
+        db.session.add(tweet)
+        db.session.flush()
+        tweet.edited_at = tweet.timestamp
+        db.session.commit()
+        tweet_id = tweet.id
+
+    response = client.get(f"/api/v1/posts/{tweet_id}")
+
+    assert response.status_code == 200
+    payload = response.get_json()["data"]
+    assert payload["content"] == "edited API post"
+    assert payload["edited_at"] is not None
