@@ -70,3 +70,12 @@ Sprint 23 Story 23.2 adds strong ETag preconditions before wider automation use.
 Public post GET, successful create, and successful edit responses return an ETag derived from the mutable public representation. PATCH and DELETE require the exact current ETag through `If-Match`; missing preconditions return 428 and stale preconditions return 412.
 
 This guards against lost updates between concurrent clients or browser/API workflows without expanding the `posts:write` privilege. POST idempotency is intentionally not bundled into this decision because duplicate-create retry semantics require a separate request-key/storage contract.
+
+
+## POST idempotency decision
+
+Sprint 23 closes without adding POST idempotency-key persistence.
+
+ETag/`If-Match` solves stale mutation/lost-update behavior for existing resources. Safe create retries are a different contract and would require persisted key ownership, request fingerprinting, replay semantics, retention/cleanup, concurrency control, and abuse limits.
+
+Ripple will add that machinery only when a real API integration demonstrates the need. Until then, POST creation remains intentionally non-idempotent.
