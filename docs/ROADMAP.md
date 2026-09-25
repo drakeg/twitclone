@@ -262,14 +262,9 @@ Delivered capabilities include nullable edit state in the public API, portabilit
 
 **Goal:** Let authorized API clients manage the lifecycle of their own globally public original posts under the same safety and history semantics already established for the browser workflow.
 
-**Status:** In implementation. Detailed acceptance criteria are maintained in `docs/sprints/SPRINT_23.md`.
+**Status:** Completed. Detailed implementation and boundaries are maintained in `docs/sprints/SPRINT_23.md`.
 
-**Planned direction:**
-
-- Owner-only text editing under the existing `posts:write` scope.
-- Owner-requested soft removal without cascade deletion.
-- Reuse browser validation, mention/topic reconciliation, and lifecycle metadata semantics.
-- Preserve non-public post privacy and existing API rate-limit boundaries.
+Delivered capabilities include bounded owner-only API editing and soft removal under `posts:write`, reuse of browser validation/mention/topic semantics, preserved non-public-post privacy, existing credential rate limits, and strong ETag/`If-Match` lost-update protection for lifecycle mutations. POST idempotency remains deliberately deferred until a concrete integration needs safe create retries.
 
 ## Cross-cutting release gates and deferred work
 
