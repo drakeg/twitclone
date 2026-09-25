@@ -1,6 +1,6 @@
 # Sprint 23 — API Post Lifecycle Parity
 
-**Status:** In implementation.
+**Status:** Completed.
 
 ## Goal
 
@@ -38,7 +38,7 @@ Let authorized API clients manage the lifecycle of their own globally public ori
 
 ## Story 23.2 — Conditional lifecycle writes
 
-**Status:** In implementation.
+**Status:** Completed in PR #276.
 
 - Add strong `ETag` headers to public-post GET, successful create, and successful edit responses.
 - Require exact `If-Match` preconditions for PATCH and DELETE lifecycle mutations.
@@ -59,11 +59,40 @@ Let authorized API clients manage the lifecycle of their own globally public ori
 - Existing hidden/non-public resource and cross-user authorization semantics remain unchanged.
 - Tests prove stale writes cannot overwrite or remove the newer resource state.
 
-## Planned follow-up stories
+## Story 23.3 — POST idempotency decision
 
-- Evaluate POST idempotency only if real automation clients need safe create retries.
-- Audit API documentation/examples after real integration use rather than adding speculative endpoints.
-- Keep API mutation scope bounded to mature browser semantics unless a separate story expands it.
+**Status:** Completed by decision in this closeout.
+
+POST idempotency is deliberately deferred.
+
+Create retries have different semantics from PATCH/DELETE concurrency protection. A production idempotency-key contract would require persisted request keys, credential/request scoping, payload matching, replayed response storage or reconstruction, expiry/cleanup rules, conflict behavior, and abuse/storage limits. Ripple does not currently have a real integration demonstrating that duplicate create retries are causing a user-facing problem.
+
+Adding that state now would create a new persistence and cleanup contract for speculative automation needs.
+
+### Revisit criteria
+
+A future story may add POST idempotency when at least one concrete integration needs safe create retries. That story must define:
+
+- accepted `Idempotency-Key` syntax and maximum length;
+- credential/user/endpoint scoping;
+- payload fingerprinting and mismatch behavior;
+- replay status/body/header semantics;
+- retention/expiration and cleanup behavior;
+- rate-limit interaction and storage-abuse limits;
+- concurrency behavior for simultaneous requests using the same key; and
+- tests proving a key cannot replay or authorize another credential's request.
+
+Until then, clients should treat POST creation as non-idempotent and avoid blind retries after ambiguous network failures.
+
+## Sprint outcome
+
+Sprint 23 gives API clients lifecycle parity for their own globally public original posts without broadening moderation or administrative authority. API clients can create, text-edit, and soft-remove owned public posts under the existing `posts:write` scope. PATCH and DELETE are protected by strong ETag/`If-Match` preconditions so stale clients cannot overwrite or remove newer resource state.
+
+The public API documentation now reflects the current read/write contract, privacy boundaries, rate limits, ownership rules, and conditional-write behavior.
+
+## Definition of done
+
+Completed. Owner lifecycle mutations are bounded, authenticated, rate-limited, privacy-preserving, and protected against lost updates. POST idempotency remains intentionally deferred until a concrete integration justifies the extra persistence and replay contract.
 
 ## Boundary
 
