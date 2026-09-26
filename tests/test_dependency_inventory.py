@@ -132,3 +132,14 @@ def test_unrecognized_requirement_is_reported_and_fails_closed(tmp_path):
 
     assert len(inventory["unrecognized"]) == 1
     assert inventory["unrecognized"][0]["source"] == "requirements.in"
+
+
+def test_inventory_supports_bounded_development_requirements(tmp_path):
+    module = _module()
+    source = tmp_path / "requirements-dev.txt"
+    source.write_text("pytest>=9.1.1,<9.2\n", encoding="utf-8")
+    rows = module._requirements(source, "development", tmp_path)
+    assert len(rows) == 1
+    assert rows[0]["parse_status"] == "ok"
+    assert rows[0]["name"] == "pytest"
+    assert rows[0]["version"] == ">=9.1.1,<9.2"

@@ -22,7 +22,7 @@ jobs:
     env:
       TWITCLONE_ENV: testing
       SECRET_KEY: ci-test-only-secret
-      DATABASE_URL: sqlite:///:memory:
+      DATABASE_URL: "sqlite:///:memory:"
       UPLOAD_FOLDER: /tmp/twitclone-ci-uploads
       SCHEDULER_ENABLED: "false"
       SCHEDULER_INTERVAL_SECONDS: "60"
@@ -79,7 +79,7 @@ jobs:
         run: bash scripts/build-release-image.sh
 
       - name: Verify image starts with production entry point available
-        run: docker run --rm ripple-ci:${GITHUB_SHA::12} python -c "import application; print('release image import OK')"
+        run: docker run --rm -e SECRET_KEY=ci-test-only-secret -e TWITCLONE_ENV=testing -e SCHEDULER_ENABLED=false ripple-ci:${GITHUB_SHA::12} python -c "import application; print('release image import OK')"
 
   terraform:
     name: Terraform validation
