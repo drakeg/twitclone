@@ -22,7 +22,7 @@ jobs:
     env:
       TWITCLONE_ENV: testing
       SECRET_KEY: ci-test-only-secret
-      DATABASE_URL: sqlite:///:memory:
+      DATABASE_URL: "sqlite:///:memory:"
       UPLOAD_FOLDER: /tmp/twitclone-ci-uploads
       SCHEDULER_ENABLED: "false"
       SCHEDULER_INTERVAL_SECONDS: "60"
