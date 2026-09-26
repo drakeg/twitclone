@@ -118,7 +118,12 @@ cannot classify is surfaced immediately rather than silently omitted.
 Renovate remains advisory and **never auto-merges** dependency changes.
 
 Patch updates are grouped by dependency surface so closely related low-risk
-changes can be reviewed together:
+changes can be reviewed together.
+
+Renovate's `pip_requirements` manager does not match `.in` files by default, so
+`renovate.json` explicitly extends that manager's file patterns to include
+`requirements.in`. This is necessary for bot updates to change the direct
+manifest and checked-in lock together rather than creating a known CI mismatch.
 
 - direct/runtime Python patch updates across `requirements.in` and
   `requirements.txt`;
