@@ -71,3 +71,10 @@ def test_python_runtime_constraints_remain_in_place():
         for manager in rule.get("matchManagers", [])
     }
     assert {"pyenv", "dockerfile"} <= managers
+
+
+
+def test_pip_requirements_manager_parses_direct_manifest():
+    manager = CONFIG["pip_requirements"]
+    patterns = manager["managerFilePatterns"]
+    assert "/(^|/)requirements\\.in$/" in patterns
