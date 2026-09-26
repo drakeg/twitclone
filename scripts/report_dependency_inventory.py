@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 _REQ_RE = re.compile(
-    r"^(?P<name>[A-Za-z0-9_.-]+)(?P<extras>\[[^\]]+\])?(?P<spec>==|>=|<=|~=|>|<)(?P<version>[A-Za-z0-9][^\s;=<>!~]*)$"
+    r"^(?P<name>[A-Za-z0-9_.-]+)(?P<extras>\[[^\]]+\])?(?P<spec>==|>=|<=|~=|>|<)(?P<version>[A-Za-z0-9][^\s;=<>!~,]*)(?P<other_constraints>(?:,(?:==|>=|<=|~=|>|<)[A-Za-z0-9][^\s;=<>!~,]*)*)$"
 )
 _DOCKER_RE = re.compile(r"^FROM\s+(?P<image>[^\s]+)(?:\s+AS\s+(?P<stage>\S+))?$", re.MULTILINE)
 _ACTION_RE = re.compile(r"^\s*uses:\s*(?P<action>[^@\s]+)@(?P<version>\S+)\s*$", re.MULTILINE)
@@ -53,7 +53,7 @@ def _requirements(path: Path, classification: str, root: Path) -> list[dict]:
                 "surface": "python",
                 "classification": classification,
                 "name": _normalize(match.group("name")),
-                "version": match.group("spec") + match.group("version"),
+                "version": match.group("spec") + match.group("version") + match.group("other_constraints"),
                 "source": _source(path, root),
                 "parse_status": "ok",
             }
