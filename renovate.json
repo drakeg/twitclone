@@ -85,5 +85,10 @@
       "automerge": false
     }
   ],
-  "automerge": false
+  "automerge": false,
+  "pip_requirements": {
+    "managerFilePatterns": [
+      "/(^|/)requirements\\.in$/"
+    ]
+  }
 }
