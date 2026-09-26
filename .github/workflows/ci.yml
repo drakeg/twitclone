@@ -79,7 +79,7 @@ jobs:
         run: bash scripts/build-release-image.sh
 
       - name: Verify image starts with production entry point available
-        run: docker run --rm ripple-ci:${GITHUB_SHA::12} python -c "import application; print('release image import OK')"
+        run: docker run --rm -e SECRET_KEY=ci-test-only-secret -e TWITCLONE_ENV=testing -e SCHEDULER_ENABLED=false ripple-ci:${GITHUB_SHA::12} python -c "import application; print('release image import OK')"
 
   terraform:
     name: Terraform validation
@@ -117,7 +117,7 @@ jobs:
         run: terraform init -backend=false
 
       - name: Check formatting
-        run: terraform fmt -check
+        run: terraform fmt -diff -check
 
       - name: Validate configuration
         run: terraform validate
