@@ -20,14 +20,5 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
-    env:
-      TWITCLONE_ENV: testing
-      SECRET_KEY: ci-test-only-secret
-      DATABASE_URL: sqlite:///:memory:
-      UPLOAD_FOLDER: /tmp/twitclone-ci-uploads
-      SCHEDULER_ENABLED: "false"
-      SCHEDULER_INTERVAL_SECONDS: "60"
-      PIP_DISABLE_PIP_VERSION_CHECK: "1"
-
     steps:
       - run: echo "Python job setup valid"
