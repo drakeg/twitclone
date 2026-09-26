@@ -10,8 +10,52 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
+    name: Python 3.12 validation
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      TWITCLONE_ENV: testing
+      SECRET_KEY: ci-test-only-secret
+      DATABASE_URL: sqlite:///:memory:
+      UPLOAD_FOLDER: /tmp/twitclone-ci-uploads
+      SCHEDULER_ENABLED: "false"
+      SCHEDULER_INTERVAL_SECONDS: "60"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
     steps:
-      - run: echo "CI smoke validation succeeded"
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Verify dependency imports
+        run: python scripts/verify_dependencies.py
+
+      - name: Verify direct dependency lock
+        run: python scripts/verify_dependency_lock.py
+
+      - name: Inventory dependency surfaces
+        run: python scripts/report_dependency_inventory.py --json
+
+      - name: Verify database migrations
+        run: python scripts/verify_migrations.py
+
+      - name: Run tests
+        run: python -m pytest --strict-markers --maxfail=1
