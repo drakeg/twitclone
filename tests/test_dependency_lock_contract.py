@@ -76,3 +76,16 @@ def test_unsupported_requirement_syntax_fails_closed(tmp_path):
     errors = module.verify_dependency_lock()
     assert len(errors) == 1
     assert "unsupported requirement syntax" in errors[0]
+
+
+def test_triple_equals_requirement_fails_closed(tmp_path):
+    module = _module()
+    direct = tmp_path / "requirements.in"
+    lock = tmp_path / "requirements.txt"
+    direct.write_text("Flask===3.1.3\\n", encoding="utf-8")
+    lock.write_text("Flask==3.1.3\\n", encoding="utf-8")
+    module.DIRECT = direct
+    module.LOCK = lock
+    errors = module.verify_dependency_lock()
+    assert len(errors) == 1
+    assert "unsupported requirement syntax" in errors[0]
