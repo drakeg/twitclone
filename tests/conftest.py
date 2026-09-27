@@ -16,6 +16,12 @@ os.environ.setdefault("SCHEDULER_INTERVAL_SECONDS", "60")
 
 from application import application  # noqa: E402
 from app import db, scheduler  # noqa: E402
+from twitclone.api.rate_limits import (  # noqa: E402
+    DEFAULT_CREDENTIAL_LIMIT,
+    DEFAULT_INVALID_TOKEN_LIMIT,
+    DEFAULT_PUBLIC_READ_LIMIT,
+    DEFAULT_WINDOW_SECONDS,
+)
 
 
 @pytest.fixture()
@@ -26,6 +32,10 @@ def app():
         WTF_CSRF_ENABLED=False,
         SQLALCHEMY_DATABASE_URI="sqlite:///:memory:",
         SCHEDULER_ENABLED=False,
+        API_CREDENTIAL_LIMIT=DEFAULT_CREDENTIAL_LIMIT,
+        API_INVALID_TOKEN_LIMIT=DEFAULT_INVALID_TOKEN_LIMIT,
+        API_PUBLIC_READ_LIMIT=DEFAULT_PUBLIC_READ_LIMIT,
+        API_RATE_LIMIT_WINDOW_SECONDS=DEFAULT_WINDOW_SECONDS,
     )
 
     if scheduler.running:

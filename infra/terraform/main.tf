@@ -290,7 +290,7 @@ resource "aws_instance" "app" {
   user_data = var.host_bootstrap_ref == null ? null : templatefile(
     "${path.module}/templates/ec2-user-data.sh.tftpl",
     {
-      deployment_ref      = var.host_bootstrap_ref
+      deployment_ref       = var.host_bootstrap_ref
       bootstrap_script_b64 = base64encode(file("${path.module}/../../deploy/bootstrap-host.sh"))
     }
   )
@@ -336,8 +336,8 @@ resource "aws_db_instance" "main" {
   instance_class = var.db_instance_class
 
   allocated_storage = var.db_allocated_storage_gib
-  storage_type       = "gp3"
-  storage_encrypted  = true
+  storage_type      = "gp3"
+  storage_encrypted = true
 
   db_name  = var.db_name
   username = var.db_username
@@ -355,7 +355,7 @@ resource "aws_db_instance" "main" {
   final_snapshot_identifier = var.db_skip_final_snapshot ? null : "${local.name}-postgres-final"
 
   auto_minor_version_upgrade = true
-  apply_immediately           = false
+  apply_immediately          = false
 
   tags = {
     Name = "${local.name}-postgres"

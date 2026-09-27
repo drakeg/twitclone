@@ -137,3 +137,13 @@ upgrade contracts.
 
 The Python 3.12 runtime constraints for pyenv and the Docker base image remain
 separate guardrails and take precedence over convenience grouping.
+
+
+## GitHub Actions workflow parsing
+
+CI uses an in-memory SQLite test URL. Keep the `DATABASE_URL` value quoted in
+`.github/workflows/ci.yml`, because the unquoted value ending with a colon
+caused GitHub Actions to reject the workflow before creating any jobs. The
+regression test in `tests/test_ci_workflow_contract.py` guards this detail.
+A run that fails with zero jobs must be treated as a workflow-start failure,
+not as evidence that the Python, release-image, or Terraform tests ran.

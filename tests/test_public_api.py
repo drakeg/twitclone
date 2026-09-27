@@ -44,8 +44,10 @@ def test_public_post_contract_exposes_bounded_fields(client, app):
     assert payload["author"]["username"] == "api_author"
     assert payload["url"] == f"/post/{tweet_id}"
     assert payload["published_at"].endswith("Z")
+    assert payload["edited_at"] is None
+    assert response.headers["ETag"].startswith('"')
     assert payload["topics"] == [{"name": "AWS", "slug": "aws", "source": "explicit"}]
-    assert set(payload) == {"id", "type", "content", "author", "published_at", "topics", "url"}
+    assert set(payload) == {"id", "type", "content", "author", "published_at", "edited_at", "topics", "url"}
 
 
 def test_removed_and_future_posts_fail_closed(client, app):

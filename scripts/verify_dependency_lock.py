@@ -11,7 +11,7 @@ DIRECT = ROOT / "requirements.in"
 LOCK = ROOT / "requirements.txt"
 
 _REQ_RE = re.compile(
-    r"^(?P<name>[A-Za-z0-9_.-]+)(?P<extras>\[[^\]]+\])?(?P<spec>==|>=)(?P<version>[^\s;]+)$"
+    r"^(?P<name>[A-Za-z0-9_.-]+)(?P<extras>\[[^\]]+\])?(?P<spec>==|>=)(?P<version>[A-Za-z0-9][^\s;=<>!~]*)$"
 )
 
 
