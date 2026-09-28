@@ -44,3 +44,15 @@ The Docker image's default command is the same Gunicorn command used by Compose.
 ## AWS readiness without AWS spend
 
 The production container contract is intentionally provider-light. It can be prepared and validated while Ripple continues to run only in local containers. A future EC2 host is expected to provide Docker/Compose, the host-only production environment file, network access to private RDS, and an IAM instance role for S3. Neither this document nor the production Compose file provisions AWS resources.
+
+
+## Local immutable-image HTTP smoke validation
+
+CI builds the local, immutable release image and runs `scripts/smoke-release-image.sh <image-reference>`.
+The script starts the image's actual Gunicorn default command with a test-only secret,
+no published host ports, and no external container network; it polls `/health/live`
+inside the container for a successful JSON response and removes the container on exit.
+This catches startup and HTTP-serving regressions that importing the Python module alone
+cannot catch. Liveness is deliberately independent of database readiness; it is not a
+migration, restore, production configuration, or launch-readiness test. Neither image
+publication nor AWS provisioning is performed.
