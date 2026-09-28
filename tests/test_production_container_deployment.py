@@ -63,3 +63,17 @@ def test_container_deployment_docs_preserve_zero_spend_local_workflow():
     assert "does **not** run `terraform apply`" in guide
     assert "PREVIOUS_RIPPLE_IMAGE" in guide
     assert "IAM instance role" in guide
+
+
+def test_release_image_smoke_is_isolated_and_exercises_gunicorn_http():
+    workflow = read(".github/workflows/ci.yml")
+    script = read("scripts/smoke-release-image.sh")
+
+    assert 'bash scripts/smoke-release-image.sh "ripple-ci:${GITHUB_SHA::12}"' in workflow
+    assert 'docker run --detach --rm --network none' in script
+    assert 'docker exec "$container_id" python -c' in script
+    assert "http://127.0.0.1:8000/health/live" in script
+    assert 'docker rm -f "$container_id"' in script
+    assert "--publish" not in script and "-p 8000" not in script
+    assert "terraform apply" not in script
+    assert "docker push" not in script
