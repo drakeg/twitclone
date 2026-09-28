@@ -147,3 +147,8 @@ caused GitHub Actions to reject the workflow before creating any jobs. The
 regression test in `tests/test_ci_workflow_contract.py` guards this detail.
 A run that fails with zero jobs must be treated as a workflow-start failure,
 not as evidence that the Python, release-image, or Terraform tests ran.
+
+
+## Renovate workflow runtime guard
+
+Renovate also detects the `python-version` input used by `actions/setup-python` as a GitHub Actions dependency. That surface is explicitly constrained to Python 3.12 in `renovate.json`, alongside the existing pyenv and Docker runtime guards. Runtime-minor upgrades such as Python 3.14 require a dedicated compatibility story instead of an isolated bot PR.

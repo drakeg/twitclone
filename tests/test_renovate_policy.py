@@ -78,3 +78,14 @@ def test_pip_requirements_manager_parses_direct_manifest():
     manager = CONFIG["pip_requirements"]
     patterns = manager["managerFilePatterns"]
     assert "/(^|/)requirements\\.in$/" in patterns
+
+
+def test_github_actions_python_runtime_stays_on_312():
+    matches = [
+        rule
+        for rule in _rules()
+        if rule.get("matchManagers") == ["github-actions"]
+        and rule.get("matchPackageNames") == ["python"]
+    ]
+    assert len(matches) == 1
+    assert matches[0]["allowedVersions"] == "3.12"
