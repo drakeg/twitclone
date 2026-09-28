@@ -266,6 +266,19 @@ Delivered capabilities include nullable edit state in the public API, portabilit
 
 Delivered capabilities include bounded owner-only API editing and soft removal under `posts:write`, reuse of browser validation/mention/topic semantics, preserved non-public-post privacy, existing credential rate limits, and strong ETag/`If-Match` lost-update protection for lifecycle mutations. POST idempotency remains deliberately deferred until a concrete integration needs safe create retries.
 
+## Sprint 24 — Local release-image serving confidence
+
+**Goal:** Verify the immutable production image can actually serve HTTP through Gunicorn, not merely import the app module, without requiring AWS, public ports, or a production database.
+
+**Status:** In implementation. Detailed acceptance criteria are maintained in `docs/sprints/SPRINT_24.md`.
+
+**Planned direction:**
+
+- Run the existing local release image's default Gunicorn command in a network-isolated container.
+- Probe the database-independent `/health/live` route from inside the container.
+- Fail CI on startup or HTTP-serving regressions and clean up the container on every path.
+- Preserve a separate readiness/migration/production deployment boundary.
+
 ## Cross-cutting release gates and deferred work
 
 These are not new product sprints and remain independently tracked:
