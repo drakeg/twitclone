@@ -44,9 +44,10 @@ specific authorization before any paid resources are provisioned.
 
 ## Current development
 
-As of Sprint 21, active work is tracked in
-`docs/sprints/SPRINT_21.md`. The sprint covers author-controlled post lifecycle
-behavior, including owner-only editing and soft removal of original posts.
+The legacy TODO no longer identifies an active sprint. Numbered work through
+Sprint 24 is complete; current and future work must be taken from
+`docs/ROADMAP.md`, an explicitly opened sprint document, or a tracked GitHub
+issue. Do not infer new work from this historical file.
 
 ## Historical note
 
