@@ -270,14 +270,9 @@ Delivered capabilities include bounded owner-only API editing and soft removal u
 
 **Goal:** Verify the immutable production image can actually serve HTTP through Gunicorn, not merely import the app module, without requiring AWS, public ports, or a production database.
 
-**Status:** In implementation. Detailed acceptance criteria are maintained in `docs/sprints/SPRINT_24.md`.
+**Status:** Completed. Detailed implementation and boundaries are maintained in `docs/sprints/SPRINT_24.md`.
 
-**Planned direction:**
-
-- Run the existing local release image's default Gunicorn command in a network-isolated container.
-- Probe the database-independent `/health/live` route from inside the container.
-- Fail CI on startup or HTTP-serving regressions and clean up the container on every path.
-- Preserve a separate readiness/migration/production deployment boundary.
+Delivered capabilities include an isolated launch of the immutable runtime image's production Gunicorn process, bounded polling of the database-independent `/health/live` route from inside the container, response validation, failure log capture, and guaranteed cleanup. No host port, image publication, AWS access, production database, or deployment authorization is involved.
 
 ## Cross-cutting release gates and deferred work
 
