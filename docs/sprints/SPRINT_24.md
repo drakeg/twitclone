@@ -1,6 +1,6 @@
 # Sprint 24 — Local Release-Image Serving Confidence
 
-**Status:** In implementation.
+**Status:** Completed.
 
 ## Goal
 
@@ -8,7 +8,7 @@ Exercise Ripple's actual production web-serving entry point in CI while preservi
 
 ## Story 24.1 — Immutable-image HTTP smoke
 
-**Status:** In implementation.
+**Status:** Completed in PR #289.
 
 - Keep the existing immutable local image build and revision-label verification.
 - Replace the Python import-only smoke with an isolated launch of the image's default Gunicorn process.
@@ -26,6 +26,16 @@ Exercise Ripple's actual production web-serving entry point in CI while preservi
 - No host port, network egress, registry push, AWS API call, or new paid service is introduced.
 - Automated contract tests cover CI invoking the smoke script and its isolation/cleanup behavior.
 - Python, release-image, and Terraform validation remain separate jobs.
+
+## Sprint outcome
+
+Sprint 24 upgrades release-image validation from an import-only check to an actual HTTP-serving smoke test of the immutable runtime image's production Gunicorn entry point. CI now proves that the container can start, serve the documented database-independent liveness route, return the expected response, and clean itself up without exposing a host port or contacting external infrastructure.
+
+The sprint deliberately stops at process/liveness confidence. Database readiness, schema migration, deployment preflight, restore rehearsal, TLS, and public-launch evidence remain separate operational contracts and are not implied by this smoke test.
+
+## Definition of done
+
+Completed. The immutable release image is exercised through its real Gunicorn serving path in CI, with bounded retries, isolated networking, cleanup, and zero-spend safeguards.
 
 ## Future direction
 
