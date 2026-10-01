@@ -19,7 +19,7 @@ gunicorn==26.2.0
 psycopg[binary]==3.3.6
 pytz==2026.4
 SQLAlchemy==2.1.1
-stripe==15.6.1
+stripe==16.0.0
 tzlocal==5.4.4
 WTForms==3.2.2
 
