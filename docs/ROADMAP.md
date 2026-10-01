@@ -241,6 +241,19 @@ Delivered capabilities include bounded owner-only API editing and soft removal u
 
 Delivered capabilities include an isolated launch of the immutable runtime image's production Gunicorn process, bounded polling of the database-independent `/health/live` route from inside the container, response validation, failure log capture, and guaranteed cleanup. No host port, image publication, AWS access, production database, or deployment authorization is involved.
 
+## Sprint 25 — Accessibility evidence capture
+
+**Goal:** Make Ripple's remaining manual accessibility release gate reproducible and reviewable without pretending automated checks establish conformance.
+
+**Status:** In implementation. Detailed acceptance criteria are maintained in `docs/sprints/SPRINT_25.md`.
+
+**Planned direction:**
+
+- Provide a sanitized local evidence-record template for the required NVDA, VoiceOver, and 200%/400% zoom scenarios.
+- Validate record structure, release identity, required scenario coverage, defect references, retest outcomes, and approval completeness offline.
+- Keep completed evidence records outside the public repository.
+- Never let repository tooling perform the manual tests, claim WCAG conformance, set the launch-gate environment flag, or authorize release.
+
 ## Cross-cutting release gates and deferred work
 
 These are not new product sprints and remain independently tracked:
