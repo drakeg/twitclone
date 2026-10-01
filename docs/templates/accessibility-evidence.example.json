@@ -1,0 +1,63 @@
+{
+  "format": "ripple-accessibility-evidence",
+  "version": 1,
+  "release_sha": "0123456789abcdef0123456789abcdef01234567",
+  "review_date": "2026-09-30",
+  "operator": "record operator name or opaque operator reference",
+  "flows": [
+    {
+      "assistive_technology": "NVDA",
+      "assistive_technology_version": "replace-with-version",
+      "browser": "Firefox",
+      "browser_version": "replace-with-version",
+      "platform": "Windows",
+      "zoom_percent": 100,
+      "viewport": "replace-with-viewport",
+      "flow": "sign in and navigate timeline",
+      "result": "pass",
+      "defect_reference": null,
+      "retest_result": null
+    },
+    {
+      "assistive_technology": "VoiceOver",
+      "assistive_technology_version": "replace-with-version",
+      "browser": "Safari",
+      "browser_version": "replace-with-version",
+      "platform": "macOS",
+      "zoom_percent": 100,
+      "viewport": "replace-with-viewport",
+      "flow": "profile editing",
+      "result": "pass",
+      "defect_reference": null,
+      "retest_result": null
+    },
+    {
+      "assistive_technology": "none",
+      "assistive_technology_version": null,
+      "browser": "replace-with-browser",
+      "browser_version": "replace-with-version",
+      "platform": "replace-with-platform",
+      "zoom_percent": 200,
+      "viewport": "replace-with-viewport",
+      "flow": "representative core flows",
+      "result": "pass",
+      "defect_reference": null,
+      "retest_result": null
+    },
+    {
+      "assistive_technology": "none",
+      "assistive_technology_version": null,
+      "browser": "replace-with-browser",
+      "browser_version": "replace-with-version",
+      "platform": "replace-with-platform",
+      "zoom_percent": 400,
+      "viewport": "replace-with-viewport",
+      "flow": "representative core flows",
+      "result": "pass",
+      "defect_reference": null,
+      "retest_result": null
+    }
+  ],
+  "review_decision": "blocked",
+  "notes": "Do not include private account data, credentials, or customer data."
+}
