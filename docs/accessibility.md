@@ -96,3 +96,17 @@ Remaining accessibility work should complete and archive the manual assistive-
 technology gate above, broaden component-state contrast review, and remediate
 findings by WCAG 2.2 success criterion and severity. Automated results alone
 must never be presented as proof of conformance.
+
+
+## Manual evidence record workflow
+
+Use `docs/templates/accessibility-evidence.example.json` as a local shape example for the required NVDA, VoiceOver, and 200%/400% zoom matrix. Copy the template outside the repository, replace placeholders with actual browser/assistive-technology versions and viewport details, record defects/retests, and keep private account data out of the record.
+
+Validate the completed local record with:
+
+```bash
+python scripts/validate-accessibility-evidence.py /secure/path/accessibility-evidence.json
+python scripts/validate-accessibility-evidence.py /secure/path/accessibility-evidence.json --json
+```
+
+The validator checks record shape, exact required scenarios, release identity, result/defect consistency, and approved-record completeness. It does **not** perform accessibility testing, set `RIPPLE_ACCESSIBILITY_EVIDENCE_PASSED`, prove WCAG conformance, or authorize launch. A human reviewer must still review the evidence and explicitly acknowledge the separate launch gate. Completed evidence records belong in the approved operational record system, not this public repository.
