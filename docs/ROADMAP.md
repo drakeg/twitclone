@@ -125,98 +125,65 @@ The following numbered sprints are the agreed product direction after Sprint 9. 
 
 **Goal:** Help users find demonstrated topic-specific contributors without turning reputation into a global popularity score.
 
-**Planned direction:**
+**Status:** Completed. Detailed implementation and boundaries are maintained in `docs/sprints/SPRINT_10.md`.
 
-- Define a transparent topic vocabulary using explicit user/post topics rather than inferred sensitive traits.
-- Derive topic contribution history from real constructive signals and other eligible, auditable activity.
-- Show explainable topic-specific reputation summaries such as contribution history and earned levels.
-- Prevent self-awards, paid-status influence, follower-count influence, and hidden political/viewpoint scoring.
-- Keep reputation informational initially; do not silently use it to amplify or suppress reach.
-- Establish anti-gaming tests and clear reset/correction behavior before reputation affects higher-trust workflows.
+Delivered capabilities include explicit normalized topics, auditable topic contribution evidence, explainable profile summaries, transparent contributor discovery, correction behavior, and anti-gaming boundaries. Reputation remains topic-specific and informational; payment, follower count, verification, and hidden sensitive-trait inference do not buy reputation or feed reach.
 
 ## Sprint 11 — Collaborative knowledge and resource posts
 
 **Goal:** Let useful community knowledge remain discoverable and maintainable instead of disappearing down a chronological feed.
 
-**Planned direction:**
+**Status:** Completed. Detailed implementation and boundaries are maintained in `docs/sprints/SPRINT_11.md`.
 
-- Introduce a durable resource/guide content type separate from ordinary posts.
-- Support attributable revisions and visible revision history.
-- Allow source/reference links and structured topic association.
-- Define contributor/reviewer permissions without allowing popularity or payment to purchase edit authority.
-- Provide discovery paths from topics and relevant conversations to maintained resources.
+Delivered capabilities include durable resource posts, attributable append-only revisions, visible history, source/reference support, explicit topic association, topic discovery, and non-destructive resource removal that preserves provenance. Popularity and paid status do not purchase edit authority or discovery placement.
 
 ## Sprint 12 — Feed choice and relationship-first discovery
 
 **Goal:** Give users meaningful, understandable control over how Ripple orders and discovers content.
 
-**Planned direction:**
+**Status:** Completed. Detailed implementation and boundaries are maintained in `docs/sprints/SPRINT_12.md`.
 
-- Preserve a straightforward chronological/following option.
-- Add explicit topic-oriented and relationship-first/quiet discovery modes where useful.
-- Explain what each feed mode optimizes for; avoid a single opaque engagement score.
-- Keep user choice persistent and reversible.
-- Measure only behavior Ripple actually records and avoid claims about emotional state or inferred ideology.
+Delivered feed modes include All Ripple, Following, Topic, and relationship-first Quiet mode with understandable ordering, persistent/reversible user choice where appropriate, and regression-tested integrity boundaries. Engagement totals, payment, verification, follower count, inferred ideology, and sensitive traits do not silently reorder organic content.
 
 ## Sprint 13 — Communities and topic spaces
 
 **Goal:** Create persistent spaces where conversations, resources, and topic contribution history can coexist.
 
-**Planned direction:**
+**Status:** Completed. Detailed implementation and boundaries are maintained in `docs/sprints/SPRINT_13.md`.
 
-- Community/topic-space membership and discovery.
-- Space-specific posts and durable resources.
-- Understandable community roles and moderation boundaries.
-- Community-specific contribution context without replacing global Community Standards.
-- Privacy-conscious local/community coordination may be evaluated here, with coarse/explicit location rather than hidden precise tracking.
+Delivered capabilities include persistent public spaces, explicit membership and roles, space-scoped conversations/resources, auditable local moderation and appeals, and descriptive community contribution context. Global Community Standards remain authoritative, and community roles/payment do not create global ranking or reputation authority.
 
 ## Sprint 14 — Replies and conversation structure
 
 **Goal:** Add a true public reply model so Ripple conversations can develop as readable discussions rather than relying on Quote as the only public response mechanism.
 
-**Planned direction:**
+**Status:** Completed. Detailed implementation and boundaries are maintained in `docs/sprints/SPRINT_14.md`.
 
-- Threaded replies with stable URLs and authorization/visibility rules.
-- Conversation intent and health controls applied coherently to replies.
-- Constructive contribution signals and community context integrated where semantically appropriate.
-- Existing Quote behavior retained as a distinct repost-with-comment action.
-- Migration/compatibility must not falsely reinterpret historical Quotes as replies.
+Delivered capabilities include threaded replies with stable URLs, deterministic ordering, conversation-intent and health integration, reply-level constructive signals/moderation, bounded deep-thread handling, removal-safe tombstones, and compatibility rules that preserve historical Quotes as a distinct repost-with-comment action.
 
 ## Sprint 15 — Creator and community sustainability
 
 **Goal:** Expand sustainable creator/community value without selling credibility, moderation influence, or organic reach.
 
-**Planned direction:**
+**Status:** Completed. Detailed implementation and boundaries are maintained in `docs/sprints/SPRINT_15.md`.
 
-- Evaluate memberships/support and creator/community convenience tools.
-- Extend measured analytics only where Ripple has reliable underlying data.
-- Keep core conversation, safety, community participation, and reputation available without pay-to-win mechanics.
-- Document fees, entitlements, cancellation behavior, and moderation boundaries before enabling any new paid capability.
+Delivered work includes reversible creator-support and membership-publication foundations, measured sustainability-page analytics, and a provider-neutral transaction contract for possible future checkout. Actual payment processing remains separately gated and unimplemented; payment cannot purchase reach, moderation authority, verification, reputation, or safety exceptions.
 
 ## Sprint 16 — Public API and integrations
 
 **Goal:** Provide a stable, permissioned interface for automation and external clients without exposing internal implementation details as an accidental API.
 
-**Planned direction:**
+**Status:** Completed. Detailed implementation and boundaries are maintained in `docs/sprints/SPRINT_16.md`.
 
-- Versioned API contracts for selected mature capabilities.
-- Scoped authentication/authorization and rate limiting.
-- Developer documentation and representative contract tests.
-- Webhook/integration feasibility for appropriate events.
-- Privacy, abuse, and operational-cost review before broad write access.
+Delivered capabilities include versioned bounded API contracts, scoped/revocable bearer credentials, database-backed rate limiting, representative stable read/write post contracts, and a tested provider-neutral webhook envelope/signature/retry design. Outbound webhook delivery remains deliberately inactive pending endpoint ownership, SSRF, outbox/retry, observability, retention, and cost controls.
 
 ## Sprint 17 — Federation and interoperability feasibility
 
 **Goal:** Decide whether federation/interoperability materially advances Ripple's product goals before committing to a distributed architecture.
 
-**Status:** Decision sprint only; implementation is not pre-authorized.
+**Status:** Completed — decision sprint only. Detailed findings are maintained in `docs/sprints/SPRINT_17.md` and ADR-0045.
 
-**Planned direction:**
-
-- Evaluate ActivityPub and relevant interoperability approaches against Ripple's identity, moderation, community-context, privacy, and conversation-control semantics.
-- Model abuse handling, deletion, blocking, moderation authority, media storage, and operating cost across server boundaries.
-- Produce an ADR with proceed/defer/reject recommendation and an incremental implementation plan only if justified.
-- Do not add recurring infrastructure or operational burden merely to claim federation support.
+Decision: **defer broad ActivityPub federation and continue low-risk interoperability foundations**. Ripple does not currently authorize remote inbox/outbox processing, remote social-state persistence, remote media ingestion, federation delivery workers, or recurring federation infrastructure. Reconsideration requires explicit product demand plus identity, moderation, privacy, deletion, media, abuse, reliability, staffing, recovery, and cost evidence.
 
 ## Sprint 18 — User-controlled portability
 
