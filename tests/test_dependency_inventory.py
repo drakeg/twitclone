@@ -1,6 +1,7 @@
 """Sprint 20 dependency inventory coverage."""
 
 import importlib.util
+import re
 from pathlib import Path
 
 
@@ -89,10 +90,19 @@ def test_inventory_reports_ci_actions_and_terraform_constraints():
         item["name"] == "actions/checkout" and item["version"] == "v7"
         for item in actions
     )
+    versions_text = (ROOT / "infra" / "terraform" / "versions.tf").read_text(encoding="utf-8")
+    aws_match = re.search(
+        r'aws\s*=\s*\{[^}]*source\s*=\s*"hashicorp/aws"[^}]*version\s*=\s*"([^"]+)"',
+        versions_text,
+        re.DOTALL,
+    )
+    assert aws_match is not None
+    expected_aws_version = aws_match.group(1)
+
     assert any(
         item["classification"] == "provider"
         and item["name"] == "hashicorp/aws"
-        and item["version"] == "6.66.0"
+        and item["version"] == expected_aws_version
         for item in terraform
     )
     assert any(
