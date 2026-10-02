@@ -50,6 +50,7 @@ The project does not automatically parse `.env` yet. Export the variables or use
 | `SCHEDULER_ENABLED` | No | `true` | Enables or disables scheduled-post processing. |
 | `SCHEDULER_INTERVAL_SECONDS` | No | `60` | Scheduler polling interval; must be at least one second. |
 | `PORT` | No | `8000` | Port used by the local `application.py` runner. |
+| `STRIPE_API_VERSION` | No | `2026-03-25.dahlia` | Stripe API contract used for outbound billing requests; pin independently from the SDK major and change only with a reviewed API migration. |
 
 ## Environment guidance
 
@@ -82,3 +83,8 @@ operations runbook before switching an existing deployment to S3-backed media.
 - Rotate any secret that has been exposed in source control or logs.
 - Use the hosting platform's secret manager or environment configuration for production values.
 - Do not run production using Flask's development server.
+
+
+## Stripe API compatibility
+
+Ripple pins `STRIPE_API_VERSION` separately from the `stripe-python` package version. A major SDK upgrade may change the SDK default API version; upgrading the library alone must not silently migrate Ripple's Checkout or Billing Portal request contract. Review Stripe's API changelog and update `STRIPE_API_VERSION` only as a separate, tested migration. Webhook endpoint versioning remains configured in Stripe and must be reviewed independently.
