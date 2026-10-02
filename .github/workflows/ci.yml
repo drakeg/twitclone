@@ -100,7 +100,7 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v4.0.1
         with:
-          terraform_version: "v1.16.4"
+          terraform_version: "v1.16.5"
           terraform_wrapper: false
 
       - name: Restore Terraform provider cache
