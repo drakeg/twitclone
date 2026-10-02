@@ -100,3 +100,20 @@ def test_verified_webhook_controls_badge_entitlement(client, app, monkeypatch):
         assert Subscription.query.filter_by(provider_subscription_id='sub_test_123').one().status == 'canceled'
         assert Entitlement.query.filter_by(user_id=user_id, key='verified_badge').one().active is False
         assert db.session.get(User, user_id).verified_badge_active is False
+
+
+def test_stripe_configuration_pins_api_version(app, monkeypatch):
+    app.config.update(
+        STRIPE_SECRET_KEY="sk_test_fake",
+        STRIPE_API_VERSION="2026-03-25.dahlia",
+    )
+    monkeypatch.setattr("twitclone.payments.routes.stripe.api_key", None)
+    monkeypatch.setattr("twitclone.payments.routes.stripe.api_version", None)
+    from twitclone.payments.routes import _configure_stripe
+
+    with app.app_context():
+        _configure_stripe()
+
+    import stripe
+    assert stripe.api_key == "sk_test_fake"
+    assert stripe.api_version == "2026-03-25.dahlia"
