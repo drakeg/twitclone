@@ -58,6 +58,7 @@ class Config:
 
     STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
     STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+    STRIPE_API_VERSION = os.getenv("STRIPE_API_VERSION", "2026-03-25.dahlia").strip()
     STRIPE_BILLING_ENABLED = _as_bool(os.getenv("STRIPE_BILLING_ENABLED"), default=False)
 
     @classmethod

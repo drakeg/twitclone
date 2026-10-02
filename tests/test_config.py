@@ -19,6 +19,7 @@ def load_config(monkeypatch, **environment):
         "MEDIA_S3_PREFIX",
         "SCHEDULER_ENABLED",
         "SCHEDULER_INTERVAL_SECONDS",
+        "STRIPE_API_VERSION",
     }
     for key in keys:
         monkeypatch.delenv(key, raising=False)
@@ -129,3 +130,15 @@ def test_sqlite_is_rejected_in_production(monkeypatch, database_url):
 
     with pytest.raises(RuntimeError, match="Production requires PostgreSQL"):
         load_config(monkeypatch, **environment)
+
+
+def test_stripe_api_version_has_stable_default_and_env_override(monkeypatch):
+    config = load_config(monkeypatch, SECRET_KEY="test-only-secret")
+    assert config.Config.STRIPE_API_VERSION == "2026-03-25.dahlia"
+
+    config = load_config(
+        monkeypatch,
+        SECRET_KEY="test-only-secret",
+        STRIPE_API_VERSION="2026-09-30.endive",
+    )
+    assert config.Config.STRIPE_API_VERSION == "2026-09-30.endive"

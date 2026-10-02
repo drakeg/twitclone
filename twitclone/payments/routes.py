@@ -13,7 +13,9 @@ from twitclone.payments import payments_blueprint
 
 
 def _stripe_ready(): return bool(current_app.config.get('STRIPE_BILLING_ENABLED') and current_app.config.get('STRIPE_SECRET_KEY'))
-def _configure_stripe(): stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
+def _configure_stripe():
+    stripe.api_key = current_app.config['STRIPE_SECRET_KEY']
+    stripe.api_version = current_app.config['STRIPE_API_VERSION']
 def _dt(value): return datetime.fromtimestamp(value, tz=UTC).replace(tzinfo=None) if value else None
 
 
