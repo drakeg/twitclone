@@ -245,14 +245,9 @@ Delivered capabilities include an isolated launch of the immutable runtime image
 
 **Goal:** Make Ripple's remaining manual accessibility release gate reproducible and reviewable without pretending automated checks establish conformance.
 
-**Status:** In implementation. Detailed acceptance criteria are maintained in `docs/sprints/SPRINT_25.md`.
+**Status:** Completed. Detailed implementation and boundaries are maintained in `docs/sprints/SPRINT_25.md`.
 
-**Planned direction:**
-
-- Provide a sanitized local evidence-record template for the required NVDA, VoiceOver, and 200%/400% zoom scenarios.
-- Validate record structure, release identity, required scenario coverage, defect references, retest outcomes, and approval completeness offline.
-- Keep completed evidence records outside the public repository.
-- Never let repository tooling perform the manual tests, claim WCAG conformance, set the launch-gate environment flag, or authorize release.
+Delivered capabilities include a sanitized evidence-record template for the required NVDA, VoiceOver, and 200%/400% zoom scenarios, offline structural/completeness validation, defect/retest handling, release identity checks, and regression coverage that preserves the boundary between evidence validation and actual accessibility testing. Manual evidence collection remains a separate public-launch gate.
 
 ## Cross-cutting release gates and deferred work
 
