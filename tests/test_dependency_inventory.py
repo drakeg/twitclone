@@ -52,8 +52,9 @@ def test_inventory_distinguishes_direct_locked_and_development_python_dependenci
         for item in python_entries
         if item["classification"] == "locked" and item["name"] == "flask"
     ]
-    assert direct_flask[0]["version"] == "==3.1.3"
-    assert locked_flask[0]["version"] == "==3.1.3"
+    assert len(direct_flask) == 1
+    assert len(locked_flask) == 1
+    assert direct_flask[0]["version"] == locked_flask[0]["version"]
 
 
 def test_inventory_reports_release_container_images():
@@ -61,12 +62,18 @@ def test_inventory_reports_release_container_images():
     inventory = module.build_inventory(ROOT)
 
     docker = [item for item in inventory["entries"] if item["surface"] == "docker"]
+    dockerfile_text = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    python_match = re.search(r"^FROM\s+python:([^\s]+)", dockerfile_text, re.MULTILINE)
+    assert python_match is not None
+    expected_python_image = python_match.group(1)
+
     assert any(
         item["classification"] == "runtime_image"
         and item["name"] == "python"
-        and item["version"] == "3.12-slim"
+        and item["version"] == expected_python_image
         for item in docker
     )
+
     compose_text = (ROOT / "compose.production.yaml").read_text(encoding="utf-8")
     caddy_match = re.search(r"image:\s*caddy:([^\s]+)", compose_text)
     assert caddy_match is not None
@@ -91,10 +98,17 @@ def test_inventory_reports_ci_actions_and_terraform_constraints():
         item for item in inventory["entries"] if item["surface"] == "terraform"
     ]
 
+    workflow_text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    checkout_match = re.search(r"uses:\s*actions/checkout@([^\s]+)", workflow_text)
+    assert checkout_match is not None
+    expected_checkout_version = checkout_match.group(1)
+
     assert any(
-        item["name"] == "actions/checkout" and item["version"] == "v7"
+        item["name"] == "actions/checkout"
+        and item["version"] == expected_checkout_version
         for item in actions
     )
+
     versions_text = (ROOT / "infra" / "terraform" / "versions.tf").read_text(encoding="utf-8")
     aws_match = re.search(
         r'aws\s*=\s*\{[^}]*source\s*=\s*"hashicorp/aws"[^}]*version\s*=\s*"([^"]+)"',
@@ -110,10 +124,17 @@ def test_inventory_reports_ci_actions_and_terraform_constraints():
         and item["version"] == expected_aws_version
         for item in terraform
     )
+    terraform_cli_match = re.search(
+        r'required_version\s*=\s*"([^"]+)"',
+        versions_text,
+    )
+    assert terraform_cli_match is not None
+    expected_terraform_cli = terraform_cli_match.group(1)
+
     assert any(
         item["classification"] == "terraform_cli"
         and item["name"] == "terraform"
-        and item["version"] == "< 1.17.0"
+        and item["version"] == expected_terraform_cli
         for item in terraform
     )
 
