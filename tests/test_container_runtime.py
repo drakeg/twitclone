@@ -64,3 +64,22 @@ def test_compose_test_service_is_isolated_from_local_application_data():
     test_service = compose.split("  test:\n", maxsplit=1)[1].split("\nvolumes:", maxsplit=1)[0]
     assert ".:/app:ro" in test_service
     assert "twitclone_data" not in test_service
+
+
+def test_compose_application_settings_are_env_configurable_with_durable_defaults():
+    compose = read_project_file("compose.yaml")
+    env_example = read_project_file(".env.example")
+
+    for required in (
+        'DATABASE_URL: ${DATABASE_URL:-sqlite:////data/twitclone.db}',
+        'UPLOAD_FOLDER: ${UPLOAD_FOLDER:-/data/uploads}',
+        'SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-false}',
+        'SCHEDULER_INTERVAL_SECONDS: ${SCHEDULER_INTERVAL_SECONDS:-60}',
+        'STRIPE_BILLING_ENABLED: ${STRIPE_BILLING_ENABLED:-false}',
+        'STRIPE_API_VERSION: ${STRIPE_API_VERSION:-2026-03-25.dahlia}',
+    ):
+        assert required in compose
+
+    assert "DATABASE_URL=sqlite:////data/twitclone.db" in env_example
+    assert "UPLOAD_FOLDER=/data/uploads" in env_example
+    assert "SCHEDULER_ENABLED=false" in env_example

@@ -34,12 +34,14 @@ media.
 
 By default, Compose publishes Ripple on `0.0.0.0`, so other devices on the same LAN can connect using the Docker host's LAN address, for example `http://192.168.1.50:8000`. Determine the host address with your operating system's normal network tools and use that address instead of `localhost` from another computer. Your host firewall must also allow inbound TCP traffic to the selected Ripple port.
 
-If you intentionally want host-only access, set `RIPPLE_BIND_HOST=127.0.0.1`. The default can be made explicit in a local `.env` file:
+If you intentionally want host-only access, set `RIPPLE_BIND_HOST=127.0.0.1`. Copy `.env.example` to `.env` to configure the Compose deployment without editing YAML:
 
-```text
-RIPPLE_BIND_HOST=0.0.0.0
-RIPPLE_PORT=8000
+```bash
+cp .env.example .env
+docker compose up --build
 ```
+
+Compose automatically reads `.env` for interpolation. The example preserves Ripple's durable local defaults (`sqlite:////data/twitclone.db` and `/data/uploads`) while allowing the bind host, published port, scheduler interval, mail settings, media settings, and disabled-by-default Stripe configuration to be changed from the same file.
 
 If port 8000 is already in use by another local application, set a different
 host port while leaving Ripple's internal container port unchanged:
