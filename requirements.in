@@ -12,12 +12,12 @@ Flask-SQLAlchemy==3.1.1
 Flask-WTF==1.3.0
 Pillow==12.3.0
 bcrypt==5.0.0
-boto3==1.43.107
+boto3==1.43.108
 gravatar==0.1
 gunicorn==26.2.0
 psycopg[binary]==3.3.6
 pytz==2026.4
-SQLAlchemy==2.1.1
+SQLAlchemy==2.1.2
 stripe==16.0.0
 tzlocal==5.4.4
 WTForms==3.2.2
