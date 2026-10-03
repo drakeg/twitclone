@@ -45,8 +45,8 @@ def test_cost_estimate_has_date_total_and_first_party_sources():
 def test_local_compose_durable_state_contract_remains_intact():
     compose = read("compose.yaml")
 
-    assert "DATABASE_URL: sqlite:////data/twitclone.db" in compose
-    assert "UPLOAD_FOLDER: /data/uploads" in compose
+    assert "DATABASE_URL: ${DATABASE_URL:-sqlite:////data/twitclone.db}" in compose
+    assert "UPLOAD_FOLDER: ${UPLOAD_FOLDER:-/data/uploads}" in compose
     assert "twitclone_data:/data" in compose
     assert 'DATABASE_URL: "sqlite:///:memory:"' in compose
 
