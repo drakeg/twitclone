@@ -32,12 +32,14 @@ The original `app.py` remains the legacy monolith during the stabilization sprin
    python -m pytest tests/test_config.py
    ```
 
-The project does not automatically parse `.env` yet. Export the variables or use a development tool that loads `.env` before starting Python. Automatic `.env` loading will be considered during dependency reconciliation rather than introducing an unreviewed dependency in this story.
+Docker Compose automatically reads the repository `.env` file for variable interpolation, and `compose.yaml` passes the documented application settings into the migrate, web, and worker containers with safe local defaults. Copy `.env.example` to `.env` when using Compose. Direct `python application.py` execution still does not parse `.env` itself; export variables through the shell or a development tool when running outside Compose.
 
 ## Variables
 
 | Variable | Required | Default | Purpose |
 | --- | --- | --- | --- |
+| `RIPPLE_BIND_HOST` | Compose only | `0.0.0.0` | Host interface used for the published local container port. |
+| `RIPPLE_PORT` | Compose only | `8000` | Host port published to Ripple's fixed container port 8000. |
 | `TWITCLONE_ENV` | No | `development` | Selects development, testing, or production behavior. |
 | `SECRET_KEY` | Production only | Development-only fallback | Signs sessions and CSRF tokens. Production startup fails when absent. |
 | `DATABASE_URL` | Production | Local SQLite database | SQLAlchemy database connection URL. Production requires PostgreSQL. |
