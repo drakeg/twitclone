@@ -67,10 +67,15 @@ def test_inventory_reports_release_container_images():
         and item["version"] == "3.12-slim"
         for item in docker
     )
+    compose_text = (ROOT / "compose.production.yaml").read_text(encoding="utf-8")
+    caddy_match = re.search(r"image:\s*caddy:([^\s]+)", compose_text)
+    assert caddy_match is not None
+    expected_caddy_version = caddy_match.group(1)
+
     assert any(
         item["classification"] == "compose_image"
         and item["name"] == "caddy"
-        and item["version"] == "2.11.4-alpine"
+        and item["version"] == expected_caddy_version
         for item in docker
     )
 
