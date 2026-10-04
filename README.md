@@ -113,7 +113,7 @@ expected output, production safety notes, and current revocation limitation.
 
 ### Prerequisites
 
-- Python 3.11 or newer
+- Python 3.12.x
 - Git
 
 ### Setup
@@ -170,16 +170,12 @@ See:
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - [`docs/sprints/SPRINT_0.md`](docs/sprints/SPRINT_0.md)
 
-## Near-term roadmap
+## Roadmap
 
-- **Sprint 0:** Repository assessment, documentation, backlog, and delivery standards
-- **Sprint 1:** Secure and reproducible development baseline
-- **Sprint 2:** Application structure and automated test foundation
-- **Sprint 3:** Core timeline and post reliability
-- **Sprint 4:** Social interactions and notifications
-- **Sprint 5:** Media, polls, and scheduled-post hardening
-- **Sprint 6:** Deployment readiness and operational documentation
-- **Sprint 7:** Accessible interaction and content
+The numbered roadmap and sprint records are maintained in
+[`docs/ROADMAP.md`](docs/ROADMAP.md) and `docs/sprints/`. Do not use this
+README as a second backlog; the roadmap is the source of truth for completed,
+active, deferred, and future work.
 
 ## Security notice
 
