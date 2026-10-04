@@ -41,7 +41,7 @@ Docker Compose automatically reads the repository `.env` file for variable inter
 | `RIPPLE_BIND_HOST` | Compose only | `0.0.0.0` | Host interface used for the published local container port. |
 | `RIPPLE_PORT` | Compose only | `8000` | Host port published to Ripple's fixed container port 8000. |
 | `TWITCLONE_ENV` | No | `development` | Selects development, testing, or production behavior. |
-| `SECRET_KEY` | Production only | Development-only fallback | Signs sessions and CSRF tokens. Production startup fails when absent. |
+| `SECRET_KEY` | Yes | None | Signs sessions and CSRF tokens. Startup fails in every environment when absent. |
 | `DATABASE_URL` | Production | Local SQLite database | SQLAlchemy database connection URL. Production requires PostgreSQL. |
 | `UPLOAD_FOLDER` | No | `static/uploads` | Development filesystem location for uploaded post images. Production must use the durable media adapter defined by the operations runbook. |
 | `MEDIA_STORAGE_BACKEND` | No | `filesystem` | `filesystem` for local development and `s3` for production. |
@@ -58,7 +58,7 @@ Docker Compose automatically reads the repository `.env` file for variable inter
 
 ### Development
 
-Use a unique local secret where practical. The development fallback exists only to keep first-time setup simple and must never be treated as a deployment secret.
+Set a unique local `SECRET_KEY`; the application intentionally has no built-in fallback. Compose supplies a local development default only when the variable is omitted, while direct host execution requires you to export one.
 
 ### Testing
 
