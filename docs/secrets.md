@@ -33,6 +33,8 @@ The repository contained two predictable placeholder values:
 
 Neither value should ever be used as a real secret. The environment-backed configuration now refuses to start without `SECRET_KEY`.
 
-## Transitional legacy note
+## Startup paths
 
-The supported entry point is `application.py`, which validates environment-backed configuration before exposing the WSGI application. The legacy monolith still contains its historical placeholder assignment and is tracked as an urgent removal item because changing that large file safely requires the CI-backed application-factory cleanup. Do not run `app.py` directly.
+The supported WSGI entry point is `application.py`. The compatibility `app.py` module also imports `Config` and validates the same environment-backed configuration; neither startup path contains a built-in application secret.
+
+Prefer `application.py` / `application:application` for documented local and production workflows so configuration, application-factory behavior, and deployment instructions stay aligned.
