@@ -47,3 +47,20 @@ def test_startup_paths_do_not_embed_predictable_secret_placeholders():
     assert "historical placeholder assignment" not in secrets_docs
     assert "tracked as an urgent removal item" not in secrets_docs
     assert "neither startup path contains a built-in application secret" in secrets_docs.lower()
+
+
+def test_legacy_todo_tracks_latest_completed_numbered_sprint():
+    todo = _read("TODO.md")
+    roadmap = _read("docs/ROADMAP.md")
+
+    completed = []
+    current = None
+    for line in roadmap.splitlines():
+        if line.startswith("## Sprint "):
+            current = line.split("## Sprint ", 1)[1].split(" ", 1)[0]
+        elif current and line.startswith("**Status:** Completed"):
+            completed.append(int(current))
+            current = None
+
+    assert completed
+    assert f"Numbered work through\nSprint {max(completed)} is complete" in todo
