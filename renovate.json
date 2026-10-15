@@ -29,10 +29,10 @@
       "matchManagers": [
         "github-actions"
       ],
-      "matchPackageNames": [
+      "allowedVersions": "/^3\\.12(?:\\.|$)/",
+      "matchDepNames": [
         "python"
-      ],
-      "allowedVersions": "3.12"
+      ]
     },
     {
       "description": "Group Python runtime patch updates for one compatibility review",
