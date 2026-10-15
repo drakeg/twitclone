@@ -85,7 +85,8 @@ def test_github_actions_python_runtime_stays_on_312():
         rule
         for rule in _rules()
         if rule.get("matchManagers") == ["github-actions"]
-        and rule.get("matchPackageNames") == ["python"]
+        and rule.get("matchDepNames") == ["python"]
     ]
     assert len(matches) == 1
-    assert matches[0]["allowedVersions"] == "3.12"
+    assert matches[0]["allowedVersions"] == r"/^3\.12(?:\.|$)/"
+    assert "matchPackageNames" not in matches[0]
