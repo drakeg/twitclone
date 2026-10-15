@@ -37,6 +37,15 @@ def test_python_runtime_contract_is_consistent():
         for rule in python_rules
     )
 
+    actions_python_rules = [
+        rule
+        for rule in renovate["packageRules"]
+        if "github-actions" in rule.get("matchManagers", [])
+        and "python" in rule.get("matchDepNames", [])
+    ]
+    assert len(actions_python_rules) == 1
+    assert actions_python_rules[0]["allowedVersions"] == r"/^3\.12(?:\.|$)/"
+
 
 def test_release_image_does_not_use_newer_python_than_supported_runtime():
     supported = (ROOT / ".python-version").read_text(encoding="utf-8").strip()
