@@ -14,7 +14,7 @@ For Gunicorn, use `application:application`. See
 [`production-serving.md`](production-serving.md) for the supported command and
 process boundaries.
 
-The original `app.py` remains the legacy monolith during the stabilization sprints. New operational instructions should use the configured entry point above.
+`app.py` remains a compatibility module for historical imports and direct execution. New operational instructions should use `application.py` / `application:application` so application-factory, configuration, and deployment behavior stay aligned.
 
 ## Local setup
 
@@ -40,6 +40,7 @@ Docker Compose automatically reads the repository `.env` file for variable inter
 | --- | --- | --- | --- |
 | `RIPPLE_BIND_HOST` | Compose only | `0.0.0.0` | Host interface used for the published local container port. |
 | `RIPPLE_PORT` | Compose only | `8000` | Host port published to Ripple's fixed container port 8000. |
+| `PORT` | Direct runner only | `8000` | Port used by `python application.py`; Compose keeps the container on 8000 and uses `RIPPLE_PORT` for host publishing. |
 | `TWITCLONE_ENV` | No | `development` | Selects development, testing, or production behavior. |
 | `SECRET_KEY` | Yes | None | Signs sessions and CSRF tokens. Startup fails in every environment when absent. |
 | `DATABASE_URL` | Production | Local SQLite database | SQLAlchemy database connection URL. Production requires PostgreSQL. |
@@ -49,9 +50,22 @@ Docker Compose automatically reads the repository `.env` file for variable inter
 | `MEDIA_S3_REGION` | S3 backend | None | Bucket region used by the S3 client. |
 | `MEDIA_S3_ENDPOINT_URL` | No | AWS default | Optional endpoint for S3-compatible providers. |
 | `MEDIA_S3_PREFIX` | No | `media` | Object-key prefix within the bucket. |
-| `SCHEDULER_ENABLED` | No | `true` | Enables or disables scheduled-post processing. |
-| `SCHEDULER_INTERVAL_SECONDS` | No | `60` | Scheduler polling interval; must be at least one second. |
-| `PORT` | No | `8000` | Port used by the local `application.py` runner. |
+| `SCHEDULER_ENABLED` | No | `true` outside Compose | Enables the in-process scheduler. Compose defaults this to `false` because it runs a dedicated worker. |
+| `SCHEDULER_INTERVAL_SECONDS` | No | `60` | Scheduled-worker polling interval; must be at least one second. |
+| `PASSWORD_RESET_MAX_AGE_SECONDS` | No | `3600` | Password-reset token validity window in seconds; minimum 60. |
+| `EMAIL_VERIFICATION_MAX_AGE_SECONDS` | No | `86400` | Email-verification token validity window in seconds; minimum 300. |
+| `MAIL_SERVER` | No | `localhost` | SMTP server hostname. |
+| `MAIL_PORT` | No | `1025` | SMTP server port. |
+| `MAIL_USERNAME` | No | None | Optional SMTP username. |
+| `MAIL_PASSWORD` | No | None | Optional SMTP password; treat as a secret. |
+| `MAIL_USE_TLS` | No | `false` | Enable SMTP STARTTLS. Cannot be enabled together with `MAIL_USE_SSL`. |
+| `MAIL_USE_SSL` | No | `false` | Enable implicit SMTP TLS. Cannot be enabled together with `MAIL_USE_TLS`. |
+| `MAIL_DEFAULT_SENDER` | No | `no-reply@ripple.local` | Default sender used for account email. |
+| `MAIL_TIMEOUT_SECONDS` | No | `10` | SMTP operation timeout in seconds. |
+| `MAIL_SUPPRESS_SEND` | Production: must be false | Non-production: true | Suppresses outbound email. Production startup rejects suppression. |
+| `STRIPE_BILLING_ENABLED` | No | `false` | Enables Stripe-backed billing only when keys/secrets are also configured. |
+| `STRIPE_SECRET_KEY` | Billing enabled | None | Stripe secret API key; never commit a real value. |
+| `STRIPE_WEBHOOK_SECRET` | Billing enabled | None | Stripe webhook signing secret; never commit a real value. |
 | `STRIPE_API_VERSION` | No | `2026-03-25.dahlia` | Stripe API contract used for outbound billing requests; pin independently from the SDK major and change only with a reviewed API migration. |
 
 ## Environment guidance

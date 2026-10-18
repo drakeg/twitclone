@@ -1,6 +1,7 @@
 """Documentation contract checks for supported runtime and roadmap guidance."""
 
 from pathlib import Path
+import re
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -64,3 +65,33 @@ def test_legacy_todo_tracks_latest_completed_numbered_sprint():
 
     assert completed
     assert f"Numbered work through\nSprint {max(completed)} is complete" in todo
+
+
+def test_every_config_environment_variable_is_documented():
+    config_source = _read("config.py")
+    docs = _read("docs/configuration.md")
+    env_example = _read(".env.example")
+
+    configured_names = set(
+        re.findall(r'os\.getenv\("([A-Z0-9_]+)"', config_source)
+    )
+    assert configured_names
+
+    missing_from_docs = sorted(
+        name for name in configured_names if f"`{name}`" not in docs
+    )
+    missing_from_env_example = sorted(
+        name
+        for name in configured_names
+        if not re.search(rf"(?m)^{re.escape(name)}=", env_example)
+    )
+
+    assert missing_from_docs == []
+    assert missing_from_env_example == []
+
+
+def test_configuration_docs_describe_app_py_as_compatibility_module():
+    docs = _read("docs/configuration.md")
+
+    assert "`app.py` remains a compatibility module" in docs
+    assert "legacy monolith" not in docs
