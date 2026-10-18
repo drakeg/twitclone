@@ -100,6 +100,13 @@ The workflow performs:
 4. dependency import verification
 5. migration verification against disposable SQLite
 6. pytest execution
+7. Terraform initialization, formatting, and configuration validation
+8. mocked Terraform plan tests for the low-cost AWS topology
+
+The Terraform tests use Terraform's mocked AWS provider. They verify default
+instance sizing, private RDS behavior, IMDSv2, media versioning, and the
+opt-in boundary for Multi-AZ RDS and Route 53 without AWS credentials, network
+calls to AWS, or infrastructure creation.
 
 The workflow uses read-only repository permissions and does not deploy infrastructure or access AWS.
 
@@ -141,4 +148,7 @@ After this workflow passes reliably on `main`, configure branch protection to re
 
 ## AWS Relationship
 
-This CI workflow has no AWS cost. Future Terraform validation can be added without AWS credentials by running `terraform fmt -check` and `terraform validate`. Deployment workflows that can create billable resources must remain separate and require explicit approval.
+This CI workflow has no AWS cost. Terraform formatting, validation, and mocked
+plan tests run without AWS credentials and cannot create AWS resources.
+Deployment workflows that can create billable resources must remain separate
+and require explicit approval.
