@@ -121,3 +121,6 @@ jobs:
 
       - name: Validate configuration
         run: terraform validate
+
+      - name: Test mocked AWS topology
+        run: terraform test
