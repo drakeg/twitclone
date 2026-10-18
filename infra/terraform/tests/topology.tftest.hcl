@@ -21,6 +21,20 @@ mock_provider "aws" {
       value = "ami-0123456789abcdef0"
     }
   }
+  override_data {
+    target = data.aws_iam_policy_document.ec2_assume_role
+    values = {
+      json = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"sts:AssumeRole\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"}}]}"
+    }
+  }
+
+  override_data {
+    target = data.aws_iam_policy_document.media_access
+    values = {
+      json = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":[\"s3:ListBucket\"],\"Resource\":[\"arn:aws:s3:::ripple-test-media\"]},{\"Effect\":\"Allow\",\"Action\":[\"s3:GetObject\",\"s3:PutObject\",\"s3:DeleteObject\"],\"Resource\":[\"arn:aws:s3:::ripple-test-media/*\"]}]}"
+    }
+  }
+
 }
 
 run "default_low_cost_topology" {
