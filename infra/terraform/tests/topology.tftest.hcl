@@ -76,6 +76,51 @@ run "default_low_cost_topology" {
   }
 
   assert {
+    condition     = aws_s3_bucket_public_access_block.media.block_public_acls && aws_s3_bucket_public_access_block.media.block_public_policy && aws_s3_bucket_public_access_block.media.ignore_public_acls && aws_s3_bucket_public_access_block.media.restrict_public_buckets
+    error_message = "Production media must block every form of public S3 access."
+  }
+
+  assert {
+    condition = length([
+      for rule in aws_s3_bucket_server_side_encryption_configuration.media.rule : rule
+      if length([
+        for encryption in rule.apply_server_side_encryption_by_default : encryption
+        if encryption.sse_algorithm == "AES256"
+      ]) == 1
+    ]) == 1
+    error_message = "Production media must remain encrypted at rest."
+  }
+
+  assert {
+    condition     = aws_instance.app.root_block_device[0].encrypted == true
+    error_message = "The application host root volume must remain encrypted."
+  }
+
+  assert {
+    condition     = aws_db_instance.main.storage_encrypted == true
+    error_message = "The production database storage must remain encrypted."
+  }
+
+  assert {
+    condition     = aws_subnet.db_a.availability_zone != aws_subnet.db_b.availability_zone
+    error_message = "RDS subnet group members must remain in distinct availability zones."
+  }
+
+  assert {
+    condition = length([
+      for rule in aws_security_group.db.ingress : rule
+      if rule.from_port == 5432
+      && rule.to_port == 5432
+      && rule.protocol == "tcp"
+      && length(rule.security_groups) == 1
+      && length(rule.cidr_blocks == null ? [] : rule.cidr_blocks) == 0
+      && length(rule.ipv6_cidr_blocks == null ? [] : rule.ipv6_cidr_blocks) == 0
+      && length(rule.prefix_list_ids == null ? [] : rule.prefix_list_ids) == 0
+    ]) == 1 && length(aws_security_group.db.ingress) == 1
+    error_message = "PostgreSQL ingress must remain limited to exactly one security-group source and expose no CIDR-based access."
+  }
+
+  assert {
     condition     = length(aws_route53_zone.main) == 0 && length(aws_route53_record.app) == 0
     error_message = "Route 53 resources must remain opt-in."
   }
