@@ -111,10 +111,13 @@ run "default_low_cost_topology" {
       for rule in aws_security_group.db.ingress : rule
       if rule.from_port == 5432
       && rule.to_port == 5432
+      && rule.protocol == "tcp"
       && length(rule.security_groups) == 1
-      && contains(rule.security_groups, aws_security_group.app.id)
+      && length(rule.cidr_blocks) == 0
+      && length(rule.ipv6_cidr_blocks) == 0
+      && length(rule.prefix_list_ids) == 0
     ]) == 1 && length(aws_security_group.db.ingress) == 1
-    error_message = "PostgreSQL ingress must remain limited to the application security group."
+    error_message = "PostgreSQL ingress must remain limited to exactly one security-group source and expose no CIDR-based access."
   }
 
   assert {
