@@ -76,6 +76,36 @@ run "default_low_cost_topology" {
   }
 
   assert {
+    condition     = aws_s3_bucket_public_access_block.media.block_public_acls && aws_s3_bucket_public_access_block.media.block_public_policy && aws_s3_bucket_public_access_block.media.ignore_public_acls && aws_s3_bucket_public_access_block.media.restrict_public_buckets
+    error_message = "Production media must block every form of public S3 access."
+  }
+
+  assert {
+    condition     = aws_s3_bucket_server_side_encryption_configuration.media.rule[0].apply_server_side_encryption_by_default[0].sse_algorithm == "AES256"
+    error_message = "Production media must remain encrypted at rest."
+  }
+
+  assert {
+    condition     = aws_instance.app.root_block_device[0].encrypted == true
+    error_message = "The application host root volume must remain encrypted."
+  }
+
+  assert {
+    condition     = aws_db_instance.main.storage_encrypted == true
+    error_message = "The production database storage must remain encrypted."
+  }
+
+  assert {
+    condition     = aws_subnet.db_a.availability_zone != aws_subnet.db_b.availability_zone
+    error_message = "RDS subnet group members must remain in distinct availability zones."
+  }
+
+  assert {
+    condition     = length(aws_security_group.db.ingress) == 1 && aws_security_group.db.ingress[0].from_port == 5432 && aws_security_group.db.ingress[0].to_port == 5432 && length(aws_security_group.db.ingress[0].security_groups) == 1 && contains(aws_security_group.db.ingress[0].security_groups, aws_security_group.app.id)
+    error_message = "PostgreSQL ingress must remain limited to the application security group."
+  }
+
+  assert {
     condition     = length(aws_route53_zone.main) == 0 && length(aws_route53_record.app) == 0
     error_message = "Route 53 resources must remain opt-in."
   }
