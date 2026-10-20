@@ -17,8 +17,8 @@ The EC2 resource is wired to the same container-first deployment artifacts used 
 
 ## Toolchain
 
-- Terraform `>= 1.15.0, < 1.16.0`
-- HashiCorp AWS provider `6.60.0`
+- Terraform `1.16.6` in CI, with configuration constrained to `< 1.17.0`
+- HashiCorp AWS provider `6.69.1`
 - Amazon Linux 2023 ARM64 application host
 - Docker from the Amazon Linux 2023 package repository
 - Docker Compose `5.4.0`, checksum-verified during host bootstrap
@@ -41,6 +41,7 @@ From `infra/terraform`:
 terraform init -backend=false
 terraform fmt -check
 terraform validate
+terraform test
 ```
 
 For a real AWS plan, first review the dated cost estimate and obtain the required planning credentials. Supply the database password only at runtime:
@@ -85,7 +86,7 @@ Notable defaults:
 
 It does **not** create application secrets, a production environment file, database credentials, Stripe credentials, AWS access keys, DNS records, container registries, or application containers. `/etc/ripple/ripple.env` must be populated separately before `scripts/deploy-production.sh deploy` is used.
 
-No AWS resource is required to review or test this contract. The bootstrap script and Terraform references are covered by repository regression tests, while Terraform CI continues to run formatting and validation without an apply.
+No AWS resource is required to review or test this contract. The bootstrap script and Terraform references are covered by repository regression tests, while Terraform CI runs formatting, validation, and mocked plan tests without an apply or AWS credentials. The mocked tests also prove that the application host refuses to plan without an immutable bootstrap SHA and that SSH, Route 53, and Multi-AZ RDS remain opt-in.
 
 ## State
 
