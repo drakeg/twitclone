@@ -81,7 +81,13 @@ run "default_low_cost_topology" {
   }
 
   assert {
-    condition     = aws_s3_bucket_server_side_encryption_configuration.media.rule[0].apply_server_side_encryption_by_default[0].sse_algorithm == "AES256"
+    condition = length([
+      for rule in aws_s3_bucket_server_side_encryption_configuration.media.rule : rule
+      if length([
+        for encryption in rule.apply_server_side_encryption_by_default : encryption
+        if encryption.sse_algorithm == "AES256"
+      ]) == 1
+    ]) == 1
     error_message = "Production media must remain encrypted at rest."
   }
 
@@ -101,7 +107,13 @@ run "default_low_cost_topology" {
   }
 
   assert {
-    condition     = length(aws_security_group.db.ingress) == 1 && aws_security_group.db.ingress[0].from_port == 5432 && aws_security_group.db.ingress[0].to_port == 5432 && length(aws_security_group.db.ingress[0].security_groups) == 1 && contains(aws_security_group.db.ingress[0].security_groups, aws_security_group.app.id)
+    condition = length([
+      for rule in aws_security_group.db.ingress : rule
+      if rule.from_port == 5432
+      && rule.to_port == 5432
+      && length(rule.security_groups) == 1
+      && contains(rule.security_groups, aws_security_group.app.id)
+    ]) == 1 && length(aws_security_group.db.ingress) == 1
     error_message = "PostgreSQL ingress must remain limited to the application security group."
   }
 
