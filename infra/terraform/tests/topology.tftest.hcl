@@ -79,6 +79,23 @@ run "default_low_cost_topology" {
     condition     = length(aws_route53_zone.main) == 0 && length(aws_route53_record.app) == 0
     error_message = "Route 53 resources must remain opt-in."
   }
+
+  assert {
+    condition     = length([for rule in aws_security_group.app.ingress : rule if rule.from_port == 22]) == 0
+    error_message = "SSH ingress must remain disabled by default."
+  }
+}
+
+run "bootstrap_ref_is_required_for_host_plan" {
+  command = plan
+
+  variables {
+    db_password = "terraform-test-only-password"
+  }
+
+  expect_failures = [
+    aws_instance.app,
+  ]
 }
 
 run "optional_paid_features_require_opt_in" {
@@ -90,6 +107,7 @@ run "optional_paid_features_require_opt_in" {
     enable_multi_az_rds = true
     enable_route53      = true
     domain_name         = "ripple.example"
+    ssh_admin_cidr      = "203.0.113.10/32"
   }
 
   assert {
@@ -100,5 +118,10 @@ run "optional_paid_features_require_opt_in" {
   assert {
     condition     = length(aws_route53_zone.main) == 1 && length(aws_route53_record.app) == 1
     error_message = "Route 53 resources should only appear when explicitly enabled."
+  }
+
+  assert {
+    condition     = length([for rule in aws_security_group.app.ingress : rule if rule.from_port == 22 && contains(rule.cidr_blocks, "203.0.113.10/32")]) == 1
+    error_message = "SSH ingress should only appear for the explicitly configured administration CIDR."
   }
 }
