@@ -86,7 +86,7 @@ Notable defaults:
 
 It does **not** create application secrets, a production environment file, database credentials, Stripe credentials, AWS access keys, DNS records, container registries, or application containers. `/etc/ripple/ripple.env` must be populated separately before `scripts/deploy-production.sh deploy` is used.
 
-No AWS resource is required to review or test this contract. The bootstrap script and Terraform references are covered by repository regression tests, while Terraform CI runs formatting, validation, and mocked plan tests without an apply or AWS credentials. The mocked tests also prove that the application host refuses to plan without an immutable bootstrap SHA and that SSH, Route 53, and Multi-AZ RDS remain opt-in.
+No AWS resource is required to review or test this contract. The bootstrap script and Terraform references are covered by repository regression tests, while Terraform CI runs formatting, validation, and mocked plan tests without an apply or AWS credentials. The mocked tests also prove that the application host refuses to plan without an immutable bootstrap SHA, that SSH, Route 53, and Multi-AZ RDS remain opt-in, and that the private-database/media security boundaries remain intact (encrypted storage, blocked public S3 access, distinct database AZs, and PostgreSQL ingress only from the application security group).
 
 ## State
 
