@@ -113,9 +113,9 @@ run "default_low_cost_topology" {
       && rule.to_port == 5432
       && rule.protocol == "tcp"
       && length(rule.security_groups) == 1
-      && length(coalescelist(rule.cidr_blocks, [])) == 0
-      && length(coalescelist(rule.ipv6_cidr_blocks, [])) == 0
-      && length(coalescelist(rule.prefix_list_ids, [])) == 0
+      && length(rule.cidr_blocks == null ? [] : rule.cidr_blocks) == 0
+      && length(rule.ipv6_cidr_blocks == null ? [] : rule.ipv6_cidr_blocks) == 0
+      && length(rule.prefix_list_ids == null ? [] : rule.prefix_list_ids) == 0
     ]) == 1 && length(aws_security_group.db.ingress) == 1
     error_message = "PostgreSQL ingress must remain limited to exactly one security-group source and expose no CIDR-based access."
   }
