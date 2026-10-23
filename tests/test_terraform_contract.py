@@ -29,7 +29,7 @@ def test_terraform_files_preserve_project_structure_contract():
 def test_terraform_toolchain_is_deliberately_pinned():
     versions = read("versions.tf")
 
-    assert 'required_version = "< 1.17.0"' in versions
+    assert 'required_version = "< 1.18.0"' in versions
     assert 'source  = "hashicorp/aws"' in versions
     assert re.search(r'version\s*=\s*"\d+\.\d+\.\d+"', versions)
 
