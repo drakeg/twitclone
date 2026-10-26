@@ -91,3 +91,16 @@ def test_terraform_secret_and_state_guardrails_are_documented():
     assert "Do not run `terraform apply` without explicit spend authorization." in guide
     assert "Terraform state/plan data can still contain sensitive values." in guide
     assert "prevent_destroy = true" in read("main.tf")
+
+
+def test_remote_state_migration_example_is_safe_and_non_secret():
+    example = read("backend.s3.example.hcl")
+    guide = read("README.md")
+
+    assert 'use_lockfile = true' in example
+    assert 'key          = "ripple/production/terraform.tfstate"' in example
+    assert "access_key" not in example
+    assert "secret_key" not in example
+    assert "terraform init -migrate-state -backend-config=backend.s3.hcl" in guide
+    assert "backend bucket is deliberately" in guide
+    assert "does not create the backend" in guide
