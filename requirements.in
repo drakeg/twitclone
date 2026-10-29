@@ -16,7 +16,7 @@ boto3==1.43.118
 gravatar==0.1
 gunicorn==26.2.0
 psycopg[binary]==3.3.6
-pytz==2026.5
+pytz==2026.6
 SQLAlchemy==2.1.6
 stripe==16.0.0
 tzlocal==5.4.5
