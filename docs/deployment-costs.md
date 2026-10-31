@@ -76,6 +76,29 @@ without a revised estimate and explicit approval:
 The VPC design should use an S3 gateway endpoint rather than a NAT Gateway for
 private S3 routing where applicable.
 
+## Machine-checkable cost inventory
+
+The Terraform resource inventory is tracked in
+`infra/terraform/cost-inventory.json`. CI requires every Terraform resource
+address declared in `main.tf` to appear in that inventory with an explicit cost
+class. This prevents a new resource from entering the launch topology without a
+corresponding cost classification.
+
+The inventory uses these classes:
+
+- `no_direct_charge` — no separate AWS line-item charge is expected for the
+  resource itself;
+- `usage_based` — charges depend on storage, requests, transfer, retention, or
+  other measured use;
+- `recurring` — a recurring launch cost is expected while the resource exists;
+- `conditional_recurring` / `conditional_usage_based` — the resource is
+  disabled by default and can introduce cost only when its controlling option is
+  explicitly enabled.
+
+The inventory is a guardrail, not a live price feed. Its review date does not
+replace the dated AWS Pricing Calculator review required immediately before an
+authorized apply.
+
 ## Cost boundaries
 
 No paid infrastructure is authorized by this document or ADR-0044. Before any
