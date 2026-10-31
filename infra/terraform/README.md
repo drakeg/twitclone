@@ -94,6 +94,49 @@ This story intentionally starts with local Terraform state because no shared/tea
 
 Before any production apply, decide where the state will be kept, how it will be encrypted/backed up, and who can access it. Do not put Terraform state in this repository.
 
+### Optional S3 remote-state migration
+
+Shared/team use should migrate state to a separately managed private S3 bucket
+before production infrastructure is created. The backend bucket is deliberately
+**not** created by this Terraform stack: doing so would create a bootstrap
+dependency where Terraform needs its own state backend before it can manage that
+backend.
+
+Use `backend.s3.example.hcl` only as a template. Create an untracked copy with
+the approved bucket name/Region and keep credentials out of the file. The S3
+backend should use bucket versioning and `use_lockfile = true`; DynamoDB locking
+is not required for this design.
+
+Before migration:
+
+1. confirm the backend bucket is private, encrypted, versioned, and access is
+   limited to the administrators who need Terraform state;
+2. back up the current local `terraform.tfstate` to a separate protected
+   location;
+3. verify no other operator is running Terraform;
+4. authenticate through the normal AWS credential chain rather than putting
+   keys in backend configuration.
+
+Then migrate from `infra/terraform`:
+
+```bash
+cp backend.s3.example.hcl backend.s3.hcl
+# Edit backend.s3.hcl with the approved bucket/key/Region. Keep credentials out.
+terraform init -migrate-state -backend-config=backend.s3.hcl
+terraform state pull > /tmp/ripple-remote-state-verification.json
+```
+
+Inspect the pulled state metadata sufficiently to confirm the expected lineage
+and resources, then securely delete the temporary verification copy. Do not use
+`terraform state push -force` as a normal migration mechanism.
+
+After migration, every operator must initialize against the same backend
+configuration before planning or applying. The local `.terraform/` directory
+can contain backend details and must remain untracked.
+
+This procedure documents a migration path only. It does not create the backend
+bucket, grant AWS access, authorize an apply, or authorize recurring spend.
+
 ## Secrets boundary
 
 Terraform does not create or output Flask, Stripe, or application secrets. The RDS master password is supplied as the sensitive `db_password` input and must come from a secure runtime source such as an environment variable.
