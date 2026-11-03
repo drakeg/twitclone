@@ -161,3 +161,9 @@ Never use destroy as an application reset mechanism.
 ## Cost boundary
 
 ADR-0044 currently estimates roughly $31-$35/month before backup growth, domain registration, observability, transactional email, taxes, and overages. Recheck AWS pricing immediately before any apply. Optional fixed-cost components must remain disabled unless separately justified and authorized.
+
+`cost-inventory.json` classifies every Terraform resource address by expected
+cost behavior. Repository tests fail when a Terraform resource is added or
+removed without updating that inventory, so cost-impacting topology changes
+cannot silently bypass review. The inventory is not a price quote and never
+constitutes spend authorization.

@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "reviewed_on": "2026-10-31",
+  "region": "us-east-1",
+  "notes": [
+    "This inventory is a repository guardrail, not a price quote or spend authorization.",
+    "Exact prices must be rechecked immediately before any approved Terraform apply.",
+    "Resources marked conditional_recurring are disabled by default."
+  ],
+  "resources": {
+    "aws_vpc.main": {
+      "cost_class": "no_direct_charge",
+      "component": "VPC"
+    },
+    "aws_internet_gateway.main": {
+      "cost_class": "no_direct_charge",
+      "component": "Internet Gateway"
+    },
+    "aws_subnet.app": {
+      "cost_class": "no_direct_charge",
+      "component": "Application subnet"
+    },
+    "aws_subnet.db_a": {
+      "cost_class": "no_direct_charge",
+      "component": "Database subnet A"
+    },
+    "aws_subnet.db_b": {
+      "cost_class": "no_direct_charge",
+      "component": "Database subnet B"
+    },
+    "aws_route_table.public": {
+      "cost_class": "no_direct_charge",
+      "component": "Public route table"
+    },
+    "aws_route_table_association.app": {
+      "cost_class": "no_direct_charge",
+      "component": "Application route association"
+    },
+    "aws_route_table.db": {
+      "cost_class": "no_direct_charge",
+      "component": "Database route table"
+    },
+    "aws_route_table_association.db_a": {
+      "cost_class": "no_direct_charge",
+      "component": "Database A route association"
+    },
+    "aws_route_table_association.db_b": {
+      "cost_class": "no_direct_charge",
+      "component": "Database B route association"
+    },
+    "aws_vpc_endpoint.s3": {
+      "cost_class": "no_direct_charge",
+      "component": "S3 gateway VPC endpoint"
+    },
+    "aws_security_group.app": {
+      "cost_class": "no_direct_charge",
+      "component": "Application security group"
+    },
+    "aws_security_group.db": {
+      "cost_class": "no_direct_charge",
+      "component": "Database security group"
+    },
+    "aws_s3_bucket.media": {
+      "cost_class": "usage_based",
+      "component": "Production media S3 storage and requests"
+    },
+    "aws_s3_bucket_public_access_block.media": {
+      "cost_class": "no_direct_charge",
+      "component": "S3 public-access guardrail"
+    },
+    "aws_s3_bucket_server_side_encryption_configuration.media": {
+      "cost_class": "no_direct_charge",
+      "component": "S3 SSE-S3 configuration"
+    },
+    "aws_s3_bucket_versioning.media": {
+      "cost_class": "usage_based",
+      "component": "S3 version retention/storage growth"
+    },
+    "aws_iam_role.app": {
+      "cost_class": "no_direct_charge",
+      "component": "Application IAM role"
+    },
+    "aws_iam_role_policy.media_access": {
+      "cost_class": "no_direct_charge",
+      "component": "Media IAM policy"
+    },
+    "aws_iam_instance_profile.app": {
+      "cost_class": "no_direct_charge",
+      "component": "EC2 instance profile"
+    },
+    "aws_instance.app": {
+      "cost_class": "recurring",
+      "component": "EC2 t4g.small application host"
+    },
+    "aws_db_subnet_group.main": {
+      "cost_class": "no_direct_charge",
+      "component": "RDS subnet group"
+    },
+    "aws_db_instance.main": {
+      "cost_class": "recurring",
+      "component": "RDS PostgreSQL db.t4g.micro plus storage/backups"
+    },
+    "aws_eip.app": {
+      "cost_class": "recurring",
+      "component": "Public IPv4 address"
+    },
+    "aws_route53_zone.main": {
+      "cost_class": "conditional_recurring",
+      "component": "Route 53 hosted zone",
+      "enabled_by": "enable_route53"
+    },
+    "aws_route53_record.app": {
+      "cost_class": "conditional_usage_based",
+      "component": "Route 53 DNS queries",
+      "enabled_by": "enable_route53"
+    }
+  }
+}
