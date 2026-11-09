@@ -49,6 +49,9 @@ else
   fail "Terraform is required for the readiness gate"
 fi
 
+python3 scripts/validate-terraform-cost-inventory.py >/dev/null
+pass "Terraform cost inventory covers every declared resource"
+
 if grep -R -nE 'terraform[[:space:]]+apply|aws[[:space:]].*(create|run-instances|put-parameter)' \
     scripts/check-aws-launch-readiness.sh scripts/dry-run-production-release.sh scripts/deploy-production.sh >/dev/null; then
   fail "readiness/dry-run scripts must not contain infrastructure-creation commands"
