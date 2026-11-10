@@ -35,6 +35,7 @@ def test_structure_mode_runs_terraform_validation_and_release_dry_run():
     assert "terraform fmt -check" in SCRIPT
     assert "terraform init -backend=false -input=false" in SCRIPT
     assert "terraform validate" in SCRIPT
+    assert "python3 scripts/validate-terraform-cost-inventory.py" in SCRIPT
     assert "bash scripts/dry-run-production-release.sh" in SCRIPT
 
 

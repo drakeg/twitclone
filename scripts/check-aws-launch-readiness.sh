@@ -28,6 +28,8 @@ for file in \
   infra/terraform/main.tf \
   infra/terraform/variables.tf \
   infra/terraform/outputs.tf \
+  infra/terraform/cost-inventory.json \
+  scripts/validate-terraform-cost-inventory.py \
   docs/operations.md \
   docs/templates/release-readiness-record.md \
   docs/templates/restore-rehearsal-record.md; do
@@ -46,6 +48,9 @@ if command -v terraform >/dev/null 2>&1; then
 else
   fail "Terraform is required for the readiness gate"
 fi
+
+python3 scripts/validate-terraform-cost-inventory.py >/dev/null
+pass "Terraform cost inventory covers every declared resource"
 
 if grep -R -nE 'terraform[[:space:]]+apply|aws[[:space:]].*(create|run-instances|put-parameter)' \
     scripts/check-aws-launch-readiness.sh scripts/dry-run-production-release.sh scripts/deploy-production.sh >/dev/null; then
