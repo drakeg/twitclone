@@ -18,7 +18,7 @@ The EC2 resource is wired to the same container-first deployment artifacts used 
 ## Toolchain
 
 - Terraform `1.17.1` in CI, with configuration constrained to `< 1.18.0`
-- HashiCorp AWS provider `6.71.0`
+- HashiCorp AWS provider `6.72.0`
 - Amazon Linux 2023 ARM64 application host
 - Docker from the Amazon Linux 2023 package repository
 - Docker Compose `5.4.0`, checksum-verified during host bootstrap
