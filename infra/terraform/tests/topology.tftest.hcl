@@ -121,6 +121,16 @@ run "default_low_cost_topology" {
   }
 
   assert {
+    condition     = aws_instance.app.iam_instance_profile == aws_iam_instance_profile.app.name
+    error_message = "The application host must use the dedicated IAM instance profile."
+  }
+
+  assert {
+    condition     = aws_iam_role_policy.media_access.policy == data.aws_iam_policy_document.media_access.json
+    error_message = "The application role must use the dedicated media-access policy document."
+  }
+
+  assert {
     condition     = length(aws_route53_zone.main) == 0 && length(aws_route53_record.app) == 0
     error_message = "Route 53 resources must remain opt-in."
   }
