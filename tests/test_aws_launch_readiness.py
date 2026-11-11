@@ -49,6 +49,7 @@ def test_launch_mode_requires_immutable_release_identity_and_manual_evidence():
         "RIPPLE_RESTORE_REHEARSAL_PASSED",
         "RIPPLE_ACCESSIBILITY_EVIDENCE_PASSED",
         "RIPPLE_BACKUP_ALERT_PATH_TESTED",
+        "RIPPLE_STRIPE_WEBHOOK_REACHABILITY_PASSED",
         "RIPPLE_RELEASE_RECORD_PREPARED",
         "RIPPLE_COST_REVIEW_DATE",
     ):
