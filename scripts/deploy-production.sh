@@ -44,7 +44,8 @@ deploy() {
   compose up -d --no-deps web worker
   compose up -d proxy
   compose ps
-  echo "Deployment started from ${RIPPLE_IMAGE}. Verify HTTPS, /health/live, /health/ready, login, timeline, media, worker logs, and Stripe webhook reachability before recording release approval."
+  echo "Deployment started from ${RIPPLE_IMAGE}. Verify HTTPS, /health/live, /health/ready, login, timeline, media, and worker logs."
+  echo "Then run: RIPPLE_DOMAIN=${RIPPLE_DOMAIN} bash scripts/check-stripe-webhook-reachability.sh"
 }
 
 rollback() {
