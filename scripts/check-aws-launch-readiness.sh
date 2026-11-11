@@ -43,8 +43,9 @@ if command -v terraform >/dev/null 2>&1; then
     terraform fmt -check >/dev/null
     terraform init -backend=false -input=false >/dev/null
     terraform validate >/dev/null
+    terraform test >/dev/null
   )
-  pass "Terraform formatting and validation passed"
+  pass "Terraform formatting, validation, and mocked topology tests passed"
 else
   fail "Terraform is required for the readiness gate"
 fi
