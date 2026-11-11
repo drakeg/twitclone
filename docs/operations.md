@@ -161,6 +161,31 @@ restore rehearsal, application smoke test, or monitoring check. After it passes,
 start one web process, verify both health endpoints and core reads, then start
 exactly one scheduled worker. Record the command result with the release SHA.
 
+### Stripe webhook reachability
+
+After the HTTPS proxy is serving the public hostname, verify that the Stripe
+webhook route is reachable without sending a real Stripe event:
+
+```bash
+RIPPLE_DOMAIN=example.com bash scripts/check-stripe-webhook-reachability.sh
+```
+
+The probe sends an intentionally invalid Stripe signature to
+`/billing/webhook`. A production endpoint with `STRIPE_WEBHOOK_SECRET`
+configured must return HTTP 400, proving that traffic reached Ripple and was
+rejected by signature verification. A 404, redirect, network/TLS failure, or
+unexpected status blocks release approval.
+
+If Stripe processing is intentionally not configured for a non-billing
+environment, set `RIPPLE_STRIPE_WEBHOOK_CONFIGURED=false`; HTTP 400 or 503 then
+proves only route reachability and must not be recorded as evidence that Stripe
+billing is ready.
+
+After a successful production check, set
+`RIPPLE_STRIPE_WEBHOOK_REACHABILITY_PASSED=true` when running the authoritative
+launch gate. This acknowledgment records the completed external check; the
+readiness script itself does not send network traffic.
+
 Use [`templates/release-readiness-record.md`](templates/release-readiness-record.md)
 for every public release. A reviewer must confirm every applicable launch-gate
 item and record an explicit approved, blocked, or rolled-back decision. Completed
@@ -241,5 +266,6 @@ Public traffic is not approved until all of these are true:
 - media versioning and an independent media copy are enabled;
 - a full restore rehearsal meets the documented RPO and RTO;
 - the prior image and migration compatibility decision are recorded per release;
-- backup failure alerts have an owner and tested notification path.
+- backup failure alerts have an owner and tested notification path;
+- Stripe webhook reachability has been verified against the public deployment;
 - `deployment-preflight` passes using the release image and production services.

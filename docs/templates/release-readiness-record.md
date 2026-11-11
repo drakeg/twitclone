@@ -53,6 +53,8 @@ URLs, customer data, or private infrastructure details to this repository.
 - `/health/ready` result and UTC time:
 - Login/timeline/media smoke-test result:
 - Scheduled-worker result:
+- Stripe webhook reachability result and UTC time:
+- [ ] Stripe webhook route was verified against the public deployment.
 - [ ] Exactly one scheduled worker is running.
 - [ ] No public traffic was enabled before migration and preflight passed.
 

@@ -25,6 +25,7 @@ for file in \
   scripts/render-production-env.sh \
   scripts/deploy-production.sh \
   scripts/dry-run-production-release.sh \
+  scripts/check-stripe-webhook-reachability.sh \
   infra/terraform/main.tf \
   infra/terraform/variables.tf \
   infra/terraform/outputs.tf \
@@ -89,13 +90,14 @@ require_true RIPPLE_COST_REVIEWED
 require_true RIPPLE_RESTORE_REHEARSAL_PASSED
 require_true RIPPLE_ACCESSIBILITY_EVIDENCE_PASSED
 require_true RIPPLE_BACKUP_ALERT_PATH_TESTED
+require_true RIPPLE_STRIPE_WEBHOOK_REACHABILITY_PASSED
 require_true RIPPLE_RELEASE_RECORD_PREPARED
 
 : "${RIPPLE_COST_REVIEW_DATE:?Set RIPPLE_COST_REVIEW_DATE (YYYY-MM-DD)}"
 [[ "$RIPPLE_COST_REVIEW_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || fail "RIPPLE_COST_REVIEW_DATE must be YYYY-MM-DD"
 
 pass "clean main checkout and immutable release identifiers confirmed"
-pass "cost review, restore rehearsal, accessibility evidence, backup alert path, and release record are acknowledged"
+pass "cost review, restore rehearsal, accessibility evidence, backup alert path, Stripe webhook reachability, and release record are acknowledged"
 
 echo
 echo "LAUNCH GATE READY: repository and evidence prerequisites are satisfied."
