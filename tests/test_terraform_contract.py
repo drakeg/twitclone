@@ -104,3 +104,44 @@ def test_remote_state_migration_example_is_safe_and_non_secret():
     assert "terraform init -migrate-state -backend-config=backend.s3.hcl" in guide
     assert "backend bucket is deliberately" in guide
     assert "does not create the backend" in guide
+
+
+def test_terraform_media_iam_policy_remains_least_privilege():
+    main = read("main.tf")
+
+    policy_start = main.index('data "aws_iam_policy_document" "media_access"')
+    policy_end = main.index('resource "aws_iam_role_policy" "media_access"', policy_start)
+    policy = main[policy_start:policy_end]
+
+    for required_action in (
+        '"s3:ListBucket"',
+        '"s3:GetObject"',
+        '"s3:PutObject"',
+        '"s3:DeleteObject"',
+    ):
+        assert required_action in policy
+
+    for forbidden in (
+        '"s3:*"',
+        '"*"',
+        '"s3:DeleteBucket"',
+        '"s3:PutBucketPolicy"',
+        '"s3:PutBucketAcl"',
+        '"s3:CreateBucket"',
+    ):
+        assert forbidden not in policy
+
+    assert "aws_s3_bucket.media.arn" in policy
+    assert '"${aws_s3_bucket.media.arn}/*"' in policy
+
+
+def test_ec2_uses_instance_profile_instead_of_static_aws_credentials():
+    main = read("main.tf")
+
+    assert "iam_instance_profile        = aws_iam_instance_profile.app.name" in main
+    for forbidden in (
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "aws_access_key",
+    ):
+        assert forbidden not in main
