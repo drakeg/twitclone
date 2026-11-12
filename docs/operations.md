@@ -71,20 +71,50 @@ Perform database and media backups as one recorded recovery set. They cannot be
 perfectly atomic, so record start/end times and reconcile media created during
 that interval after a restore.
 
+Ripple provides `scripts/backup-production.sh` as the repeatable operator
+workflow for the independent backup path. Under the hood, the database step is
+equivalent to:
+
+```bash
+pg_dump --format=custom --no-owner --no-acl --file=ripple.dump "$DATABASE_URL"
+pg_restore --list ripple.dump
+```
+
+The script creates that PostgreSQL custom-format dump, verifies it, encrypts it with
+AES-256-CBC/PBKDF2 using a passphrase supplied only at runtime, records a
+SHA-256 checksum, removes the plaintext staging dump, and copies live media to a
+different S3 bucket/prefix without delete semantics.
+
+Example operator invocation:
+
+```bash
+export RIPPLE_BACKUP_DIR=/secure/staging/ripple
+export RIPPLE_BACKUP_ENCRYPTION_PASSPHRASE='load-from-approved-secret-source'
+export RIPPLE_MEDIA_BACKUP_DESTINATION=s3://independent-ripple-backups/media
+export RIPPLE_RELEASE_SHA="$(git rev-parse HEAD)"
+
+bash scripts/backup-production.sh
+```
+
+The script assumes the database URL and live media bucket are already present in
+the operator environment and that the current AWS identity has read access to
+the live media bucket plus write access to the independent backup bucket. It
+does not create either bucket, provision AWS resources, or configure retention.
+The backup destination must already enforce the approved encryption, access,
+versioning, and retention policy.
+
 1. Record the release SHA, Alembic revision, UTC start time, database cluster,
    media bucket, and operator in the recovery log.
 2. Confirm the managed database's latest automatic backup is healthy.
-3. Create an encrypted custom-format logical backup from a trusted one-shot job:
-
-   ```bash
-   pg_dump --format=custom --no-owner --no-acl --file=ripple.dump "$DATABASE_URL"
-   pg_restore --list ripple.dump
-   ```
-
-4. Upload `ripple.dump` to an encrypted backup destination separate from the
-   live database. Do not place credentials in its filename, command output, or metadata.
-5. Confirm object versioning is enabled on the live media bucket. Copy media to
-   an independent backup bucket or account without `--delete` semantics.
+3. Run `scripts/backup-production.sh` from a trusted operator context. The
+   script creates, verifies, encrypts, and checksums the PostgreSQL logical
+   backup before removing the plaintext staging file.
+4. Preserve the encrypted database artifact and checksum in an approved backup
+   destination separate from the live database. Do not place credentials in its
+   filename, command output, or metadata.
+5. Confirm object versioning is enabled on the live media bucket. The script
+   copies media to the configured independent S3 backup destination without
+   `--delete` semantics.
 6. Compare source and backup object counts and total bytes. Investigate any mismatch.
 7. Record backup identifiers, checksums, sizes, UTC completion time, and retention expiry.
 8. Apply retention only after the new recovery set has been verified.
