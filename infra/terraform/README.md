@@ -44,12 +44,28 @@ terraform validate
 terraform test
 ```
 
-For a real AWS plan, first review the dated cost estimate and obtain the required planning credentials. Supply the database password only at runtime:
+For a real AWS plan, first review the dated cost estimate and obtain the required planning credentials. Supply the database password only at runtime and keep the generated plan artifacts outside the repository:
 
 ```bash
 export TF_VAR_db_password='replace-with-a-long-random-secret'
-terraform plan
+terraform plan -out=/tmp/ripple.tfplan
+terraform show -json /tmp/ripple.tfplan > /tmp/ripple-plan.json
+python ../../scripts/validate-terraform-plan.py /tmp/ripple-plan.json
 ```
+
+The plan-policy validator requires every managed resource address to exist in
+`cost-inventory.json`. Conditional-cost resources such as Route 53 are blocked
+unless they were explicitly approved for that reviewed plan:
+
+```bash
+python ../../scripts/validate-terraform-plan.py /tmp/ripple-plan.json \
+  --allow-conditional aws_route53_zone.main \
+  --allow-conditional aws_route53_record.app
+```
+
+An allowlisted resource must actually be present in the plan, which prevents an
+old approval list from being reused silently. Passing this validator does not
+authorize `terraform apply` or AWS spend.
 
 Do not save a binary plan containing secrets unless its storage and retention are explicitly secured. `db_password` is marked sensitive for CLI display, but Terraform state/plan data can still contain sensitive values.
 
