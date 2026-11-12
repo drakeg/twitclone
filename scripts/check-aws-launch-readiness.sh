@@ -27,6 +27,7 @@ for file in \
   scripts/dry-run-production-release.sh \
   scripts/check-stripe-webhook-reachability.sh \
   scripts/backup-production.sh \
+  scripts/restore-rehearsal.sh \
   infra/terraform/main.tf \
   infra/terraform/variables.tf \
   infra/terraform/outputs.tf \
