@@ -33,6 +33,7 @@ for file in \
   infra/terraform/outputs.tf \
   infra/terraform/cost-inventory.json \
   scripts/validate-terraform-cost-inventory.py \
+  scripts/validate-terraform-plan.py \
   docs/operations.md \
   docs/templates/release-readiness-record.md \
   docs/templates/restore-rehearsal-record.md; do
