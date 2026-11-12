@@ -28,6 +28,8 @@ data, or private infrastructure details in a repository or broadly shared log.
 - Restore start time (UTC):
 - Isolated database reference:
 - Isolated private media reference:
+- Restore workflow command/result:
+- Database backup checksum verification result:
 - Database restore completion time (UTC):
 - Media restore completion time (UTC):
 - Application start time (UTC):
