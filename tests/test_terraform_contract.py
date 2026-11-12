@@ -145,3 +145,15 @@ def test_ec2_uses_instance_profile_instead_of_static_aws_credentials():
         "aws_access_key",
     ):
         assert forbidden not in main
+
+
+def test_rds_recovery_defaults_cannot_disable_backups():
+    variables = read("variables.tf")
+    main = read("main.tf")
+
+    assert 'default     = 7' in variables
+    assert 'var.db_backup_retention_days >= 1' in variables
+    assert 'var.db_backup_retention_days <= 35' in variables
+    assert 'backup_retention_period   = var.db_backup_retention_days' in main
+    assert 'deletion_protection       = var.db_deletion_protection' in main
+    assert 'skip_final_snapshot       = var.db_skip_final_snapshot' in main

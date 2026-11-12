@@ -108,9 +108,14 @@ variable "db_password" {
 }
 
 variable "db_backup_retention_days" {
-  description = "RDS automated backup retention period."
+  description = "RDS automated backup retention period. Production backups may not be disabled."
   type        = number
   default     = 7
+
+  validation {
+    condition     = var.db_backup_retention_days >= 1 && var.db_backup_retention_days <= 35
+    error_message = "db_backup_retention_days must be between 1 and 35 so automated RDS backups remain enabled."
+  }
 }
 
 variable "db_deletion_protection" {

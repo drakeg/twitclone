@@ -71,6 +71,26 @@ run "default_low_cost_topology" {
   }
 
   assert {
+    condition     = aws_db_instance.main.backup_retention_period == 7
+    error_message = "The production database must retain automated backups for seven days by default."
+  }
+
+  assert {
+    condition     = aws_db_instance.main.deletion_protection == true
+    error_message = "RDS deletion protection must remain enabled by default."
+  }
+
+  assert {
+    condition     = aws_db_instance.main.skip_final_snapshot == false
+    error_message = "Production RDS destroy must require a final snapshot by default."
+  }
+
+  assert {
+    condition     = aws_db_instance.main.final_snapshot_identifier != null
+    error_message = "A final RDS snapshot identifier must be present when final snapshots are required."
+  }
+
+  assert {
     condition     = aws_s3_bucket_versioning.media.versioning_configuration[0].status == "Enabled"
     error_message = "Production media versioning must remain enabled."
   }
@@ -174,4 +194,19 @@ run "optional_paid_features_require_opt_in" {
     condition     = length([for rule in aws_security_group.app.ingress : rule if rule.from_port == 22 && contains(rule.cidr_blocks, "203.0.113.10/32")]) == 1
     error_message = "SSH ingress should only appear for the explicitly configured administration CIDR."
   }
+}
+
+
+run "automated_backups_cannot_be_disabled" {
+  command = plan
+
+  variables {
+    db_password              = "terraform-test-only-password"
+    host_bootstrap_ref       = "0123456789abcdef0123456789abcdef01234567"
+    db_backup_retention_days = 0
+  }
+
+  expect_failures = [
+    var.db_backup_retention_days,
+  ]
 }
