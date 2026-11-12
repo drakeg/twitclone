@@ -72,8 +72,15 @@ perfectly atomic, so record start/end times and reconcile media created during
 that interval after a restore.
 
 Ripple provides `scripts/backup-production.sh` as the repeatable operator
-workflow for the independent backup path. It creates a PostgreSQL custom-format
-dump, verifies that dump with `pg_restore --list`, encrypts it with
+workflow for the independent backup path. Under the hood, the database step is
+equivalent to:
+
+```bash
+pg_dump --format=custom --no-owner --no-acl --file=ripple.dump "$DATABASE_URL"
+pg_restore --list ripple.dump
+```
+
+The script creates that PostgreSQL custom-format dump, verifies it, encrypts it with
 AES-256-CBC/PBKDF2 using a passphrase supplied only at runtime, records a
 SHA-256 checksum, removes the plaintext staging dump, and copies live media to a
 different S3 bucket/prefix without delete semantics.
