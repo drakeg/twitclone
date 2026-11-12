@@ -127,9 +127,34 @@ version in the live account.
 
 Never test a restore over the production database or live media bucket.
 
-1. Select a recovery set and verify its recorded checksum.
+Ripple provides `scripts/restore-rehearsal.sh` for the data-restore portion of
+the rehearsal. It verifies the encrypted database backup checksum, decrypts the
+logical dump into protected temporary storage, validates the dump catalog,
+restores it into an explicitly isolated database, and copies the independent
+media backup into an isolated S3 destination without delete semantics.
+
+Example:
+
+```bash
+export RIPPLE_ENCRYPTED_DB_BACKUP=/secure/backups/ripple-YYYYMMDDTHHMMSSZ.dump.enc
+export RIPPLE_DB_BACKUP_CHECKSUM_FILE=/secure/backups/ripple-YYYYMMDDTHHMMSSZ.sha256
+export RIPPLE_BACKUP_ENCRYPTION_PASSPHRASE='load-from-approved-secret-source'
+export RESTORE_DATABASE_URL='postgresql://...isolated-rehearsal-db...'
+export RIPPLE_MEDIA_BACKUP_SOURCE=s3://independent-ripple-backups/media
+export RIPPLE_RESTORE_MEDIA_DESTINATION=s3://isolated-ripple-restore/media
+
+bash scripts/restore-rehearsal.sh
+```
+
+If `DATABASE_URL` or `MEDIA_S3_BUCKET` are present, the script explicitly
+refuses to target those production values. It does not create databases,
+buckets, or infrastructure; the isolated restore targets must already exist and
+be approved for the rehearsal.
+
+1. Select a recovery set and verify its recorded checksum. The restore script
+   performs this check before decryption.
 2. Restore the managed PostgreSQL backup to a **new** cluster, or create an empty
-   isolated database and restore the logical dump:
+   isolated database and restore the logical dump. The operator workflow uses:
 
    ```bash
    pg_restore --clean --if-exists --no-owner --no-acl --dbname="$RESTORE_DATABASE_URL" ripple.dump
