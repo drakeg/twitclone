@@ -68,6 +68,7 @@ Notable defaults:
 - `db.t4g.micro` RDS PostgreSQL 18
 - 20 GiB encrypted gp3 EC2 root volume
 - 20 GiB encrypted gp3 RDS storage
+- RDS automated backups enabled with 7-day retention by default; retention cannot be set below 1 day
 - RDS deletion protection enabled
 - final RDS snapshot required on destroy
 - SSH disabled
