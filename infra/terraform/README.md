@@ -71,6 +71,32 @@ Do not save a binary plan containing secrets unless its storage and retention ar
 
 **Do not run `terraform apply` without explicit spend authorization.**
 
+## Guarded apply and idempotence verification
+
+After the real plan has been reviewed, the plan-policy validator has passed,
+the dated cost estimate has been approved, and explicit spend authorization has
+been granted, record the SHA-256 of the reviewed binary plan and use the guarded
+wrapper:
+
+```bash
+sha256sum /tmp/ripple.tfplan
+export RIPPLE_AWS_SPEND_AUTHORIZED=true
+export RIPPLE_REVIEWED_PLAN=/tmp/ripple.tfplan
+export RIPPLE_REVIEWED_PLAN_SHA256='<recorded-sha256>'
+
+bash ../../scripts/apply-reviewed-terraform-plan.sh
+```
+
+The wrapper refuses to run without the explicit authorization flag, refuses a
+plan whose checksum differs from the reviewed artifact, applies only that exact
+binary plan, and then runs a fresh `terraform plan -detailed-exitcode`.
+Exit code 0 is required to declare the apply idempotent. Exit code 2 means the
+fresh plan contains changes and infrastructure readiness remains blocked.
+
+This procedure documents and guards the future apply path. The repository does
+not treat the presence of this script, an environment variable, or a passing
+test as spend authorization.
+
 ## Inputs
 
 Copy `terraform.tfvars.example` to an untracked `terraform.tfvars` only for non-secret customization. The committed example intentionally contains no credentials.

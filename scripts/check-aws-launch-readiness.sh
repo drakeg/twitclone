@@ -34,6 +34,7 @@ for file in \
   infra/terraform/cost-inventory.json \
   scripts/validate-terraform-cost-inventory.py \
   scripts/validate-terraform-plan.py \
+  scripts/apply-reviewed-terraform-plan.sh \
   docs/operations.md \
   docs/templates/release-readiness-record.md \
   docs/templates/restore-rehearsal-record.md; do
