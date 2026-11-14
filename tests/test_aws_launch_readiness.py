@@ -57,6 +57,8 @@ def test_launch_mode_requires_immutable_release_identity_and_manual_evidence():
     assert 'git rev-parse --abbrev-ref HEAD' in SCRIPT
     assert 'git status --porcelain' in SCRIPT
     assert ':latest' in SCRIPT
+    assert 'date -u +%F' in SCRIPT
+    assert 'RIPPLE_COST_REVIEW_DATE must be refreshed on the UTC day of launch review' in SCRIPT
 
 
 def test_roadmap_records_story_8_8_after_merge_target():
