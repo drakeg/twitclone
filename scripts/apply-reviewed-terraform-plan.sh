@@ -4,6 +4,7 @@ set -euo pipefail
 : "${RIPPLE_AWS_SPEND_AUTHORIZED:?Set RIPPLE_AWS_SPEND_AUTHORIZED=true only after explicit spend authorization}"
 : "${RIPPLE_REVIEWED_PLAN:?Set RIPPLE_REVIEWED_PLAN to the reviewed Terraform binary plan}"
 : "${RIPPLE_REVIEWED_PLAN_SHA256:?Set RIPPLE_REVIEWED_PLAN_SHA256 to the recorded SHA-256 of that plan}"
+: "${RIPPLE_COST_REVIEW_DATE:?Set RIPPLE_COST_REVIEW_DATE to the UTC date of the approved cost review (YYYY-MM-DD)}"
 
 if [[ "${RIPPLE_AWS_SPEND_AUTHORIZED}" != "true" ]]; then
   echo "BLOCKED: explicit AWS spend authorization is required." >&2
@@ -15,12 +16,23 @@ fi
   exit 1
 }
 
-for command in terraform sha256sum; do
+for command in terraform sha256sum date; do
   command -v "${command}" >/dev/null 2>&1 || {
     echo "Required command not found: ${command}" >&2
     exit 1
   }
 done
+
+if [[ ! "${RIPPLE_COST_REVIEW_DATE}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+  echo "BLOCKED: RIPPLE_COST_REVIEW_DATE must be YYYY-MM-DD." >&2
+  exit 1
+fi
+
+today_utc="$(date -u +%F)"
+if [[ "${RIPPLE_COST_REVIEW_DATE}" != "${today_utc}" ]]; then
+  echo "BLOCKED: cost review must be refreshed on the UTC day of apply (today: ${today_utc})." >&2
+  exit 1
+fi
 
 actual_sha="$(sha256sum "${RIPPLE_REVIEWED_PLAN}" | awk '{print $1}')"
 if [[ "${actual_sha}" != "${RIPPLE_REVIEWED_PLAN_SHA256}" ]]; then

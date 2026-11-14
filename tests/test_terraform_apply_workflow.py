@@ -32,3 +32,10 @@ def test_apply_wrapper_verifies_idempotence_after_apply():
 
 def test_apply_wrapper_does_not_claim_to_authorize_spend():
     assert "does not grant authorization itself" in SCRIPT
+
+
+def test_apply_wrapper_requires_same_day_utc_cost_review():
+    assert "RIPPLE_COST_REVIEW_DATE" in SCRIPT
+    assert 'date -u +%F' in SCRIPT
+    assert 'RIPPLE_COST_REVIEW_DATE}" != "${today_utc}' in SCRIPT
+    assert "cost review must be refreshed on the UTC day of apply" in SCRIPT
