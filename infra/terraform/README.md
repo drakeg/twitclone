@@ -83,11 +83,13 @@ sha256sum /tmp/ripple.tfplan
 export RIPPLE_AWS_SPEND_AUTHORIZED=true
 export RIPPLE_REVIEWED_PLAN=/tmp/ripple.tfplan
 export RIPPLE_REVIEWED_PLAN_SHA256='<recorded-sha256>'
+export RIPPLE_COST_REVIEW_DATE="$(date -u +%F)"
 
 bash ../../scripts/apply-reviewed-terraform-plan.sh
 ```
 
-The wrapper refuses to run without the explicit authorization flag, refuses a
+The wrapper refuses to run without the explicit authorization flag, requires
+the approved cost review to be dated the same UTC day as the apply, refuses a
 plan whose checksum differs from the reviewed artifact, applies only that exact
 binary plan, and then runs a fresh `terraform plan -detailed-exitcode`.
 Exit code 0 is required to declare the apply idempotent. Exit code 2 means the
