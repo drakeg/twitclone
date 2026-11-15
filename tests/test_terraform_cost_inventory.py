@@ -12,6 +12,7 @@ ALLOWED_COST_CLASSES = {
     "recurring",
     "conditional_recurring",
     "conditional_usage_based",
+    "conditional_no_direct_charge",
 }
 
 
@@ -53,3 +54,5 @@ def test_known_recurring_launch_components_cannot_be_reclassified_silently():
     assert resources["aws_s3_bucket.media"]["cost_class"] == "usage_based"
     assert resources["aws_route53_zone.main"]["cost_class"] == "conditional_recurring"
     assert resources["aws_route53_zone.main"]["enabled_by"] == "enable_route53"
+    assert resources["aws_budgets_budget.monthly_cost"]["cost_class"] == "conditional_no_direct_charge"
+    assert resources["aws_budgets_budget.monthly_cost"]["enabled_by"] == "enable_cost_budget"
