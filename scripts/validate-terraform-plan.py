@@ -11,7 +11,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 INVENTORY_PATH = ROOT / "infra" / "terraform" / "cost-inventory.json"
-CONDITIONAL_CLASSES = {"conditional_recurring", "conditional_usage_based"}
+CONDITIONAL_CLASSES = {
+    "conditional_recurring",
+    "conditional_usage_based",
+    "conditional_no_direct_charge",
+}
 
 
 def fail(message: str) -> None:
