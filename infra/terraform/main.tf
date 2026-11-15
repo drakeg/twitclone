@@ -391,3 +391,36 @@ resource "aws_route53_record" "app" {
   ttl     = 300
   records = [aws_eip.app.public_ip]
 }
+
+resource "aws_budgets_budget" "monthly_cost" {
+  count = var.enable_cost_budget ? 1 : 0
+
+  name         = "${local.name}-monthly-cost"
+  budget_type  = "COST"
+  limit_amount = tostring(var.cost_budget_limit_usd)
+  limit_unit   = "USD"
+  time_unit    = "MONTHLY"
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 80
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "FORECASTED"
+    subscriber_email_addresses = [var.cost_budget_alert_email]
+  }
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = [var.cost_budget_alert_email]
+  }
+
+  lifecycle {
+    precondition {
+      condition     = var.cost_budget_alert_email != null && trimspace(var.cost_budget_alert_email) != ""
+      error_message = "cost_budget_alert_email must be set when enable_cost_budget is true."
+    }
+  }
+}
