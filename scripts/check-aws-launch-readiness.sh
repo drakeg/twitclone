@@ -99,6 +99,8 @@ require_true RIPPLE_RELEASE_RECORD_PREPARED
 
 : "${RIPPLE_COST_REVIEW_DATE:?Set RIPPLE_COST_REVIEW_DATE (YYYY-MM-DD)}"
 [[ "$RIPPLE_COST_REVIEW_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || fail "RIPPLE_COST_REVIEW_DATE must be YYYY-MM-DD"
+TODAY_UTC="$(date -u +%F)"
+[[ "$RIPPLE_COST_REVIEW_DATE" == "$TODAY_UTC" ]] || fail "RIPPLE_COST_REVIEW_DATE must be refreshed on the UTC day of launch review ($TODAY_UTC)"
 
 pass "clean main checkout and immutable release identifiers confirmed"
 pass "cost review, restore rehearsal, accessibility evidence, backup alert path, Stripe webhook reachability, and release record are acknowledged"
