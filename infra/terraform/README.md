@@ -118,6 +118,7 @@ Notable defaults:
 - SSH disabled
 - Route 53 disabled
 - Multi-AZ RDS disabled
+- AWS monthly cost budget alerts disabled by default
 
 ## Host bootstrap boundary
 
@@ -212,3 +213,34 @@ cost behavior. Repository tests fail when a Terraform resource is added or
 removed without updating that inventory, so cost-impacting topology changes
 cannot silently bypass review. The inventory is not a price quote and never
 constitutes spend authorization.
+
+
+### Optional AWS cost budget alerts
+
+Terraform can create a monthly AWS cost budget when `enable_cost_budget=true`.
+It is disabled by default so repository changes do not silently add account-level
+billing configuration. The default budget limit is $50/month with notifications
+at 80% forecasted spend and 100% actual spend. A subscriber email is required.
+
+As of the 2026-11-14 repository review, AWS documents budgets without actions as
+free. AWS also now verifies newly added email subscribers before notifications
+begin. Recheck both pricing and subscriber requirements during the required
+same-day cost review before any apply.
+
+Example plan inputs:
+
+```hcl
+enable_cost_budget      = true
+cost_budget_limit_usd   = 50
+cost_budget_alert_email = "ops@example.com"
+```
+
+Because this is an opt-in account-level resource, the plan-policy validator
+requires explicit approval:
+
+```bash
+python ../../scripts/validate-terraform-plan.py /tmp/ripple-plan.json \
+  --allow-conditional aws_budgets_budget.monthly_cost
+```
+
+No budget actions are configured; this resource only sends notifications.
