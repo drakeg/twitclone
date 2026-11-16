@@ -155,3 +155,27 @@ variable "enable_multi_az_rds" {
   type        = bool
   default     = false
 }
+
+variable "enable_cost_budget" {
+  description = "Create an AWS monthly cost budget with email alerts. Disabled by default and requires explicit plan approval."
+  type        = bool
+  default     = false
+}
+
+variable "cost_budget_limit_usd" {
+  description = "Monthly AWS cost budget limit in USD when enable_cost_budget is true."
+  type        = number
+  default     = 50
+
+  validation {
+    condition     = var.cost_budget_limit_usd > 0
+    error_message = "cost_budget_limit_usd must be greater than zero."
+  }
+}
+
+variable "cost_budget_alert_email" {
+  description = "Email subscriber for AWS Budget notifications. Required when enable_cost_budget is true. AWS may require subscriber verification."
+  type        = string
+  default     = null
+  nullable    = true
+}

@@ -151,6 +151,11 @@ run "default_low_cost_topology" {
   }
 
   assert {
+    condition     = length(aws_budgets_budget.monthly_cost) == 0
+    error_message = "AWS cost budget alerts must remain opt-in."
+  }
+
+  assert {
     condition     = length([for rule in aws_security_group.app.ingress : rule if rule.from_port == 22]) == 0
     error_message = "SSH ingress must remain disabled by default."
   }
@@ -208,5 +213,41 @@ run "automated_backups_cannot_be_disabled" {
 
   expect_failures = [
     var.db_backup_retention_days,
+  ]
+}
+
+
+run "cost_budget_alerts_require_explicit_opt_in" {
+  command = plan
+
+  variables {
+    db_password             = "terraform-test-only-password"
+    host_bootstrap_ref      = "0123456789abcdef0123456789abcdef01234567"
+    enable_cost_budget      = true
+    cost_budget_alert_email = "ops@example.com"
+  }
+
+  assert {
+    condition     = length(aws_budgets_budget.monthly_cost) == 1
+    error_message = "The AWS cost budget should only appear when explicitly enabled."
+  }
+
+  assert {
+    condition     = aws_budgets_budget.monthly_cost[0].limit_amount == "50"
+    error_message = "The default monthly cost budget must remain 50 USD."
+  }
+}
+
+run "cost_budget_alerts_require_email" {
+  command = plan
+
+  variables {
+    db_password        = "terraform-test-only-password"
+    host_bootstrap_ref = "0123456789abcdef0123456789abcdef01234567"
+    enable_cost_budget = true
+  }
+
+  expect_failures = [
+    aws_budgets_budget.monthly_cost,
   ]
 }

@@ -1,11 +1,13 @@
 {
   "schema_version": 1,
-  "reviewed_on": "2026-10-31",
+  "reviewed_on": "2026-11-14",
   "region": "us-east-1",
   "notes": [
     "This inventory is a repository guardrail, not a price quote or spend authorization.",
     "Exact prices must be rechecked immediately before any approved Terraform apply.",
-    "Resources marked conditional_recurring are disabled by default."
+    "Resources marked conditional_recurring are disabled by default.",
+    "AWS Budgets without actions are currently documented by AWS as free; recheck pricing immediately before apply.",
+    "New AWS Budget email subscribers may require verification before notifications begin."
   ],
   "resources": {
     "aws_vpc.main": {
@@ -113,6 +115,11 @@
       "cost_class": "conditional_usage_based",
       "component": "Route 53 DNS queries",
       "enabled_by": "enable_route53"
+    },
+    "aws_budgets_budget.monthly_cost": {
+      "cost_class": "conditional_no_direct_charge",
+      "component": "Optional monthly AWS cost budget with email notifications",
+      "enabled_by": "enable_cost_budget"
     }
   }
 }

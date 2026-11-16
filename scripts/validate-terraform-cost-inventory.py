@@ -18,6 +18,7 @@ ALLOWED_COST_CLASSES = {
     "recurring",
     "conditional_recurring",
     "conditional_usage_based",
+    "conditional_no_direct_charge",
 }
 
 
