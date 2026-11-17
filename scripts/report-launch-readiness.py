@@ -23,9 +23,16 @@ REQUIRED_ARTIFACTS = (
     "scripts/deploy-production.sh",
     "scripts/dry-run-production-release.sh",
     "scripts/check-aws-launch-readiness.sh",
+    "scripts/check-stripe-webhook-reachability.sh",
+    "scripts/backup-production.sh",
+    "scripts/restore-rehearsal.sh",
+    "scripts/validate-terraform-cost-inventory.py",
+    "scripts/validate-terraform-plan.py",
+    "scripts/apply-reviewed-terraform-plan.sh",
     "infra/terraform/main.tf",
     "infra/terraform/variables.tf",
     "infra/terraform/outputs.tf",
+    "infra/terraform/cost-inventory.json",
     "docs/operations.md",
     "docs/templates/release-readiness-record.md",
     "docs/templates/restore-rehearsal-record.md",
@@ -36,6 +43,7 @@ EVIDENCE_GATES = (
     ("restore_rehearsal", "RIPPLE_RESTORE_REHEARSAL_PASSED"),
     ("accessibility_evidence", "RIPPLE_ACCESSIBILITY_EVIDENCE_PASSED"),
     ("backup_alert_path", "RIPPLE_BACKUP_ALERT_PATH_TESTED"),
+    ("stripe_webhook_reachability", "RIPPLE_STRIPE_WEBHOOK_REACHABILITY_PASSED"),
     ("release_record", "RIPPLE_RELEASE_RECORD_PREPARED"),
 )
 
@@ -105,12 +113,19 @@ def build_report(
     cost_date = env.get("RIPPLE_COST_REVIEW_DATE")
     evidence["cost_review"]["date"] = cost_date
     evidence["cost_review"]["date_valid"] = bool(cost_date and _DATE_RE.fullmatch(cost_date))
+    evidence["cost_review"]["date_current"] = (
+        evidence["cost_review"]["date_valid"] and cost_date == as_of.isoformat()
+    )
 
     missing_artifacts = sorted(path for path, item in artifacts.items() if not item["present"])
     incomplete_evidence = sorted(
         name
         for name, item in evidence.items()
-        if not item["complete"] or (name == "cost_review" and not item["date_valid"])
+        if not item["complete"]
+        or (
+            name == "cost_review"
+            and (not item["date_valid"] or not item["date_current"])
+        )
     )
 
     evidence_records = {
@@ -204,7 +219,7 @@ def render_text(report: dict) -> str:
     for name, item in report["evidence"].items():
         complete = item["complete"]
         if name == "cost_review":
-            complete = complete and item["date_valid"]
+            complete = complete and item["date_valid"] and item["date_current"]
         lines.append(f"- {name}: {'complete' if complete else 'missing'}")
 
     lines.extend(["", "Evidence records:"])
