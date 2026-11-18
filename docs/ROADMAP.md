@@ -253,7 +253,7 @@ Delivered capabilities include a sanitized evidence-record template for the requ
 
 These are not new product sprints and remain independently tracked:
 
-- **AWS activation:** Sprint 8 remains plan/validate-only. No `terraform apply`, paid AWS activation, or recurring spend is authorized until explicitly approved.
+- **AWS activation:** Sprint 8 repository-side implementation is complete. Live activation remains separately gated: no real AWS plan/apply, paid activation, or recurring spend is authorized until explicitly approved. The handoff sequence and live evidence boundary are documented in `docs/aws-activation-handoff.md`.
 - **Accessibility evidence:** Manual NVDA/VoiceOver and 200%/400% zoom evidence from Sprint 7 remains a public-launch/conformance gate.
 - **Production evidence:** Restore rehearsal, backup-alert path, cost review, immutable release identifiers, and release record remain part of the launch readiness contract.
 - **Usage-driven refinements:** Search, moderation, themes, creator analytics, community-context source quality, anti-brigading, and conversation-state history may receive targeted follow-up when real usage provides evidence for the change.
