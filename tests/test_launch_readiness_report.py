@@ -36,10 +36,11 @@ def test_report_becomes_review_ready_when_evidence_is_complete():
         "RIPPLE_RESTORE_REHEARSAL_PASSED": "true",
         "RIPPLE_ACCESSIBILITY_EVIDENCE_PASSED": "true",
         "RIPPLE_BACKUP_ALERT_PATH_TESTED": "true",
+        "RIPPLE_STRIPE_WEBHOOK_REACHABILITY_PASSED": "true",
         "RIPPLE_RELEASE_RECORD_PREPARED": "true",
     }
 
-    report = module.build_report(ROOT, env)
+    report = module.build_report(ROOT, env, as_of=date(2026, 9, 23))
 
     assert report["missing_artifacts"] == []
     assert report["incomplete_evidence"] == []
@@ -54,10 +55,11 @@ def test_invalid_cost_review_date_keeps_report_blocked():
         "RIPPLE_RESTORE_REHEARSAL_PASSED": "true",
         "RIPPLE_ACCESSIBILITY_EVIDENCE_PASSED": "true",
         "RIPPLE_BACKUP_ALERT_PATH_TESTED": "true",
+        "RIPPLE_STRIPE_WEBHOOK_REACHABILITY_PASSED": "true",
         "RIPPLE_RELEASE_RECORD_PREPARED": "true",
     }
 
-    report = module.build_report(ROOT, env)
+    report = module.build_report(ROOT, env, as_of=date(2026, 9, 23))
 
     assert report["evidence"]["cost_review"]["date_valid"] is False
     assert report["status"] == "blocked"
@@ -161,6 +163,7 @@ def test_freshness_is_advisory_and_does_not_override_completed_gate():
         "RIPPLE_RESTORE_REHEARSAL_PASSED": "true",
         "RIPPLE_ACCESSIBILITY_EVIDENCE_PASSED": "true",
         "RIPPLE_BACKUP_ALERT_PATH_TESTED": "true",
+        "RIPPLE_STRIPE_WEBHOOK_REACHABILITY_PASSED": "true",
         "RIPPLE_RELEASE_RECORD_PREPARED": "true",
     }
     metadata = {
@@ -282,6 +285,7 @@ def test_snapshot_shape_does_not_capture_evidence_environment_values():
         "RIPPLE_RESTORE_REHEARSAL_PASSED": "true",
         "RIPPLE_ACCESSIBILITY_EVIDENCE_PASSED": "true",
         "RIPPLE_BACKUP_ALERT_PATH_TESTED": "true",
+        "RIPPLE_STRIPE_WEBHOOK_REACHABILITY_PASSED": "true",
         "RIPPLE_RELEASE_RECORD_PREPARED": "true",
         "UNRELATED_SECRET": "must-not-appear",
     }
@@ -350,3 +354,54 @@ def test_snapshot_checksum_is_not_a_signature_or_authorization():
     assert snapshot["provisioning_performed"] is False
     assert "signature" not in snapshot
     assert module.verify_snapshot_checksum(snapshot) is True
+
+
+def test_report_requires_stripe_webhook_evidence_to_match_launch_gate():
+    module = _module()
+    env = {
+        "RIPPLE_COST_REVIEWED": "true",
+        "RIPPLE_COST_REVIEW_DATE": "2026-09-23",
+        "RIPPLE_RESTORE_REHEARSAL_PASSED": "true",
+        "RIPPLE_ACCESSIBILITY_EVIDENCE_PASSED": "true",
+        "RIPPLE_BACKUP_ALERT_PATH_TESTED": "true",
+        "RIPPLE_RELEASE_RECORD_PREPARED": "true",
+    }
+
+    report = module.build_report(ROOT, env, as_of=date(2026, 9, 23))
+
+    assert "stripe_webhook_reachability" in report["incomplete_evidence"]
+    assert report["status"] == "blocked"
+
+
+def test_report_requires_same_day_cost_review():
+    module = _module()
+    env = {
+        "RIPPLE_COST_REVIEWED": "true",
+        "RIPPLE_COST_REVIEW_DATE": "2026-09-22",
+        "RIPPLE_RESTORE_REHEARSAL_PASSED": "true",
+        "RIPPLE_ACCESSIBILITY_EVIDENCE_PASSED": "true",
+        "RIPPLE_BACKUP_ALERT_PATH_TESTED": "true",
+        "RIPPLE_STRIPE_WEBHOOK_REACHABILITY_PASSED": "true",
+        "RIPPLE_RELEASE_RECORD_PREPARED": "true",
+    }
+
+    report = module.build_report(ROOT, env, as_of=date(2026, 9, 23))
+
+    assert report["evidence"]["cost_review"]["date_valid"] is True
+    assert report["evidence"]["cost_review"]["date_current"] is False
+    assert "cost_review" in report["incomplete_evidence"]
+    assert report["status"] == "blocked"
+
+
+def test_report_required_artifacts_include_new_infrastructure_controls():
+    module = _module()
+    for path in (
+        "scripts/check-stripe-webhook-reachability.sh",
+        "scripts/backup-production.sh",
+        "scripts/restore-rehearsal.sh",
+        "scripts/validate-terraform-cost-inventory.py",
+        "scripts/validate-terraform-plan.py",
+        "scripts/apply-reviewed-terraform-plan.sh",
+        "infra/terraform/cost-inventory.json",
+    ):
+        assert path in module.REQUIRED_ARTIFACTS
