@@ -2,7 +2,7 @@
 
 from twitclone.extensions import db
 from twitclone.models import User
-from twitclone.spaces.models import Space, SpaceMembership
+from twitclone.spaces.models import Space, SpaceMembership, SpaceMembershipAction
 
 
 def _login(client, user_id):
@@ -128,3 +128,100 @@ def test_roster_uses_bounded_deterministic_pagination(client, app):
     bounded = client.get(f"/spaces/{ids['slug']}/members?page=999")
     assert bounded.status_code == 200
     assert b"Page 2 of 2" in bounded.data
+
+
+def test_owner_can_change_role_from_roster_and_return_to_filters(client, app):
+    ids = _fixture(app, member_count=2)
+    target_id = ids["extra_ids"][1]
+    _login(client, ids["owner"])
+
+    response = client.post(
+        f"/spaces/{ids['slug']}/members/{target_id}/role",
+        data={
+            "role": "moderator",
+            "return_to": "roster",
+            "roster_q": "member_01",
+            "roster_role": "member",
+            "roster_page": "2",
+        },
+    )
+    assert response.status_code == 302
+    assert "/members" in response.headers["Location"]
+    assert "q=member_01" in response.headers["Location"]
+    assert "role=member" in response.headers["Location"]
+    assert "page=2" in response.headers["Location"]
+
+    with app.app_context():
+        membership = SpaceMembership.query.filter_by(user_id=target_id).one()
+        assert membership.role == "moderator"
+        action = SpaceMembershipAction.query.filter_by(
+            affected_user_id=target_id,
+            action_type="role_changed",
+        ).one()
+        assert action.previous_role == "member"
+        assert action.new_role == "moderator"
+
+
+def test_owner_can_remove_member_from_roster_and_return_to_filters(client, app):
+    ids = _fixture(app, member_count=2)
+    target_id = ids["extra_ids"][0]
+    _login(client, ids["owner"])
+
+    response = client.post(
+        f"/spaces/{ids['slug']}/members/{target_id}/remove",
+        data={
+            "confirm": "remove",
+            "return_to": "roster",
+            "roster_q": "member",
+            "roster_role": "member",
+            "roster_page": "1",
+        },
+    )
+    assert response.status_code == 302
+    assert "/members" in response.headers["Location"]
+    assert "q=member" in response.headers["Location"]
+    assert "role=member" in response.headers["Location"]
+
+    with app.app_context():
+        assert SpaceMembership.query.filter_by(user_id=target_id).first() is None
+        action = SpaceMembershipAction.query.filter_by(
+            affected_user_id=target_id,
+            action_type="member_removed",
+        ).one()
+        assert action.previous_role == "member"
+        assert action.new_role is None
+
+
+def test_moderator_roster_has_no_owner_action_controls(client, app):
+    ids = _fixture(app, member_count=1)
+    _login(client, ids["moderator"])
+
+    response = client.get(f"/spaces/{ids['slug']}/members")
+    assert response.status_code == 200
+    assert b"Owner actions" not in response.data
+    assert b"Save role" not in response.data
+    assert b"Remove member" not in response.data
+
+
+def test_owner_row_has_no_role_or_removal_shortcut(client, app):
+    ids = _fixture(app, member_count=1)
+    _login(client, ids["owner"])
+
+    response = client.get(f"/spaces/{ids['slug']}/members?role=owner")
+    assert response.status_code == 200
+    assert b"Transfer ownership from the Space page." in response.data
+    assert b"Save role" not in response.data
+    assert b"Remove member" not in response.data
+
+
+def test_detail_page_role_action_keeps_existing_detail_redirect(client, app):
+    ids = _fixture(app, member_count=1)
+    target_id = ids["extra_ids"][0]
+    _login(client, ids["owner"])
+
+    response = client.post(
+        f"/spaces/{ids['slug']}/members/{target_id}/role",
+        data={"role": "moderator"},
+    )
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(f"/spaces/{ids['slug']}")
