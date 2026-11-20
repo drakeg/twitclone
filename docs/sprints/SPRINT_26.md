@@ -10,7 +10,7 @@ a community around its original creator.
 
 ## Story 26.1 — Safe ownership transfer
 
-**Status:** In progress.
+**Status:** Completed in PR #383.
 
 - Allow the current owner to transfer ownership only to an existing Space member.
 - Require an explicit confirmation before the transfer is committed.
@@ -34,8 +34,22 @@ a community around its original creator.
 
 ### Story 26.2 — Owner member removal
 
-Provide owner-controlled member removal with protections for the owner and an
-understandable result for the affected member.
+**Status:** In progress.
+
+- Allow only the canonical Space owner to remove a non-owner membership.
+- Require an explicit removal confirmation.
+- Notify the affected user that their current membership ended.
+- Explain that removal from a public Space is not a ban and the user may rejoin.
+- Preserve the ownership-transfer requirement before an owner can be removed.
+
+### Acceptance criteria
+
+- Non-owners cannot remove Space memberships.
+- The current owner cannot be removed through this workflow.
+- A successful removal revokes the member or moderator role immediately.
+- Removal does not delete the user's account, posts, resources, or global relationships.
+- Because Sprint 26 does not add bans or private Spaces, removed users may rejoin a public Space.
+- The UI communicates that boundary instead of implying a permanent ban.
 
 ### Story 26.3 — Membership administration audit
 
