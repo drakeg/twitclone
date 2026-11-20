@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}{{ space.name }} operator dashboard · Ripple{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <span class="auth-kicker">Community operations</span>
+    <h1>{{ space.name }}</h1>
+    <small>Read-only operating view · last 30 days where noted</small>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-secondary" href="{{ url_for('spaces.detail', slug=space.slug) }}">View space</a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('spaces.index') }}">All spaces</a>
+  </div>
+</header>
+
+<section class="surface-card mb-3" aria-labelledby="operator-summary-heading">
+  <span class="auth-kicker">At a glance</span>
+  <h2 class="h5" id="operator-summary-heading">Community operating summary</h2>
+  <p class="text-muted mb-3">
+    These counts come from existing Ripple community records. They are operational context,
+    not member rankings, reputation scores, or claims about engagement quality.
+  </p>
+  <div class="row g-3">
+    <div class="col-6 col-lg-3"><div class="border rounded p-3 h-100"><div class="small text-muted">Members</div><strong class="fs-4" data-metric="member-count">{{ metrics.member_count }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="border rounded p-3 h-100"><div class="small text-muted">Owners + moderators</div><strong class="fs-4" data-metric="moderator-count">{{ metrics.moderator_count }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="border rounded p-3 h-100"><div class="small text-muted">New members · 30d</div><strong class="fs-4" data-metric="new-members-30d">{{ metrics.new_members_30d }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="border rounded p-3 h-100"><div class="small text-muted">Visible posts · 30d</div><strong class="fs-4" data-metric="posts-30d">{{ metrics.posts_30d }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="border rounded p-3 h-100"><div class="small text-muted">Resources linked · 30d</div><strong class="fs-4" data-metric="resources-30d">{{ metrics.resources_30d }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="border rounded p-3 h-100"><div class="small text-muted">Pending appeals</div><strong class="fs-4" data-metric="pending-appeals">{{ metrics.pending_appeals }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="border rounded p-3 h-100"><div class="small text-muted">Moderation actions · 30d</div><strong class="fs-4" data-metric="moderation-actions-30d">{{ metrics.moderation_actions_30d }}</strong></div></div>
+  </div>
+</section>
+
+<section class="surface-card mb-3" aria-labelledby="operator-actions-heading">
+  <span class="auth-kicker">Actions</span>
+  <h2 class="h5" id="operator-actions-heading">Manage the community</h2>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-primary" href="{{ url_for('spaces.detail', slug=space.slug) }}#moderation-heading">Review moderation and appeals</a>
+    {% if membership.role == 'owner' %}
+    <a class="btn btn-outline-primary" href="{{ url_for('spaces.detail', slug=space.slug) }}#space-roles-heading">Manage member roles</a>
+    {% endif %}
+    <a class="btn btn-outline-secondary" href="{{ url_for('spaces.detail', slug=space.slug) }}#space-conversations-heading">View conversations</a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('spaces.detail', slug=space.slug) }}#space-knowledge-heading">View resources</a>
+  </div>
+</section>
+
+<section class="surface-card" aria-labelledby="recent-members-heading">
+  <span class="auth-kicker">Membership</span>
+  <h2 class="h5" id="recent-members-heading">Most recent members</h2>
+  <p class="form-text">Up to 10 memberships, newest first.</p>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <caption class="visually-hidden">Recent members of {{ space.name }}</caption>
+      <thead><tr><th scope="col">Member</th><th scope="col">Role</th><th scope="col">Joined</th></tr></thead>
+      <tbody>
+      {% for row in recent_members %}
+        <tr>
+          <td><a href="{{ url_for('profile', username=row.user.username) }}">@{{ row.user.username }}</a></td>
+          <td>{{ row.role }}</td>
+          <td>{{ row.joined_at.strftime('%Y-%m-%d') }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3" class="text-muted">No memberships recorded.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
