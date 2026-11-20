@@ -281,3 +281,124 @@ def test_archived_space_keeps_operator_roster_readable(client, app):
     response = client.get(f"/spaces/{ids['slug']}/members")
     assert response.status_code == 200
     assert b"Member roster" in response.data
+
+
+def test_owner_and_moderator_can_export_member_roster_csv(client, app):
+    ids = _fixture(app, member_count=2)
+
+    for operator_id in (ids["owner"], ids["moderator"]):
+        _login(client, operator_id)
+        response = client.get(f"/spaces/{ids['slug']}/members.csv")
+        assert response.status_code == 200
+        assert response.content_type.startswith("text/csv")
+        assert (
+            response.headers["Content-Disposition"]
+            == 'attachment; filename="ripple-roster-space-members.csv"'
+        )
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
+        assert response.data.startswith(b"username,role,joined_at\r\n")
+        assert b"roster_owner,owner," in response.data
+        assert b"roster_moderator,moderator," in response.data
+
+
+def test_nonoperator_and_anonymous_cannot_export_roster(client, app):
+    ids = _fixture(app, member_count=1)
+
+    _login(client, ids["regular"])
+    assert client.get(f"/spaces/{ids['slug']}/members.csv").status_code == 403
+
+    with client.session_transaction() as session:
+        session.clear()
+    anonymous = client.get(f"/spaces/{ids['slug']}/members.csv")
+    assert anonymous.status_code == 302
+    assert "/login" in anonymous.headers["Location"]
+
+
+def test_export_uses_same_case_insensitive_search_and_role_filters(client, app):
+    ids = _fixture(app, member_count=3)
+    _login(client, ids["owner"])
+
+    response = client.get(
+        f"/spaces/{ids['slug']}/members.csv?q=MEMBER_01&role=member"
+    )
+    assert response.status_code == 200
+    lines = response.data.decode().splitlines()
+    assert lines[0] == "username,role,joined_at"
+    assert len(lines) == 2
+    assert lines[1].startswith("member_01,member,")
+    assert response.headers["X-Ripple-Export-Count"] == "1"
+
+
+def test_export_excludes_private_account_data_and_is_deterministic(client, app):
+    ids = _fixture(app, member_count=3)
+    _login(client, ids["owner"])
+
+    response = client.get(f"/spaces/{ids['slug']}/members.csv")
+    assert response.status_code == 200
+    body = response.data.decode()
+    assert "private-00@example.com" not in body
+    assert "owner-roster@example.com" not in body
+    assert "password" not in body.lower()
+
+    usernames = [line.split(",", 1)[0] for line in body.splitlines()[1:]]
+    assert usernames == sorted(usernames, key=str.casefold)
+
+
+def test_export_escapes_spreadsheet_formula_prefixes(client, app):
+    ids = _fixture(app, member_count=0)
+    with app.app_context():
+        user = User(username="=formula", email="formula@example.com", password="hash")
+        db.session.add(user)
+        db.session.flush()
+        db.session.add(
+            SpaceMembership(
+                space_id=Space.query.filter_by(slug=ids["slug"]).one().id,
+                user_id=user.id,
+                role="member",
+            )
+        )
+        db.session.commit()
+
+    _login(client, ids["owner"])
+    response = client.get(f"/spaces/{ids['slug']}/members.csv?q=formula")
+    assert response.status_code == 200
+    assert b"'=formula,member," in response.data
+    assert b"formula@example.com" not in response.data
+
+
+def test_archived_space_roster_remains_exportable(client, app):
+    ids = _fixture(app, member_count=1)
+    with app.app_context():
+        space = Space.query.filter_by(slug=ids["slug"]).one()
+        space.archived_at = space.created_at
+        space.archived_by_id = ids["owner"]
+        db.session.commit()
+
+    _login(client, ids["owner"])
+    response = client.get(f"/spaces/{ids['slug']}/members.csv")
+    assert response.status_code == 200
+    assert b"roster_owner,owner," in response.data
+
+
+def test_export_enforces_explicit_row_limit(client, app, monkeypatch):
+    ids = _fixture(app, member_count=3)
+    _login(client, ids["owner"])
+
+    from twitclone.spaces import routes as space_routes
+
+    monkeypatch.setattr(space_routes, "_MEMBER_EXPORT_LIMIT", 2)
+    response = client.get(f"/spaces/{ids['slug']}/members.csv")
+    assert response.status_code == 413
+    assert b"2-row limit" in response.data
+
+
+def test_roster_export_link_preserves_current_filters(client, app):
+    ids = _fixture(app, member_count=3)
+    _login(client, ids["owner"])
+
+    response = client.get(
+        f"/spaces/{ids['slug']}/members?q=member&role=member"
+    )
+    assert response.status_code == 200
+    assert b"data-member-export-link" in response.data
+    assert b"members.csv?q=member&amp;role=member" in response.data
