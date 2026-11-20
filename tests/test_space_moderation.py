@@ -6,6 +6,7 @@ from twitclone.resource_models import Resource, ResourceRevision
 from twitclone.spaces.models import (
     Space,
     SpaceMembership,
+    SpaceMembershipAction,
     SpaceModerationAction,
     SpaceModerationAppeal,
     SpacePost,
@@ -85,11 +86,18 @@ def test_owner_can_promote_member_and_role_change_is_audited(client, app):
     with app.app_context():
         membership = db.session.get(SpaceMembership, ids["member_membership"])
         assert membership.role == "moderator"
-        action = SpaceModerationAction.query.filter_by(
-            space_id=ids["space"], action_type="promote_moderator", target_id=membership.id
+        action = SpaceMembershipAction.query.filter_by(
+            space_id=ids["space"],
+            action_type="role_changed",
+            affected_user_id=ids["member"],
         ).one()
         assert action.actor_id == ids["owner"]
-        assert action.affected_user_id == ids["member"]
+        assert action.previous_role == "member"
+        assert action.new_role == "moderator"
+        assert SpaceModerationAction.query.filter_by(
+            space_id=ids["space"],
+            target_type="membership",
+        ).count() == 0
 
 
 def test_nonmoderator_cannot_hide_space_post(client, app):
