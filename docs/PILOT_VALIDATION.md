@@ -14,7 +14,9 @@ bash scripts/run-pilot-demo.sh
 
 The launcher builds/starts Docker Compose, waits for `/health/ready`, seeds the
 idempotent operator demo, verifies that anonymous access to the protected
-operator route redirects to login, and prints local/LAN URLs plus demo
+operator route redirects to login, then performs a real CSRF-protected login as
+the seeded owner and confirms the operator dashboard returns 200 with the
+expected 8-member demo community. It then prints local/LAN URLs plus demo
 credentials.
 
 For a repeat session where images are already built:
