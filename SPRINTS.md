@@ -39,8 +39,8 @@ tests remain green; no completed roadmap work is restarted.
 Current work:
 
 - [x] Story 28.1 — Owner Space settings.
-- [ ] Story 28.2 — Space archive state (in progress).
-- [ ] Story 28.3 — Archive restore and lifecycle audit.
+- [x] Story 28.2 — Space archive state.
+- [ ] Story 28.3 — Archive restore and lifecycle audit (in progress).
 
 See `docs/sprints/SPRINT_28.md` for acceptance criteria and scope boundaries.
 
