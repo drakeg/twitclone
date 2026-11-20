@@ -38,8 +38,8 @@ tests remain green; no completed roadmap work is restarted.
 
 Current work:
 
-- [ ] Story 27.1 — Consent-based Space invitations (in progress).
-- [ ] Story 27.2 — Invitation management.
+- [x] Story 27.1 — Consent-based Space invitations.
+- [ ] Story 27.2 — Invitation management (in progress).
 - [ ] Story 27.3 — Private Space visibility.
 
 See `docs/sprints/SPRINT_27.md` for acceptance criteria and scope boundaries.

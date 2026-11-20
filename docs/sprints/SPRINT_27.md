@@ -9,7 +9,7 @@ foundation for private/invite-controlled communities without silently adding use
 
 ## Story 27.1 — Consent-based Space invitations
 
-**Status:** In progress.
+**Status:** Completed in PR #386.
 
 - Allow Space owners and moderators to invite an existing Ripple user by username.
 - Never create membership at invite time.
@@ -32,8 +32,20 @@ foundation for private/invite-controlled communities without silently adding use
 
 ### Story 27.2 — Invitation management
 
-Allow operators to review and cancel pending invitations and make invitation
-state visible from the operator dashboard.
+**Status:** In progress.
+
+- Show pending invitations and a count on the operator dashboard.
+- Allow owners and moderators to cancel a pending invitation.
+- Notify the invited user when an outstanding invitation is canceled.
+- Prevent canceled invitations from being accepted afterward.
+
+### Acceptance criteria
+
+- Operator dashboard lists only pending invitations for that Space.
+- Owners and moderators can cancel pending invitations; ordinary members cannot.
+- Canceling records `canceled` status and a response timestamp.
+- Canceled invitations cannot be accepted or declined later.
+- Cancellation does not create or remove Space membership.
 
 ### Story 27.3 — Private Space visibility
 

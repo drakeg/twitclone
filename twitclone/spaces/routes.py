@@ -272,6 +272,12 @@ def operator_dashboard(slug):
         space_id=space.id,
         status="pending",
     ).count()
+    pending_invitations = (
+        SpaceInvitation.query.filter_by(space_id=space.id, status="pending")
+        .order_by(SpaceInvitation.created_at.asc(), SpaceInvitation.id.asc())
+        .all()
+    )
+    pending_invitations_count = len(pending_invitations)
     moderation_actions_30d = (
         SpaceModerationAction.query.filter(
             SpaceModerationAction.space_id == space.id,
@@ -300,6 +306,7 @@ def operator_dashboard(slug):
         "posts_30d": posts_30d,
         "resources_30d": resources_30d,
         "pending_appeals": pending_appeals_count,
+        "pending_invitations": pending_invitations_count,
         "moderation_actions_30d": moderation_actions_30d,
     }
     return render_template(
@@ -309,6 +316,7 @@ def operator_dashboard(slug):
         metrics=metrics,
         recent_members=recent_members,
         membership_history=membership_history,
+        pending_invitations=pending_invitations,
     )
 
 
@@ -375,6 +383,33 @@ def create_invitation(slug):
     db.session.commit()
     flash(f"Invitation sent to @{invited_user.username}.", "success")
     return redirect(url_for("spaces.detail", slug=space.slug))
+
+
+
+@spaces_blueprint.post("/<slug>/invitations/<int:invitation_id>/cancel")
+@login_required
+def cancel_invitation(slug, invitation_id):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    if not _can_moderate(_membership(space)):
+        abort(403)
+    invitation = SpaceInvitation.query.filter_by(
+        id=invitation_id,
+        space_id=space.id,
+    ).first_or_404()
+    if invitation.status != "pending":
+        abort(400, description="That invitation is no longer pending.")
+
+    invitation.status = "canceled"
+    invitation.responded_at = _utcnow()
+    db.session.add(
+        Notification(
+            user_id=invitation.invited_user_id,
+            message=f"Your invitation to the {space.name} space was canceled.",
+        )
+    )
+    db.session.commit()
+    flash(f"Invitation to @{invitation.invited_user.username} canceled.", "success")
+    return redirect(url_for("spaces.operator_dashboard", slug=space.slug))
 
 
 def _respond_to_invitation(invitation_id, *, decision):
