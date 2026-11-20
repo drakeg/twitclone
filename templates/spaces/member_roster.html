@@ -49,7 +49,7 @@
       <thead><tr><th scope="col">Member</th><th scope="col">Role</th><th scope="col">Joined</th></tr></thead>
       <tbody>
       {% for row in rows %}
-        <tr>
+        <tr data-member-roster-row="{{ row.user.username }}">
           <td><a href="{{ url_for('profile', username=row.user.username) }}">@{{ row.user.username }}</a></td>
           <td>{{ row.role }}</td>
           <td>{{ row.joined_at.strftime('%Y-%m-%d') }}</td>
