@@ -277,9 +277,17 @@ Delivered capabilities include owner-only settings for name/description/visibili
 
 **Goal:** Make day-to-day Space membership administration efficient as communities grow beyond a small recent-member list.
 
-**Status:** In progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_29.md`.
+**Status:** Completed. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_29.md`.
 
-Story 29.1 adds an operator-facing searchable/filterable member roster with bounded pagination while preserving existing role, ownership, moderation, privacy, ranking, and monetization boundaries. Follow-up stories will build on that roster only where they improve repeatable member-administration workflows.
+Delivered capabilities include an operator-only searchable/filterable paginated member roster, owner role/removal actions that reuse audited administration behavior, preserved filter/page context, moderator read-only access, and edge-case regression coverage without exposing private member data or creating ranking/scoring surfaces.
+
+## Sprint 30 — Space conversation curation
+
+**Goal:** Give Space operators lightweight tools to keep important community conversations visible without turning curation into paid reach or global ranking authority.
+
+**Status:** In progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_30.md`.
+
+Story 30.1 adds operator-controlled pin/unpin state for Space posts and displays pinned conversations ahead of ordinary chronological Space posts while preserving normal global post semantics.
 
 ## Cross-cutting release gates and deferred work
 
