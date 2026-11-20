@@ -554,6 +554,11 @@ def operator_dashboard(slug):
         curation_history=curation_history,
         pending_invitations=pending_invitations,
         pending_membership_requests=pending_membership_requests,
+        request_access_url=(
+            url_for("spaces.request_access", slug=space.slug, _external=True)
+            if space.visibility == "private"
+            else None
+        ),
     )
 
 
