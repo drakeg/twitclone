@@ -12,6 +12,7 @@ from twitclone.resource_models import Resource
 from twitclone.spaces import spaces_blueprint
 from twitclone.spaces.models import (
     Space,
+    SpaceCurationAction,
     SpaceInvitation,
     SpaceLifecycleAction,
     SpaceMembership,
@@ -71,7 +72,12 @@ def _visible_space_posts(space):
             SpacePost.is_hidden.is_(False),
             Tweet.is_removed.is_(False),
         )
-        .order_by(Tweet.timestamp.desc(), SpacePost.id.desc())
+        .order_by(
+            SpacePost.pinned_at.is_(None).asc(),
+            SpacePost.pinned_at.desc(),
+            Tweet.timestamp.desc(),
+            SpacePost.id.desc(),
+        )
         .all()
     )
 
@@ -117,6 +123,18 @@ def _audit_lifecycle(
         new_name=new_name,
         previous_visibility=previous_visibility,
         new_visibility=new_visibility,
+        details=details,
+    )
+    db.session.add(action)
+    return action
+
+
+def _audit_curation(space, row, *, action_type, details=None):
+    action = SpaceCurationAction(
+        space_id=space.id,
+        space_post_id=row.id,
+        actor_id=current_user.id,
+        action_type=action_type,
         details=details,
     )
     db.session.add(action)
@@ -487,6 +505,12 @@ def operator_dashboard(slug):
     )
     membership_history = []
     lifecycle_history = []
+    curation_history = (
+        SpaceCurationAction.query.filter_by(space_id=space.id)
+        .order_by(SpaceCurationAction.created_at.desc(), SpaceCurationAction.id.desc())
+        .limit(50)
+        .all()
+    )
     if membership.role == "owner":
         membership_history = (
             SpaceMembershipAction.query.filter_by(space_id=space.id)
@@ -519,6 +543,7 @@ def operator_dashboard(slug):
         recent_members=recent_members,
         membership_history=membership_history,
         lifecycle_history=lifecycle_history,
+        curation_history=curation_history,
         pending_invitations=pending_invitations,
     )
 
@@ -892,6 +917,52 @@ def set_member_role(slug, user_id):
         db.session.commit()
         flash(f"@{target.user.username} is now a {role}.", "success")
     return _member_admin_redirect(space)
+
+
+@spaces_blueprint.post("/<slug>/posts/<int:space_post_id>/pin")
+@login_required
+def pin_post(slug, space_post_id):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    _require_space_active(space)
+    if not _can_moderate(_membership(space)):
+        abort(403)
+    row = SpacePost.query.filter_by(id=space_post_id, space_id=space.id).first_or_404()
+    if row.is_hidden or row.tweet.is_removed:
+        abort(409, description="Hidden or removed Space posts cannot be pinned.")
+    if row.pinned_at is None:
+        row.pinned_at = _utcnow()
+        row.pinned_by_id = current_user.id
+        _audit_curation(
+            space,
+            row,
+            action_type="pin_post",
+            details="Pinned for Space-local conversation curation.",
+        )
+        db.session.commit()
+        flash("Conversation pinned in this Space.", "success")
+    return redirect(url_for("spaces.detail", slug=space.slug))
+
+
+@spaces_blueprint.post("/<slug>/posts/<int:space_post_id>/unpin")
+@login_required
+def unpin_post(slug, space_post_id):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    _require_space_active(space)
+    if not _can_moderate(_membership(space)):
+        abort(403)
+    row = SpacePost.query.filter_by(id=space_post_id, space_id=space.id).first_or_404()
+    if row.pinned_at is not None:
+        row.pinned_at = None
+        row.pinned_by_id = None
+        _audit_curation(
+            space,
+            row,
+            action_type="unpin_post",
+            details="Removed Space-local pin.",
+        )
+        db.session.commit()
+        flash("Conversation unpinned.", "success")
+    return redirect(url_for("spaces.detail", slug=space.slug))
 
 
 @spaces_blueprint.post("/<slug>/posts/<int:space_post_id>/hide")
