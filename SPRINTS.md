@@ -32,17 +32,17 @@ Current work:
 from repository configuration; CI validates the standards contract; existing
 tests remain green; no completed roadmap work is restarted.
 
-## Active product sprint — Sprint 27
+## Active product sprint — Sprint 28
 
-**Goal:** Add consent-based Space invitations and access-control foundations.
+**Goal:** Add owner-controlled Space settings and reversible lifecycle controls.
 
 Current work:
 
-- [x] Story 27.1 — Consent-based Space invitations.
-- [ ] Story 27.2 — Invitation management (in progress).
-- [ ] Story 27.3 — Private Space visibility.
+- [x] Story 28.1 — Owner Space settings.
+- [ ] Story 28.2 — Space archive state (in progress).
+- [ ] Story 28.3 — Archive restore and lifecycle audit.
 
-See `docs/sprints/SPRINT_27.md` for acceptance criteria and scope boundaries.
+See `docs/sprints/SPRINT_28.md` for acceptance criteria and scope boundaries.
 
 ## Next product/commercial priority
 
