@@ -1,6 +1,6 @@
 # Sprint 30 — Space conversation curation
 
-**Status:** In progress.
+**Status:** Completed.
 
 ## Goal
 
@@ -31,7 +31,7 @@ later unpin it.
 
 ## Story 30.2 — Moderation-safe pin lifecycle
 
-**Status:** In progress.
+**Status:** Completed in PR #398.
 
 Prevent stale pin state when local moderation hides a curated conversation.
 
@@ -48,10 +48,11 @@ Prevent stale pin state when local moderation hides a curated conversation.
 
 ## Story 30.3 — Sprint regression hardening
 
-**Status:** Planned.
+**Status:** Completed in PR #399.
 
-Close the sprint with authorization, lifecycle, moderation, ordering, and
-migration regression coverage.
+Closed the sprint with idempotency coverage, deterministic multi-pin ordering,
+deleted-actor audit retention, and the existing authorization, lifecycle,
+moderation, migration, and global-Tweet isolation regression suite.
 
 ## Boundary
 
