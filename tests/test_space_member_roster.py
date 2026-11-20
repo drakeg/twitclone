@@ -225,3 +225,59 @@ def test_detail_page_role_action_keeps_existing_detail_redirect(client, app):
     )
     assert response.status_code == 302
     assert response.headers["Location"].endswith(f"/spaces/{ids['slug']}")
+
+
+def test_invalid_role_filter_falls_back_to_all_roles(client, app):
+    ids = _fixture(app, member_count=1)
+    _login(client, ids["owner"])
+
+    response = client.get(f"/spaces/{ids['slug']}/members?role=administrator")
+    assert response.status_code == 200
+    assert b'data-member-roster-row="roster_owner"' in response.data
+    assert b'data-member-roster-row="roster_moderator"' in response.data
+    assert b'data-member-roster-row="roster_regular"' in response.data
+
+
+def test_empty_search_has_clear_zero_result_state(client, app):
+    ids = _fixture(app, member_count=1)
+    _login(client, ids["owner"])
+
+    response = client.get(f"/spaces/{ids['slug']}/members?q=no-such-member")
+    assert response.status_code == 200
+    assert b'data-member-result-count="0"' in response.data
+    assert b"No members match these filters." in response.data
+
+
+def test_nonpositive_page_is_bounded_to_first_page(client, app):
+    ids = _fixture(app, member_count=30)
+    _login(client, ids["owner"])
+
+    response = client.get(f"/spaces/{ids['slug']}/members?page=-10")
+    assert response.status_code == 200
+    assert b"Page 1 of 2" in response.data
+    assert b'data-member-roster-row="member_00"' in response.data
+
+
+def test_pagination_links_preserve_search_and_role_filters(client, app):
+    ids = _fixture(app, member_count=30)
+    _login(client, ids["owner"])
+
+    response = client.get(f"/spaces/{ids['slug']}/members?q=member&role=member")
+    assert response.status_code == 200
+    assert b"q=member" in response.data
+    assert b"role=member" in response.data
+    assert b"page=2" in response.data
+
+
+def test_archived_space_keeps_operator_roster_readable(client, app):
+    ids = _fixture(app, member_count=1)
+    with app.app_context():
+        space = Space.query.filter_by(slug=ids["slug"]).one()
+        space.archived_at = space.created_at
+        space.archived_by_id = ids["owner"]
+        db.session.commit()
+
+    _login(client, ids["owner"])
+    response = client.get(f"/spaces/{ids['slug']}/members")
+    assert response.status_code == 200
+    assert b"Member roster" in response.data
