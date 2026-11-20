@@ -644,12 +644,20 @@ def request_access(slug):
             note=note or None,
         )
         db.session.add(membership_request)
-        db.session.add(
-            Notification(
-                user_id=space.owner_id,
-                message=f"@{current_user.username} requested access to the {space.name} space.",
+        operator_ids = {
+            row.user_id
+            for row in SpaceMembership.query.filter(
+                SpaceMembership.space_id == space.id,
+                SpaceMembership.role.in_(["owner", "moderator"]),
+            ).all()
+        }
+        for operator_id in operator_ids:
+            db.session.add(
+                Notification(
+                    user_id=operator_id,
+                    message=f"@{current_user.username} requested access to the {space.name} space.",
+                )
             )
-        )
         db.session.commit()
         flash("Membership request sent to the Space operators.", "success")
         return redirect(url_for("spaces.request_access", slug=space.slug))
