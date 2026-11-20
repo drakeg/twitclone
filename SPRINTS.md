@@ -32,4 +32,4 @@ tests remain green; no completed roadmap work is restarted.
 
 ## Next product/commercial priority
 
-The Issue #372 community operator dashboard pilot and operator-ready demo seed are implemented. The next gate is real prospect validation using `docs/PILOT_VALIDATION.md`; further feature expansion should be driven by observed customer pain rather than assumptions. New numbered sprints must be added to `docs/ROADMAP.md` only when real scope is selected, rather than invented solely for process compliance.
+The Issue #372 community operator dashboard pilot and operator-ready demo seed are implemented. Current work standardizes the demo into a one-command, health-checked local launcher before real prospect validation using `docs/PILOT_VALIDATION.md`; further feature expansion should be driven by observed customer pain rather than assumptions. New numbered sprints must be added to `docs/ROADMAP.md` only when real scope is selected, rather than invented solely for process compliance.
