@@ -24,6 +24,7 @@ EXPECTED_TABLES = {
     "quote",
     "retweet",
     "space_invitation",
+    "space_lifecycle_action",
     "space_membership_action",
     "tweet",
     "user",
