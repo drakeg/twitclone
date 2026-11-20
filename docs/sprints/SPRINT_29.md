@@ -1,6 +1,6 @@
 # Sprint 29 — Space member operations
 
-**Status:** In progress.
+**Status:** Completed.
 
 ## Goal
 
@@ -30,7 +30,7 @@ summary.
 
 ## Story 29.2 — Member-management workflow refinement
 
-**Status:** In progress.
+**Status:** Completed in PR #395.
 
 Make the new roster operational for owners without broadening moderator authority:
 
@@ -50,11 +50,11 @@ Make the new roster operational for owners without broadening moderator authorit
 
 ## Story 29.3 — Sprint regression hardening
 
-**Status:** Planned.
+**Status:** Completed in PR #396.
 
-Close the sprint by testing the implemented member-operations workflow across
-owner/moderator authorization, pagination/filter edge cases, stable URLs, and
-existing lifecycle/invitation/member-administration behavior.
+Closed the sprint with edge-case regression coverage for invalid filters, empty
+searches, lower/upper page bounds, filter-preserving pagination, archived-space
+read access, and the existing authorization/audit boundaries.
 
 ## Boundary
 
