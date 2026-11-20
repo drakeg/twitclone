@@ -10,6 +10,13 @@ from flask import current_app
 from twitclone.community.routes import COMMUNITY_GUIDELINES_VERSION
 from twitclone.extensions import bcrypt, db
 from twitclone.models import Follows, Quote, Retweet, Tweet, User
+from twitclone.spaces.models import (
+    Space,
+    SpaceMembership,
+    SpaceModerationAction,
+    SpaceModerationAppeal,
+    SpacePost,
+)
 
 DEMO_PASSWORD = "Passw0rd!"
 DEMO_USERS = (
@@ -22,6 +29,20 @@ DEMO_USERS = (
     ("campfirecode", "campfirecode@example.test", "Remote work, RV life, and code written near a campfire."),
     ("historywalks", "historywalks@example.test", "Old places, local stories, museums, and roadside history."),
 )
+DEMO_SPACE_SLUG = "roadside-creators-club"
+DEMO_SPACE_NAME = "Roadside Creators Club"
+DEMO_SPACE_DESCRIPTION = (
+    "A sample member community for creators and remote workers sharing ideas from the road."
+)
+DEMO_SPACE_OWNER = "campfirecode"
+DEMO_SPACE_MODERATOR = "bytebloom"
+DEMO_SPACE_POSTS = (
+    "Working from the road today. Hotspot is behaving, coffee is strong, deploy is green. #remotework #rv",
+    "There is a very specific kind of confidence that comes from fixing production from a campground. #devops #rv",
+    "@trailbound next road trip needs a diner rule: local place, full parking lot, pie in a glass case. #roadtrip #food",
+    "Small-town museums continue to be wildly underrated. #travel #history",
+)
+
 POST_IDEAS = (
     ("trailbound", "Found a quiet trail this morning and had the whole overlook to myself. #hiking #weekend"),
     ("bytebloom", "Finally automated the thing I kept saying only takes five minutes. It took three hours. #python #automation"),
@@ -51,7 +72,10 @@ def seed_demo_content(*, seed: int = 2026) -> dict[str, int]:
         raise RuntimeError("Demo content cannot be seeded in production.")
     rng = random.Random(seed)
     password_hash = bcrypt.generate_password_hash(DEMO_PASSWORD).decode("utf-8")
-    users = {}; created_users = created_posts = created_follows = created_reposts = created_quotes = 0
+    users = {}
+    created_users = created_posts = created_follows = created_reposts = created_quotes = 0
+    created_spaces = created_space_memberships = created_space_posts = 0
+    created_space_moderation_actions = created_space_appeals = 0
     now = _naive_utcnow()
     for username, email, bio in DEMO_USERS:
         user = User.query.filter_by(username=username).first()
@@ -84,8 +108,122 @@ def seed_demo_content(*, seed: int = 2026) -> dict[str, int]:
         age_minutes = rng.randint(2, 75)
         if Quote.query.filter_by(user_id=user.id, tweet_id=target.id, content=content).first() is None:
             db.session.add(Quote(user_id=user.id, tweet_id=target.id, content=content, timestamp=now-timedelta(minutes=age_minutes))); created_quotes += 1
+
+    demo_space = Space.query.filter_by(slug=DEMO_SPACE_SLUG).first()
+    if demo_space is None:
+        demo_space = Space(
+            slug=DEMO_SPACE_SLUG,
+            name=DEMO_SPACE_NAME,
+            description=DEMO_SPACE_DESCRIPTION,
+            owner_id=users[DEMO_SPACE_OWNER].id,
+            created_at=now - timedelta(days=45),
+        )
+        db.session.add(demo_space)
+        db.session.flush()
+        created_spaces += 1
+
+    for username, user in users.items():
+        membership = SpaceMembership.query.filter_by(
+            space_id=demo_space.id,
+            user_id=user.id,
+        ).first()
+        if membership is None:
+            if username == DEMO_SPACE_OWNER:
+                role = "owner"
+                joined_at = now - timedelta(days=45)
+            elif username == DEMO_SPACE_MODERATOR:
+                role = "moderator"
+                joined_at = now - timedelta(days=30)
+            else:
+                role = "member"
+                joined_at = now - timedelta(days=rng.randint(1, 24))
+            db.session.add(
+                SpaceMembership(
+                    space_id=demo_space.id,
+                    user_id=user.id,
+                    role=role,
+                    joined_at=joined_at,
+                )
+            )
+            created_space_memberships += 1
+
+    demo_space_rows = []
+    for index, content in enumerate(DEMO_SPACE_POSTS):
+        tweet = Tweet.query.filter_by(content=content).first()
+        if tweet is None:
+            continue
+        row = SpacePost.query.filter_by(tweet_id=tweet.id).first()
+        if row is None:
+            row = SpacePost(
+                space_id=demo_space.id,
+                tweet_id=tweet.id,
+                created_at=now - timedelta(days=index + 1),
+                is_hidden=index == len(DEMO_SPACE_POSTS) - 1,
+                hidden_at=(now - timedelta(hours=6)) if index == len(DEMO_SPACE_POSTS) - 1 else None,
+                hidden_by_id=users[DEMO_SPACE_MODERATOR].id if index == len(DEMO_SPACE_POSTS) - 1 else None,
+                hidden_reason="Demo moderation example for operator review." if index == len(DEMO_SPACE_POSTS) - 1 else None,
+            )
+            db.session.add(row)
+            db.session.flush()
+            created_space_posts += 1
+        if row.space_id == demo_space.id:
+            demo_space_rows.append(row)
+
+    hidden_demo_row = next((row for row in demo_space_rows if row.is_hidden), None)
+    if hidden_demo_row is not None:
+        action = SpaceModerationAction.query.filter_by(
+            space_id=demo_space.id,
+            action_type="hide_post",
+            target_type="post",
+            target_id=hidden_demo_row.id,
+        ).first()
+        if action is None:
+            action = SpaceModerationAction(
+                space_id=demo_space.id,
+                actor_id=users[DEMO_SPACE_MODERATOR].id,
+                action_type="hide_post",
+                target_type="post",
+                target_id=hidden_demo_row.id,
+                affected_user_id=hidden_demo_row.tweet.user_id,
+                reason="Demo moderation example for operator review.",
+                created_at=now - timedelta(hours=6),
+            )
+            db.session.add(action)
+            db.session.flush()
+            created_space_moderation_actions += 1
+
+        appeal = SpaceModerationAppeal.query.filter_by(action_id=action.id).first()
+        if appeal is None:
+            db.session.add(
+                SpaceModerationAppeal(
+                    space_id=demo_space.id,
+                    action_id=action.id,
+                    requester_id=hidden_demo_row.tweet.user_id,
+                    rationale="Demo appeal: please review this local moderation decision.",
+                    submitted_at=now - timedelta(hours=4),
+                )
+            )
+            created_space_appeals += 1
+
     db.session.commit()
-    return {"users": created_users, "posts": created_posts, "follows": created_follows, "reposts": created_reposts, "quotes": created_quotes}
+    return {
+        "users": created_users,
+        "posts": created_posts,
+        "follows": created_follows,
+        "reposts": created_reposts,
+        "quotes": created_quotes,
+        "spaces": created_spaces,
+        "space_memberships": created_space_memberships,
+        "space_posts": created_space_posts,
+        "space_moderation_actions": created_space_moderation_actions,
+        "space_appeals": created_space_appeals,
+    }
 
 
-__all__ = ["DEMO_PASSWORD", "DEMO_USERS", "seed_demo_content"]
+__all__ = [
+    "DEMO_PASSWORD",
+    "DEMO_USERS",
+    "DEMO_SPACE_SLUG",
+    "DEMO_SPACE_NAME",
+    "seed_demo_content",
+]
