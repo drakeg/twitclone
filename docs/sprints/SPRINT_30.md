@@ -10,7 +10,7 @@ reputation, verification, or paid reach.
 
 ## Story 30.1 — Pin and unpin Space conversations
 
-**Status:** In progress.
+**Status:** Completed in PR #397.
 
 Allow Space owners and moderators to pin an existing visible Space post and
 later unpin it.
@@ -29,12 +29,22 @@ later unpin it.
 - Payment, verification, follower count, reputation, and global engagement do
   not influence pin state.
 
-## Story 30.2 — Curated-conversation usability refinement
+## Story 30.2 — Moderation-safe pin lifecycle
 
-**Status:** Planned after Story 30.1 is exercised.
+**Status:** In progress.
 
-Use concrete implementation/test gaps to improve curation usability without
-adding algorithmic ranking or bulk moderation.
+Prevent stale pin state when local moderation hides a curated conversation.
+
+### Acceptance criteria
+
+- Hiding a pinned Space post automatically clears its pin state.
+- Automatic unpin writes a dedicated curation audit entry in addition to the
+  existing moderation audit entry.
+- Hiding an unpinned Space post does not manufacture a curation event.
+- Restoring a previously pinned/hidden Space post restores visibility only; it
+  does not silently restore the old pin.
+- Existing pin/unpin authorization, archive, and global-Tweet boundaries remain
+  unchanged.
 
 ## Story 30.3 — Sprint regression hardening
 
