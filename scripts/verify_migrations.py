@@ -8,6 +8,10 @@ import sys
 import tempfile
 from pathlib import Path
 
+EXPECTED_COLUMNS = {
+    "space": {"archived_at", "archived_by_id"},
+}
+
 EXPECTED_TABLES = {
     "alembic_version",
     "bookmark",
@@ -60,6 +64,22 @@ def main() -> int:
         if missing:
             print(f"Missing expected tables: {sorted(missing)}", file=sys.stderr)
             return 1
+
+        with sqlite3.connect(database_path) as connection:
+            for table_name, expected_columns in EXPECTED_COLUMNS.items():
+                columns = {
+                    row[1]
+                    for row in connection.execute(
+                        f"PRAGMA table_info({table_name})"
+                    ).fetchall()
+                }
+                missing_columns = expected_columns - columns
+                if missing_columns:
+                    print(
+                        f"Missing expected columns on {table_name}: {sorted(missing_columns)}",
+                        file=sys.stderr,
+                    )
+                    return 1
 
         print("Migration verification passed.")
         print(f"Created tables: {', '.join(sorted(actual_tables))}")
