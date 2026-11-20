@@ -134,7 +134,11 @@ class SpaceLifecycleAction(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
 
     space = db.relationship("Space")
-    actor = db.relationship("User", foreign_keys=[actor_id])
+    actor = db.relationship(
+        "User",
+        foreign_keys=[actor_id],
+        backref=db.backref("space_lifecycle_actions", passive_deletes=False),
+    )
 
 
 class SpaceInvitation(db.Model):

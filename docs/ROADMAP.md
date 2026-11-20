@@ -269,9 +269,17 @@ Story 27.1 adds existing-user invitations that require explicit recipient accept
 
 **Goal:** Add safe owner-controlled settings and reversible lifecycle controls for persistent Spaces.
 
-**Status:** In progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_28.md`.
+**Status:** Completed. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_28.md`.
 
-Story 28.1 adds owner-only editing for name, description, and visibility while preserving stable Space URLs and all existing community data. Follow-up stories add reversible archive/restore behavior and lifecycle audit history.
+Delivered capabilities include owner-only settings for name/description/visibility, reversible archive/restore behavior, participation freezes while archived, and owner-only lifecycle audit history that survives actor-account deletion without mixing lifecycle events into moderation or membership-administration histories.
+
+## Sprint 29 — Space member operations
+
+**Goal:** Make day-to-day Space membership administration efficient as communities grow beyond a small recent-member list.
+
+**Status:** In progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_29.md`.
+
+Story 29.1 adds an operator-facing searchable/filterable member roster with bounded pagination while preserving existing role, ownership, moderation, privacy, ranking, and monetization boundaries. Follow-up stories will build on that roster only where they improve repeatable member-administration workflows.
 
 ## Cross-cutting release gates and deferred work
 
