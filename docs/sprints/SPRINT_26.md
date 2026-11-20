@@ -1,6 +1,6 @@
 # Sprint 26 — Space ownership and membership administration
 
-**Status:** In progress.
+**Status:** Completed.
 
 ## Goal
 
@@ -53,7 +53,7 @@ a community around its original creator.
 
 ### Story 26.3 — Membership administration audit
 
-**Status:** In progress.
+**Status:** Completed in PR #385.
 
 - Add a dedicated durable membership-administration action model.
 - Record ownership transfers, member removals, and owner-driven role changes.
@@ -75,3 +75,15 @@ a community around its original creator.
 Sprint 26 improves Space administration only. It does not add private/invite-only
 Spaces, paid membership gating, global account suspension, or enterprise
 directory integration unless later stories explicitly select those capabilities.
+
+## Sprint outcome
+
+Sprint 26 delivered safe ownership transfer, owner-controlled membership removal,
+and a dedicated membership-administration audit trail. Space communities can now
+change hands and maintain a reviewable administrative history without conflating
+membership operations with content moderation.
+
+## Definition of done
+
+Completed. Ownership handoff, member removal, and membership administration history
+are implemented and regression-tested.

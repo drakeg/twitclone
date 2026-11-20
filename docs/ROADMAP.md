@@ -253,9 +253,17 @@ Delivered capabilities include a sanitized evidence-record template for the requ
 
 **Goal:** Make persistent Ripple Spaces operationally sustainable by giving owners safe handoff and member-administration workflows.
 
-**Status:** In progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_26.md`.
+**Status:** Completed. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_26.md`.
 
 Story 26.1 adds safe ownership transfer between existing Space members so a community is not permanently tied to its original creator. Follow-up stories cover owner-controlled member removal and durable membership-administration history while preserving Ripple's existing global moderation, reputation, verification, and monetization boundaries.
+
+## Sprint 27 — Space invitations and access control
+
+**Goal:** Add consent-based Space invitations and build the access-control foundation for private communities.
+
+**Status:** In progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_27.md`.
+
+Story 27.1 adds existing-user invitations that require explicit recipient acceptance before membership is created. Follow-up stories add operator invitation management and private Space visibility while preserving public Spaces and Ripple-wide safety/ranking boundaries.
 
 ## Cross-cutting release gates and deferred work
 
