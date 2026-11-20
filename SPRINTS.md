@@ -32,6 +32,18 @@ Current work:
 from repository configuration; CI validates the standards contract; existing
 tests remain green; no completed roadmap work is restarted.
 
+## Active product sprint — Sprint 26
+
+**Goal:** Add safe Space ownership handoff and member-administration workflows.
+
+Current work:
+
+- [ ] Story 26.1 — Safe ownership transfer.
+- [ ] Story 26.2 — Owner member removal.
+- [ ] Story 26.3 — Membership administration audit.
+
+See `docs/sprints/SPRINT_26.md` for acceptance criteria and scope boundaries.
+
 ## Next product/commercial priority
 
-The Issue #372 community operator dashboard pilot has completed engineering/demo readiness. The next product gate is real prospect validation using `docs/PILOT_VALIDATION.md` and the public-safe outreach/qualification kit in `docs/PILOT_OUTREACH.md`. Further feature expansion should be driven by repeated customer pain or a concrete pilot blocker rather than assumptions. New numbered sprints must be added to `docs/ROADMAP.md` only when real scope is selected, rather than invented solely for process compliance.
+Commercialization validation for Issue #372 continues in parallel with product development; it is not a stop condition for the roadmap. Sprint 26 continues improving Ripple's Space/community product while preserving the existing launch, safety, cost, and standards gates. New numbered sprints must be added to `docs/ROADMAP.md` only when real scope is selected, rather than invented solely for process compliance.

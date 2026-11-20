@@ -249,6 +249,14 @@ Delivered capabilities include an isolated launch of the immutable runtime image
 
 Delivered capabilities include a sanitized evidence-record template for the required NVDA, VoiceOver, and 200%/400% zoom scenarios, offline structural/completeness validation, defect/retest handling, release identity checks, and regression coverage that preserves the boundary between evidence validation and actual accessibility testing. Manual evidence collection remains a separate public-launch gate.
 
+## Sprint 26 — Space ownership and membership administration
+
+**Goal:** Make persistent Ripple Spaces operationally sustainable by giving owners safe handoff and member-administration workflows.
+
+**Status:** In progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_26.md`.
+
+Story 26.1 adds safe ownership transfer between existing Space members so a community is not permanently tied to its original creator. Follow-up stories cover owner-controlled member removal and durable membership-administration history while preserving Ripple's existing global moderation, reputation, verification, and monetization boundaries.
+
 ## Cross-cutting release gates and deferred work
 
 These are not new product sprints and remain independently tracked:
