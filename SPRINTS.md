@@ -7,7 +7,7 @@ it does not renumber or rewrite completed roadmap history.
 
 ## Completed product roadmap
 
-Sprints 0 through 26 are documented as completed in `docs/ROADMAP.md`, subject
+Sprints 0 through 27 are documented as completed in `docs/ROADMAP.md`, subject
 to the explicitly documented manual/live launch evidence gates. Do not recreate
 completed sprint work.
 
@@ -46,4 +46,4 @@ See `docs/sprints/SPRINT_27.md` for acceptance criteria and scope boundaries.
 
 ## Next product/commercial priority
 
-Commercialization validation for Issue #372 continues in parallel with product development; it is not a stop condition for the roadmap. Sprint 27 continues improving Ripple's Space/community product while preserving the existing launch, safety, cost, and standards gates. New numbered sprints must be added to `docs/ROADMAP.md` only when real scope is selected, rather than invented solely for process compliance.
+Commercialization validation for Issue #372 continues in parallel with product development; it is not a stop condition for the roadmap. Sprint 28 continues improving Ripple's Space/community product while preserving the existing launch, safety, cost, and standards gates. New numbered sprints must be added to `docs/ROADMAP.md` only when real scope is selected, rather than invented solely for process compliance.

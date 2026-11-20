@@ -258,6 +258,42 @@ def detail(slug):
 
 
 
+@spaces_blueprint.route("/<slug>/settings", methods=["GET", "POST"])
+@login_required
+def settings(slug):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    membership = _membership(space)
+    if membership is None or membership.role != "owner" or space.owner_id != current_user.id:
+        abort(403)
+
+    if request.method == "POST":
+        name = (request.form.get("name") or "").strip()
+        description = (request.form.get("description") or "").strip()
+        visibility = (request.form.get("visibility") or "").strip().lower()
+
+        errors = []
+        if not name or len(name) > 120:
+            errors.append("Space name must be between 1 and 120 characters.")
+        if not description or len(description) > 500:
+            errors.append("Space description must be between 1 and 500 characters.")
+        if visibility not in {"public", "private"}:
+            errors.append("Choose a valid space visibility.")
+
+        if errors:
+            for error in errors:
+                flash(error, "danger")
+            return render_template("spaces/settings.html", space=space), 400
+
+        space.name = name
+        space.description = description
+        space.visibility = visibility
+        db.session.commit()
+        flash("Space settings updated.", "success")
+        return redirect(url_for("spaces.detail", slug=space.slug))
+
+    return render_template("spaces/settings.html", space=space)
+
+
 @spaces_blueprint.get("/<slug>/operator")
 @login_required
 def operator_dashboard(slug):

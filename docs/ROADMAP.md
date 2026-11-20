@@ -261,9 +261,17 @@ Story 26.1 adds safe ownership transfer between existing Space members so a comm
 
 **Goal:** Add consent-based Space invitations and build the access-control foundation for private communities.
 
-**Status:** In progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_27.md`.
+**Status:** Completed. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_27.md`.
 
 Story 27.1 adds existing-user invitations that require explicit recipient acceptance before membership is created. Follow-up stories add operator invitation management and private Space visibility while preserving public Spaces and Ripple-wide safety/ranking boundaries.
+
+## Sprint 28 — Space settings and lifecycle
+
+**Goal:** Add safe owner-controlled settings and reversible lifecycle controls for persistent Spaces.
+
+**Status:** In progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_28.md`.
+
+Story 28.1 adds owner-only editing for name, description, and visibility while preserving stable Space URLs and all existing community data. Follow-up stories add reversible archive/restore behavior and lifecycle audit history.
 
 ## Cross-cutting release gates and deferred work
 

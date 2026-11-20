@@ -420,3 +420,127 @@ def test_public_space_join_and_discovery_remain_unchanged(client, app):
     assert client.get("/spaces/public-compat").status_code == 200
     _login(client, joiner_id)
     assert client.post("/spaces/public-compat/join").status_code == 302
+
+
+def test_owner_can_update_space_settings_without_changing_slug(client, app):
+    owner_id = _user(app, "space_settings_owner")
+    with app.app_context():
+        space = Space(
+            slug="stable-url",
+            name="Original Name",
+            description="Original description.",
+            owner_id=owner_id,
+            visibility="public",
+        )
+        db.session.add(space)
+        db.session.flush()
+        space_id = space.id
+        db.session.add(SpaceMembership(space_id=space.id, user_id=owner_id, role="owner"))
+        db.session.commit()
+
+    _login(client, owner_id)
+    response = client.post(
+        "/spaces/stable-url/settings",
+        data={
+            "name": "Updated Name",
+            "description": "Updated description for the community.",
+            "visibility": "private",
+        },
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert b"Space settings updated" in response.data
+    assert b"Updated Name" in response.data
+
+    with app.app_context():
+        space = db.session.get(Space, space_id)
+        assert space.slug == "stable-url"
+        assert space.name == "Updated Name"
+        assert space.description == "Updated description for the community."
+        assert space.visibility == "private"
+
+
+def test_nonowner_cannot_edit_space_settings(client, app):
+    owner_id = _user(app, "space_settings_guard_owner")
+    member_id = _user(app, "space_settings_guard_member")
+    with app.app_context():
+        space = Space(
+            slug="settings-guard",
+            name="Settings Guard",
+            description="Owner-only settings.",
+            owner_id=owner_id,
+        )
+        db.session.add(space)
+        db.session.flush()
+        db.session.add_all([
+            SpaceMembership(space_id=space.id, user_id=owner_id, role="owner"),
+            SpaceMembership(space_id=space.id, user_id=member_id, role="member"),
+        ])
+        db.session.commit()
+
+    _login(client, member_id)
+    assert client.get("/spaces/settings-guard/settings").status_code == 403
+    assert client.post(
+        "/spaces/settings-guard/settings",
+        data={"name": "Hijacked", "description": "No.", "visibility": "private"},
+    ).status_code == 403
+
+
+def test_space_settings_validate_fields(client, app):
+    owner_id = _user(app, "space_settings_validation_owner")
+    with app.app_context():
+        space = Space(
+            slug="settings-validation",
+            name="Settings Validation",
+            description="Validation boundaries.",
+            owner_id=owner_id,
+        )
+        db.session.add(space)
+        db.session.flush()
+        db.session.add(SpaceMembership(space_id=space.id, user_id=owner_id, role="owner"))
+        db.session.commit()
+
+    _login(client, owner_id)
+    response = client.post(
+        "/spaces/settings-validation/settings",
+        data={"name": "", "description": "", "visibility": "secret"},
+    )
+    assert response.status_code == 400
+
+    with app.app_context():
+        space = Space.query.filter_by(slug="settings-validation").one()
+        assert space.name == "Settings Validation"
+        assert space.description == "Validation boundaries."
+        assert space.visibility == "public"
+
+
+def test_switching_private_to_public_reopens_discovery_and_join(client, app):
+    owner_id = _user(app, "space_visibility_owner")
+    joiner_id = _user(app, "space_visibility_joiner")
+    with app.app_context():
+        space = Space(
+            slug="visibility-switch",
+            name="Visibility Switch",
+            description="Visibility changes safely.",
+            owner_id=owner_id,
+            visibility="private",
+        )
+        db.session.add(space)
+        db.session.flush()
+        db.session.add(SpaceMembership(space_id=space.id, user_id=owner_id, role="owner"))
+        db.session.commit()
+
+    assert b"Visibility Switch" not in client.get("/spaces/").data
+    _login(client, owner_id)
+    assert client.post(
+        "/spaces/visibility-switch/settings",
+        data={
+            "name": "Visibility Switch",
+            "description": "Visibility changes safely.",
+            "visibility": "public",
+        },
+    ).status_code == 302
+
+    _login(client, joiner_id)
+    assert b"Visibility Switch" in client.get("/spaces/").data
+    assert client.post("/spaces/visibility-switch/join").status_code == 302
