@@ -37,3 +37,14 @@ def test_pilot_demo_launcher_does_not_destroy_data_or_provision_cloud_resources(
     assert "down -v" not in SCRIPT
     assert "terraform apply" not in SCRIPT
     assert "aws " not in SCRIPT
+
+
+def test_pilot_demo_launcher_verifies_authenticated_owner_workflow():
+    assert "Verifying authenticated owner workflow" in SCRIPT
+    assert 'name="csrf_token"' in SCRIPT
+    assert '--data-urlencode "email=campfirecode@example.test"' in SCRIPT
+    assert '--data-urlencode "password=Passw0rd!"' in SCRIPT
+    assert "Expected demo owner login to return 302" in SCRIPT
+    assert "Expected authenticated operator dashboard to return 200" in SCRIPT
+    assert "Community operating summary" in SCRIPT
+    assert 'data-metric="member-count">8<' in SCRIPT
