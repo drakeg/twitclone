@@ -34,7 +34,7 @@ a community around its original creator.
 
 ### Story 26.2 — Owner member removal
 
-**Status:** In progress.
+**Status:** Completed in PR #384.
 
 - Allow only the canonical Space owner to remove a non-owner membership.
 - Require an explicit removal confirmation.
@@ -53,9 +53,22 @@ a community around its original creator.
 
 ### Story 26.3 — Membership administration audit
 
-Add a durable, reviewable membership-administration history for ownership
-transfer, member removal, and role changes without conflating those actions with
-content moderation.
+**Status:** In progress.
+
+- Add a dedicated durable membership-administration action model.
+- Record ownership transfers, member removals, and owner-driven role changes.
+- Preserve actor and affected-user attribution while allowing deleted accounts to resolve safely.
+- Show the recent history to Space owners on the operator dashboard.
+- Keep content moderation history separate from membership administration.
+
+### Acceptance criteria
+
+- Membership administration has its own table and migration.
+- Role changes stop writing new records into the content-moderation audit.
+- Ownership transfer records the target's previous role and new owner role.
+- Member removal records the removed role and a null new role.
+- Only the Space owner sees membership-administration history in the operator UI.
+- Deleting a user does not require deleting historical administration records.
 
 ## Boundary
 
