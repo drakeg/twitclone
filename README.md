@@ -49,6 +49,12 @@ docker compose up --build
 
 Compose automatically reads `.env` for interpolation. The example preserves Ripple's durable local defaults (`sqlite:////data/twitclone.db` and `/data/uploads`) while allowing the bind host, published port, scheduler interval, mail settings, media settings, and disabled-by-default Stripe configuration to be changed from the same file.
 
+Ripple also uses a dedicated Docker bridge subnet, defaulting to
+`10.254.250.0/24`, so hosts with many Compose projects do not depend on
+Docker's finite automatic subnet pool. If that range overlaps a VPN or another
+local Docker network, set `RIPPLE_DOCKER_SUBNET` in `.env` to an unused
+private subnet.
+
 If port 8000 is already in use by another local application, set a different
 host port while leaving Ripple's internal container port unchanged:
 

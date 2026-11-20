@@ -24,7 +24,10 @@ PILOT_DEMO_SKIP_BUILD=true bash scripts/run-pilot-demo.sh
 ```
 
 The application binds to `0.0.0.0` by default, so it can be demonstrated from
-another device on the same LAN using the Docker host's IP address.
+another device on the same LAN using the Docker host's IP address. Ripple's
+Compose network defaults to `10.254.250.0/24`; set `RIPPLE_DOCKER_SUBNET` to
+another unused private subnet if that range overlaps the demo host's VPN or
+existing Docker networks.
 
 Demo operator account:
 
