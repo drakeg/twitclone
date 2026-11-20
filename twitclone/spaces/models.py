@@ -102,6 +102,28 @@ class SpaceResource(db.Model):
     hidden_by = db.relationship("User", foreign_keys=[hidden_by_id])
 
 
+class SpaceInvitation(db.Model):
+    __tablename__ = "space_invitation"
+    __table_args__ = (
+        db.CheckConstraint(
+            "status in ('pending', 'accepted', 'declined', 'canceled')",
+            name="ck_space_invitation_status",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    space_id = db.Column(db.Integer, db.ForeignKey("space.id", ondelete="CASCADE"), nullable=False)
+    invited_user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
+    invited_by_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="SET NULL"), nullable=True)
+    status = db.Column(db.String(20), nullable=False, default="pending", server_default="pending")
+    created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+    responded_at = db.Column(db.DateTime, nullable=True)
+
+    space = db.relationship("Space")
+    invited_user = db.relationship("User", foreign_keys=[invited_user_id])
+    invited_by = db.relationship("User", foreign_keys=[invited_by_id])
+
+
 class SpaceMembershipAction(db.Model):
     __tablename__ = "space_membership_action"
     __table_args__ = (
@@ -185,6 +207,7 @@ class SpaceModerationAppeal(db.Model):
 
 __all__ = [
     "Space",
+    "SpaceInvitation",
     "SpaceMembership",
     "SpaceMembershipAction",
     "SpacePost",
