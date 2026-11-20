@@ -1,8 +1,14 @@
 # Ripple
 
+<!-- madmallard-badges:start -->
+![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white) ![Flask 3.1.3](https://img.shields.io/badge/Flask-3.1.3-000000?logo=flask&logoColor=white) ![PostgreSQL 18](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-supported-2496ED?logo=docker&logoColor=white) ![Docker Compose](https://img.shields.io/badge/Docker_Compose-supported-2496ED?logo=docker&logoColor=white)
+
+![Terraform 1.17.2](https://img.shields.io/badge/Terraform-1.17.2-844FBA?logo=terraform&logoColor=white) ![AWS Provider 6.73.0](https://img.shields.io/badge/AWS_Provider-6.73.0-FF9900?logo=amazonwebservices&logoColor=white) [![CI](https://github.com/drakeg/twitclone/actions/workflows/ci.yml/badge.svg)](https://github.com/drakeg/twitclone/actions/workflows/ci.yml) [![Security policy](https://img.shields.io/badge/Security-policy-blue)](SECURITY.md) [![Issues](https://img.shields.io/github/issues/drakeg/twitclone)](https://github.com/drakeg/twitclone/issues) [![Pull requests](https://img.shields.io/github/issues-pr/drakeg/twitclone)](https://github.com/drakeg/twitclone/pulls)
+<!-- madmallard-badges:end -->
+
 Ripple is a Flask-based social networking application inspired by early microblogging platforms. The current application includes user accounts, timelines, follows, posts, reposts, quotes, bookmarks, direct messages, notifications, hashtags, image uploads, scheduled posts, and polls.
 
-> **Project status:** Active redevelopment. The immediate focus is stabilizing the existing application, documenting its architecture, improving security and test coverage, and then delivering features in small Agile sprints.
+> **Project status:** Active development. The numbered product roadmap through Sprint 25 is complete; current work focuses on standards compliance, dependency health, launch-readiness evidence, and selecting the next validated SMB/customer-value priority.
 >
 > **Naming note:** The product is branded as **Ripple**. The repository and internal Python package remain `twitclone` for now to avoid an unnecessary import and deployment refactor during the branding change.
 
