@@ -20,7 +20,7 @@ Current work:
 
 - [x] Repository-side AWS architecture, validation, backup/restore, plan-policy,
       guarded-apply, budget-alert, and readiness controls implemented.
-- [ ] Adopt root Mad Mallard governance documents and automated standards checks.
+- [x] Adopt root Mad Mallard governance documents, verified badges, and automated standards checks.
 - [x] Clear the current green dependency update queue; continue reviewing new Renovate PRs as they appear.
 - [x] Complete the AWS activation handoff documentation.
 - [ ] Complete live AWS evidence only after explicit spend authorization.
@@ -32,7 +32,5 @@ tests remain green; no completed roadmap work is restarted.
 
 ## Next product/commercial priority
 
-After the standards/launch-readiness cycle, the next product work should be
-selected from BACKLOG.md based on the fastest credible path to validated SMB
-customer value. New numbered sprints must be added to `docs/ROADMAP.md` only
+The current product/commercialization slice is the Issue #372 community operator dashboard pilot, selected because it reuses existing Space data and tests an SMB/community-management value proposition with minimal new infrastructure. New numbered sprints must be added to `docs/ROADMAP.md` only
 when real scope is selected, rather than invented solely for process compliance.

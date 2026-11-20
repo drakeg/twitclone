@@ -1,7 +1,7 @@
 """Routes for persistent community/topic spaces."""
 
 import re
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -195,6 +195,87 @@ def detail(slug):
         my_moderation=my_moderation,
         appeals_by_action=appeals_by_action,
         can_moderate=_can_moderate(membership),
+    )
+
+
+
+
+
+@spaces_blueprint.get("/<slug>/operator")
+@login_required
+def operator_dashboard(slug):
+    """Read-only operating view for space owners and moderators."""
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    membership = _membership(space)
+    if not _can_moderate(membership):
+        abort(403)
+
+    cutoff = _utcnow() - timedelta(days=30)
+    member_count = SpaceMembership.query.filter_by(space_id=space.id).count()
+    moderator_count = (
+        SpaceMembership.query.filter(
+            SpaceMembership.space_id == space.id,
+            SpaceMembership.role.in_(["owner", "moderator"]),
+        ).count()
+    )
+    new_members_30d = (
+        SpaceMembership.query.filter(
+            SpaceMembership.space_id == space.id,
+            SpaceMembership.joined_at >= cutoff,
+        ).count()
+    )
+    posts_30d = (
+        SpacePost.query.join(SpacePost.tweet)
+        .filter(
+            SpacePost.space_id == space.id,
+            SpacePost.created_at >= cutoff,
+            SpacePost.is_hidden.is_(False),
+            Tweet.is_removed.is_(False),
+        )
+        .count()
+    )
+    resources_30d = (
+        SpaceResource.query.join(SpaceResource.resource)
+        .filter(
+            SpaceResource.space_id == space.id,
+            SpaceResource.linked_at >= cutoff,
+            SpaceResource.is_hidden.is_(False),
+            Resource.is_removed.is_(False),
+        )
+        .count()
+    )
+    pending_appeals_count = SpaceModerationAppeal.query.filter_by(
+        space_id=space.id,
+        status="pending",
+    ).count()
+    moderation_actions_30d = (
+        SpaceModerationAction.query.filter(
+            SpaceModerationAction.space_id == space.id,
+            SpaceModerationAction.created_at >= cutoff,
+        ).count()
+    )
+    recent_members = (
+        SpaceMembership.query.filter_by(space_id=space.id)
+        .order_by(SpaceMembership.joined_at.desc(), SpaceMembership.id.desc())
+        .limit(10)
+        .all()
+    )
+
+    metrics = {
+        "member_count": member_count,
+        "moderator_count": moderator_count,
+        "new_members_30d": new_members_30d,
+        "posts_30d": posts_30d,
+        "resources_30d": resources_30d,
+        "pending_appeals": pending_appeals_count,
+        "moderation_actions_30d": moderation_actions_30d,
+    }
+    return render_template(
+        "spaces/operator_dashboard.html",
+        space=space,
+        membership=membership,
+        metrics=metrics,
+        recent_members=recent_members,
     )
 
 

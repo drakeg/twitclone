@@ -174,6 +174,7 @@ See:
 - [`docs/ROADMAP.md`](docs/ROADMAP.md)
 - [`docs/AGILE_PROCESS.md`](docs/AGILE_PROCESS.md)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- [`docs/COMMERCIALIZATION.md`](docs/COMMERCIALIZATION.md)
 - [`docs/sprints/SPRINT_0.md`](docs/sprints/SPRINT_0.md)
 
 ## Roadmap
