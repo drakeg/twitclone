@@ -228,3 +228,73 @@ def test_invitation_inbox_only_shows_current_users_pending_invitations(client, a
     assert page.status_code == 200
     assert b"Invitation Space" in page.data
     assert page.data.count(b"Accept") == 1
+
+
+def test_operator_dashboard_lists_pending_invitations_and_metric(client, app):
+    ids = _fixture(app)
+    with app.app_context():
+        db.session.add(
+            SpaceInvitation(
+                space_id=ids["space"],
+                invited_user_id=ids["invitee"],
+                invited_by_id=ids["owner"],
+            )
+        )
+        db.session.commit()
+
+    _login(client, ids["moderator"])
+    page = client.get("/spaces/invitation-space/operator")
+    assert page.status_code == 200
+    assert b"Pending invitations" in page.data
+    assert b"invite_target" in page.data
+    assert b'data-metric="pending-invitations">1<' in page.data
+
+
+def test_owner_or_moderator_can_cancel_pending_invitation(client, app):
+    ids = _fixture(app)
+    with app.app_context():
+        invitation = SpaceInvitation(
+            space_id=ids["space"],
+            invited_user_id=ids["invitee"],
+            invited_by_id=ids["owner"],
+        )
+        db.session.add(invitation)
+        db.session.commit()
+        invitation_id = invitation.id
+
+    _login(client, ids["moderator"])
+    response = client.post(
+        f"/spaces/invitation-space/invitations/{invitation_id}/cancel",
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert b"Invitation to @invite_target canceled" in response.data
+
+    with app.app_context():
+        invitation = db.session.get(SpaceInvitation, invitation_id)
+        assert invitation.status == "canceled"
+        assert invitation.responded_at is not None
+
+    _login(client, ids["invitee"])
+    assert client.post(f"/spaces/invitations/{invitation_id}/accept").status_code == 400
+
+
+def test_ordinary_member_cannot_cancel_invitation(client, app):
+    ids = _fixture(app)
+    with app.app_context():
+        invitation = SpaceInvitation(
+            space_id=ids["space"],
+            invited_user_id=ids["invitee"],
+            invited_by_id=ids["owner"],
+        )
+        db.session.add(invitation)
+        db.session.commit()
+        invitation_id = invitation.id
+
+    _login(client, ids["member"])
+    assert client.post(
+        f"/spaces/invitation-space/invitations/{invitation_id}/cancel"
+    ).status_code == 403
+
+    with app.app_context():
+        assert db.session.get(SpaceInvitation, invitation_id).status == "pending"
