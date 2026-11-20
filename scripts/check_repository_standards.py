@@ -58,7 +58,7 @@ def expected_badge_tokens() -> tuple[str, ...]:
     )
     variables = read("infra/terraform/variables.tf")
     postgres_version = extract(
-        r'variable "postgres_engine_version".*?default\s*=\s*"([^"]+)"',
+        r'variable "postgres_engine_version"[\s\S]*?default\s*=\s*"([^"]+)"',
         variables,
         "PostgreSQL version",
     )
