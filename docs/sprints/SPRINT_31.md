@@ -9,7 +9,7 @@ control, privacy, invitation consent, or Ripple-wide safety boundaries.
 
 ## Story 31.1 — Request private Space membership
 
-**Status:** In progress — implementation in PR #400.
+**Status:** Completed in PR #400.
 
 Add a requester-initiated workflow that creates a pending membership request for
 a private Space and lets owners/moderators explicitly approve or deny it.
@@ -34,12 +34,23 @@ a private Space and lets owners/moderators explicitly approve or deny it.
 - Membership requests do not affect global ranking, reputation, verification,
   or paid status.
 
-## Story 31.2 — Membership-request usability refinement
+## Story 31.2 — Operator request-link and notification usability
 
-**Status:** Planned after Story 31.1 is exercised.
+**Status:** In progress.
 
-Use implementation/testing gaps to refine operator/requester usability without
-adding automatic approvals or weakening privacy.
+Make the request workflow discoverable for operators without making private
+Spaces publicly discoverable.
+
+### Acceptance criteria
+
+- Private-Space operator dashboards expose a stable request-access URL that can
+  be shared intentionally.
+- Public Space operator dashboards do not show a request-access URL.
+- The request link itself still exposes no private Space content to nonmembers.
+- New membership requests notify all current owners/moderators, not unrelated
+  members/users.
+- Notification changes do not create membership or auto-approval behavior.
+- Existing privacy, archive, and request-resolution boundaries remain unchanged.
 
 ## Story 31.3 — Sprint regression hardening
 
