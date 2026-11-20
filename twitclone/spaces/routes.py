@@ -504,6 +504,60 @@ def operator_dashboard(slug):
 
 
 
+@spaces_blueprint.get("/<slug>/members")
+@login_required
+def member_roster(slug):
+    """Searchable operator-only Space membership roster."""
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    membership = _membership(space)
+    if not _can_moderate(membership):
+        abort(403)
+
+    search = (request.args.get("q") or "").strip()
+    role = (request.args.get("role") or "").strip().lower()
+    if role not in {"", "owner", "moderator", "member"}:
+        role = ""
+
+    query = (
+        SpaceMembership.query.join(SpaceMembership.user)
+        .filter(SpaceMembership.space_id == space.id)
+    )
+    if search:
+        query = query.filter(
+            db.func.lower(User.username).like(f"%{search.casefold()}%")
+        )
+    if role:
+        query = query.filter(SpaceMembership.role == role)
+
+    total_items = query.count()
+    per_page = 25
+    total_pages = max(1, (total_items + per_page - 1) // per_page)
+    requested_page = request.args.get("page", default=1, type=int) or 1
+    page = min(max(requested_page, 1), total_pages)
+    rows = (
+        query.order_by(
+            db.func.lower(User.username).asc(),
+            SpaceMembership.id.asc(),
+        )
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+        .all()
+    )
+
+    return render_template(
+        "spaces/member_roster.html",
+        space=space,
+        membership=membership,
+        rows=rows,
+        search=search,
+        selected_role=role,
+        page=page,
+        per_page=per_page,
+        total_items=total_items,
+        total_pages=total_pages,
+    )
+
+
 @spaces_blueprint.get("/invitations")
 @login_required
 def invitations():
