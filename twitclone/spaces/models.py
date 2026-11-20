@@ -102,6 +102,38 @@ class SpaceResource(db.Model):
     hidden_by = db.relationship("User", foreign_keys=[hidden_by_id])
 
 
+class SpaceMembershipAction(db.Model):
+    __tablename__ = "space_membership_action"
+    __table_args__ = (
+        db.CheckConstraint(
+            "action_type in ('ownership_transferred', 'role_changed', 'member_removed')",
+            name="ck_space_membership_action_type",
+        ),
+        db.CheckConstraint(
+            "previous_role is null or previous_role in ('owner', 'moderator', 'member')",
+            name="ck_space_membership_action_previous_role",
+        ),
+        db.CheckConstraint(
+            "new_role is null or new_role in ('owner', 'moderator', 'member')",
+            name="ck_space_membership_action_new_role",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    space_id = db.Column(db.Integer, db.ForeignKey("space.id", ondelete="CASCADE"), nullable=False)
+    actor_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="SET NULL"), nullable=True)
+    affected_user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="SET NULL"), nullable=True)
+    action_type = db.Column(db.String(40), nullable=False)
+    previous_role = db.Column(db.String(20), nullable=True)
+    new_role = db.Column(db.String(20), nullable=True)
+    details = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+
+    space = db.relationship("Space")
+    actor = db.relationship("User", foreign_keys=[actor_id])
+    affected_user = db.relationship("User", foreign_keys=[affected_user_id])
+
+
 class SpaceModerationAction(db.Model):
     __tablename__ = "space_moderation_action"
     __table_args__ = (
@@ -154,6 +186,7 @@ class SpaceModerationAppeal(db.Model):
 __all__ = [
     "Space",
     "SpaceMembership",
+    "SpaceMembershipAction",
     "SpacePost",
     "SpaceResource",
     "SpaceModerationAction",

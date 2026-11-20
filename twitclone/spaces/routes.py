@@ -13,6 +13,7 @@ from twitclone.spaces import spaces_blueprint
 from twitclone.spaces.models import (
     Space,
     SpaceMembership,
+    SpaceMembershipAction,
     SpaceModerationAction,
     SpaceModerationAppeal,
     SpacePost,
@@ -76,6 +77,28 @@ def _resource_candidates(space):
     if linked_ids:
         query = query.filter(~Resource.id.in_(linked_ids))
     return query.order_by(Resource.updated_at.desc(), Resource.id.desc()).limit(100).all()
+
+
+def _audit_membership(
+    space,
+    *,
+    action_type,
+    affected_user_id,
+    previous_role=None,
+    new_role=None,
+    details=None,
+):
+    action = SpaceMembershipAction(
+        space_id=space.id,
+        actor_id=current_user.id,
+        affected_user_id=affected_user_id,
+        action_type=action_type,
+        previous_role=previous_role,
+        new_role=new_role,
+        details=details,
+    )
+    db.session.add(action)
+    return action
 
 
 def _audit(space, *, action_type, target_type, target_id, affected_user_id, reason):
@@ -260,6 +283,14 @@ def operator_dashboard(slug):
         .limit(10)
         .all()
     )
+    membership_history = []
+    if membership.role == "owner":
+        membership_history = (
+            SpaceMembershipAction.query.filter_by(space_id=space.id)
+            .order_by(SpaceMembershipAction.created_at.desc(), SpaceMembershipAction.id.desc())
+            .limit(50)
+            .all()
+        )
 
     metrics = {
         "member_count": member_count,
@@ -276,6 +307,7 @@ def operator_dashboard(slug):
         membership=membership,
         metrics=metrics,
         recent_members=recent_members,
+        membership_history=membership_history,
     )
 
 
@@ -359,9 +391,18 @@ def transfer_ownership(slug):
         abort(400, description="Choose another current member as the new owner.")
 
     previous_owner = membership
+    target_previous_role = target.role
     previous_owner.role = "member"
     target.role = "owner"
     space.owner_id = target.user_id
+    _audit_membership(
+        space,
+        action_type="ownership_transferred",
+        affected_user_id=target.user_id,
+        previous_role=target_previous_role,
+        new_role="owner",
+        details=f"Ownership transferred from @{current_user.username}; previous owner became a member.",
+    )
     db.session.add(
         Notification(
             user_id=target.user_id,
@@ -391,6 +432,15 @@ def remove_member(slug, user_id):
         abort(400, description="Confirm the member removal.")
 
     removed_user = target.user
+    removed_role = target.role
+    _audit_membership(
+        space,
+        action_type="member_removed",
+        affected_user_id=removed_user.id,
+        previous_role=removed_role,
+        new_role=None,
+        details="Current Space membership ended by the owner; public rejoin remains available.",
+    )
     db.session.delete(target)
     db.session.add(
         Notification(
@@ -422,14 +472,13 @@ def set_member_role(slug, user_id):
     if target.role != role:
         old_role = target.role
         target.role = role
-        action_type = "promote_moderator" if role == "moderator" else "demote_moderator"
-        _audit(
+        _audit_membership(
             space,
-            action_type=action_type,
-            target_type="membership",
-            target_id=target.id,
+            action_type="role_changed",
             affected_user_id=target.user_id,
-            reason=f"Owner changed role from {old_role} to {role}.",
+            previous_role=old_role,
+            new_role=role,
+            details=f"Owner changed Space role from {old_role} to {role}.",
         )
         db.session.commit()
         flash(f"@{target.user.username} is now a {role}.", "success")

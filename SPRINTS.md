@@ -39,8 +39,8 @@ tests remain green; no completed roadmap work is restarted.
 Current work:
 
 - [x] Story 26.1 — Safe ownership transfer.
-- [ ] Story 26.2 — Owner member removal (in progress).
-- [ ] Story 26.3 — Membership administration audit.
+- [x] Story 26.2 — Owner member removal.
+- [ ] Story 26.3 — Membership administration audit (in progress).
 
 See `docs/sprints/SPRINT_26.md` for acceptance criteria and scope boundaries.
 
