@@ -48,7 +48,12 @@ class User(db.Model, UserMixin):
     community_guidelines_accepted_at = db.Column(db.DateTime, nullable=True)
     followed = db.relationship('User', secondary='follows', primaryjoin=(id == Follows.follower_id), secondaryjoin=(id == Follows.followed_id), backref=db.backref('followers', lazy='dynamic'), lazy='dynamic')
     followed_hashtags = db.relationship('HashtagFollow', back_populates='user', lazy=True, cascade='all, delete-orphan')
-    notifications = db.relationship('Notification', backref='user', lazy=True)
+    notifications = db.relationship(
+        'Notification',
+        backref='user',
+        lazy=True,
+        cascade='all, delete-orphan',
+    )
     bookmarks = db.relationship('Bookmark', back_populates='user', lazy=True)
     bookmark_folders = db.relationship('BookmarkFolder', back_populates='user', lazy=True, cascade='all, delete-orphan')
     verification_requests = db.relationship('VerificationRequest', foreign_keys='VerificationRequest.user_id', back_populates='user', lazy=True, cascade='all, delete-orphan')
