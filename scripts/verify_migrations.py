@@ -28,6 +28,7 @@ EXPECTED_TABLES = {
     "space_invitation",
     "space_lifecycle_action",
     "space_membership_action",
+    "space_membership_request",
     "tweet",
     "user",
 }
