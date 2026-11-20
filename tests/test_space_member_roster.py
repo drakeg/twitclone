@@ -92,8 +92,8 @@ def test_roster_search_is_case_insensitive_and_does_not_expose_email(client, app
 
     response = client.get(f"/spaces/{ids['slug']}/members?q=MEMBER_01")
     assert response.status_code == 200
-    assert b"member_01" in response.data
-    assert b"member_00" not in response.data
+    assert b'data-member-roster-row="member_01"' in response.data
+    assert b'data-member-roster-row="member_00"' not in response.data
     assert b"private-01@example.com" not in response.data
     assert b'data-member-result-count="1"' in response.data
 
@@ -104,9 +104,9 @@ def test_roster_role_filter_limits_results(client, app):
 
     response = client.get(f"/spaces/{ids['slug']}/members?role=moderator")
     assert response.status_code == 200
-    assert b"roster_moderator" in response.data
-    assert b"roster_owner" not in response.data
-    assert b"roster_regular" not in response.data
+    assert b'data-member-roster-row="roster_moderator"' in response.data
+    assert b'data-member-roster-row="roster_owner"' not in response.data
+    assert b'data-member-roster-row="roster_regular"' not in response.data
     assert b'data-member-result-count="1"' in response.data
 
 
@@ -117,13 +117,13 @@ def test_roster_uses_bounded_deterministic_pagination(client, app):
     first = client.get(f"/spaces/{ids['slug']}/members")
     assert first.status_code == 200
     assert b"Page 1 of 2" in first.data
-    assert b"member_00" in first.data
-    assert b"member_29" not in first.data
+    assert b'data-member-roster-row="member_00"' in first.data
+    assert b'data-member-roster-row="member_29"' not in first.data
 
     second = client.get(f"/spaces/{ids['slug']}/members?page=2")
     assert second.status_code == 200
     assert b"Page 2 of 2" in second.data
-    assert b"member_29" in second.data
+    assert b'data-member-roster-row="member_29"' in second.data
 
     bounded = client.get(f"/spaces/{ids['slug']}/members?page=999")
     assert bounded.status_code == 200
