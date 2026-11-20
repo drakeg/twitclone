@@ -27,6 +27,7 @@
     <div class="col-6 col-lg-3"><div class="border rounded p-3 h-100"><div class="small text-muted">Visible posts · 30d</div><strong class="fs-4" data-metric="posts-30d">{{ metrics.posts_30d }}</strong></div></div>
     <div class="col-6 col-lg-3"><div class="border rounded p-3 h-100"><div class="small text-muted">Resources linked · 30d</div><strong class="fs-4" data-metric="resources-30d">{{ metrics.resources_30d }}</strong></div></div>
     <div class="col-6 col-lg-3"><div class="border rounded p-3 h-100"><div class="small text-muted">Pending appeals</div><strong class="fs-4" data-metric="pending-appeals">{{ metrics.pending_appeals }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="border rounded p-3 h-100"><div class="small text-muted">Pending invitations</div><strong class="fs-4" data-metric="pending-invitations">{{ metrics.pending_invitations }}</strong></div></div>
     <div class="col-6 col-lg-3"><div class="border rounded p-3 h-100"><div class="small text-muted">Moderation actions · 30d</div><strong class="fs-4" data-metric="moderation-actions-30d">{{ metrics.moderation_actions_30d }}</strong></div></div>
   </div>
 </section>
@@ -41,6 +42,30 @@
     {% endif %}
     <a class="btn btn-outline-secondary" href="{{ url_for('spaces.detail', slug=space.slug) }}#space-conversations-heading">View conversations</a>
     <a class="btn btn-outline-secondary" href="{{ url_for('spaces.detail', slug=space.slug) }}#space-knowledge-heading">View resources</a>
+  </div>
+</section>
+
+<section class="surface-card mb-3" aria-labelledby="pending-invitations-heading">
+  <span class="auth-kicker">Invitations</span>
+  <h2 class="h5" id="pending-invitations-heading">Pending invitations</h2>
+  <p class="form-text">Owners and moderators can review or cancel invitations that have not been answered yet.</p>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <caption class="visually-hidden">Pending invitations for {{ space.name }}</caption>
+      <thead><tr><th scope="col">User</th><th scope="col">Invited by</th><th scope="col">Sent</th><th scope="col">Action</th></tr></thead>
+      <tbody>
+      {% for invitation in pending_invitations %}
+        <tr>
+          <td>@{{ invitation.invited_user.username }}</td>
+          <td>{% if invitation.invited_by %}@{{ invitation.invited_by.username }}{% else %}deleted account{% endif %}</td>
+          <td>{{ invitation.created_at.strftime('%Y-%m-%d') }}</td>
+          <td><form method="POST" action="{{ url_for('spaces.cancel_invitation', slug=space.slug, invitation_id=invitation.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-danger" type="submit">Cancel</button></form></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="text-muted">No pending invitations.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
   </div>
 </section>
 
