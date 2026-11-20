@@ -36,6 +36,7 @@
   <span class="auth-kicker">Actions</span>
   <h2 class="h5" id="operator-actions-heading">Manage the community</h2>
   <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-primary" href="{{ url_for('spaces.member_roster', slug=space.slug) }}">Member roster</a>
     <a class="btn btn-outline-primary" href="{{ url_for('spaces.detail', slug=space.slug) }}#moderation-heading">Review moderation and appeals</a>
     {% if membership.role == 'owner' %}
     <a class="btn btn-outline-primary" href="{{ url_for('spaces.detail', slug=space.slug) }}#space-roles-heading">Manage member roles</a>
