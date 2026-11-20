@@ -639,6 +639,18 @@ def request_access(slug):
             flash("You already have a pending membership request for this Space.", "info")
             return redirect(url_for("spaces.request_access", slug=space.slug))
 
+        pending_invitation = SpaceInvitation.query.filter_by(
+            space_id=space.id,
+            invited_user_id=current_user.id,
+            status="pending",
+        ).first()
+        if pending_invitation is not None:
+            flash(
+                "You already have a pending invitation to this Space. Respond to that invitation instead.",
+                "info",
+            )
+            return redirect(url_for("spaces.invitations"))
+
         note = (request.form.get("note") or "").strip()
         if len(note) > 500:
             abort(400, description="Membership request notes must be 500 characters or fewer.")
@@ -709,6 +721,14 @@ def _resolve_membership_request(space, membership_request, *, decision):
                     role="member",
                 )
             )
+        pending_invitation = SpaceInvitation.query.filter_by(
+            space_id=space.id,
+            invited_user_id=membership_request.requester_id,
+            status="pending",
+        ).first()
+        if pending_invitation is not None:
+            pending_invitation.status = "canceled"
+            pending_invitation.responded_at = _utcnow()
 
     db.session.add(
         Notification(
@@ -785,6 +805,18 @@ def create_invitation(slug):
         user_id=invited_user.id,
     ).first() is not None:
         abort(400, description="That user is already a member of this space.")
+
+    pending_request = SpaceMembershipRequest.query.filter_by(
+        space_id=space.id,
+        requester_id=invited_user.id,
+        status="pending",
+    ).first()
+    if pending_request is not None:
+        flash(
+            f"@{invited_user.username} already requested membership. Review that request instead.",
+            "info",
+        )
+        return redirect(url_for("spaces.operator_dashboard", slug=space.slug))
 
     existing = SpaceInvitation.query.filter_by(
         space_id=space.id,
@@ -866,6 +898,15 @@ def _respond_to_invitation(invitation_id, *, decision):
                     role="member",
                 )
             )
+        pending_request = SpaceMembershipRequest.query.filter_by(
+            space_id=invitation.space_id,
+            requester_id=current_user.id,
+            status="pending",
+        ).first()
+        if pending_request is not None:
+            pending_request.status = "approved"
+            pending_request.resolved_at = _utcnow()
+            pending_request.resolved_by_id = invitation.invited_by_id
     db.session.commit()
     flash(
         f"You joined {invitation.space.name}."
