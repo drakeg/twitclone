@@ -19,6 +19,7 @@ EXPECTED_TABLES = {
     "poll_vote",
     "quote",
     "retweet",
+    "space_membership_action",
     "tweet",
     "user",
 }
