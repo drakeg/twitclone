@@ -10,7 +10,7 @@ controls.
 
 ## Story 32.1 — Filtered roster CSV export
 
-**Status:** In progress.
+**Status:** In progress — implementation in PR #403.
 
 Add an operator-only CSV export that uses the same username search and role
 filter semantics as the on-screen member roster.
