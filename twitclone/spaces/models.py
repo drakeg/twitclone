@@ -105,6 +105,38 @@ class SpaceResource(db.Model):
     hidden_by = db.relationship("User", foreign_keys=[hidden_by_id])
 
 
+class SpaceLifecycleAction(db.Model):
+    __tablename__ = "space_lifecycle_action"
+    __table_args__ = (
+        db.CheckConstraint(
+            "action_type in ('settings_updated', 'archived', 'restored')",
+            name="ck_space_lifecycle_action_type",
+        ),
+        db.CheckConstraint(
+            "previous_visibility is null or previous_visibility in ('public', 'private')",
+            name="ck_space_lifecycle_previous_visibility",
+        ),
+        db.CheckConstraint(
+            "new_visibility is null or new_visibility in ('public', 'private')",
+            name="ck_space_lifecycle_new_visibility",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    space_id = db.Column(db.Integer, db.ForeignKey("space.id", ondelete="CASCADE"), nullable=False)
+    actor_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="SET NULL"), nullable=True)
+    action_type = db.Column(db.String(40), nullable=False)
+    previous_name = db.Column(db.String(120), nullable=True)
+    new_name = db.Column(db.String(120), nullable=True)
+    previous_visibility = db.Column(db.String(20), nullable=True)
+    new_visibility = db.Column(db.String(20), nullable=True)
+    details = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+
+    space = db.relationship("Space")
+    actor = db.relationship("User", foreign_keys=[actor_id])
+
+
 class SpaceInvitation(db.Model):
     __tablename__ = "space_invitation"
     __table_args__ = (
@@ -211,6 +243,7 @@ class SpaceModerationAppeal(db.Model):
 __all__ = [
     "Space",
     "SpaceInvitation",
+    "SpaceLifecycleAction",
     "SpaceMembership",
     "SpaceMembershipAction",
     "SpacePost",
