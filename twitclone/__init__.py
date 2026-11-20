@@ -95,7 +95,15 @@ def create_app(config_object: type[Config] = Config) -> Flask:
             if flask_app.config.get("ENVIRONMENT") == "production":
                 raise click.ClickException("Demo content cannot be seeded in production.")
             result = seed_demo_content(seed=seed)
-            click.echo("Demo content ready: " f"{result['users']} users, {result['posts']} posts, " f"{result['follows']} follows, {result['reposts']} reposts, " f"{result['quotes']} quotes created.")
+            click.echo(
+                "Demo content ready: "
+                f"{result['users']} users, {result['posts']} posts, "
+                f"{result['follows']} follows, {result['reposts']} reposts, "
+                f"{result['quotes']} quotes, {result['spaces']} spaces, "
+                f"{result['space_memberships']} space memberships, "
+                f"{result['space_posts']} space posts created."
+            )
+            click.echo("Operator demo: @campfirecode owns /spaces/roadside-creators-club; @bytebloom is a moderator.")
             click.echo(f"Demo account password: {DEMO_PASSWORD}")
 
     if "seed-billing-plans" not in flask_app.cli.commands:
