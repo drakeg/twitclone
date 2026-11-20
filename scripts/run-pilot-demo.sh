@@ -54,6 +54,53 @@ if [[ "$status" != "302" ]]; then
   exit 1
 fi
 
+echo "Verifying authenticated owner workflow..."
+cookie_jar="$(mktemp)"
+login_page="$(mktemp)"
+dashboard_page="$(mktemp)"
+cleanup_demo_http_files() {
+  rm -f "$cookie_jar" "$login_page" "$dashboard_page"
+}
+trap cleanup_demo_http_files EXIT
+
+base_url="http://127.0.0.1:${RIPPLE_PORT}"
+curl --fail --silent --show-error -c "$cookie_jar" "$base_url/login" -o "$login_page"
+csrf_token="$(sed -n 's/.*name="csrf_token" value="\([^"]*\)".*/\1/p' "$login_page" | head -1)"
+if [[ -z "$csrf_token" ]]; then
+  echo "ERROR: Could not extract the login CSRF token from the Ripple login page." >&2
+  exit 1
+fi
+
+login_status="$(
+  curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
+    -b "$cookie_jar" -c "$cookie_jar" \
+    -X POST "$base_url/login" \
+    --data-urlencode "email=campfirecode@example.test" \
+    --data-urlencode "password=Passw0rd!" \
+    --data-urlencode "csrf_token=$csrf_token"
+)"
+if [[ "$login_status" != "302" ]]; then
+  echo "ERROR: Expected demo owner login to return 302; got ${login_status}." >&2
+  exit 1
+fi
+
+dashboard_status="$(
+  curl --silent --show-error --output "$dashboard_page" --write-out '%{http_code}' \
+    -b "$cookie_jar" "$operator_url"
+)"
+if [[ "$dashboard_status" != "200" ]]; then
+  echo "ERROR: Expected authenticated operator dashboard to return 200; got ${dashboard_status}." >&2
+  exit 1
+fi
+if ! grep -q 'Community operating summary' "$dashboard_page"; then
+  echo "ERROR: Operator dashboard did not render the expected summary." >&2
+  exit 1
+fi
+if ! grep -q 'data-metric="member-count">8<' "$dashboard_page"; then
+  echo "ERROR: Operator dashboard did not show the expected seeded 8-member community." >&2
+  exit 1
+fi
+
 lan_ip=""
 if command -v ipconfig >/dev/null 2>&1; then
   lan_ip="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)"
