@@ -209,6 +209,7 @@ def test_owner_can_remove_nonowner_member(client, app):
             SpaceMembership(space_id=space.id, user_id=member_id, role="member"),
         ])
         db.session.commit()
+        space_id = space.id
 
     _login(client, owner_id)
     response = client.post(
@@ -222,7 +223,7 @@ def test_owner_can_remove_nonowner_member(client, app):
 
     with app.app_context():
         assert SpaceMembership.query.filter_by(
-            space_id=space.id, user_id=member_id
+            space_id=space_id, user_id=member_id
         ).first() is None
 
 
@@ -245,6 +246,7 @@ def test_nonowner_cannot_remove_member(client, app):
             SpaceMembership(space_id=space.id, user_id=other_id, role="member"),
         ])
         db.session.commit()
+        space_id = space.id
 
     _login(client, member_id)
     assert client.post(
@@ -254,7 +256,7 @@ def test_nonowner_cannot_remove_member(client, app):
 
     with app.app_context():
         assert SpaceMembership.query.filter_by(
-            space_id=space.id, user_id=other_id
+            space_id=space_id, user_id=other_id
         ).count() == 1
 
 
@@ -275,6 +277,7 @@ def test_owner_removal_requires_confirmation_and_cannot_target_owner(client, app
             SpaceMembership(space_id=space.id, user_id=member_id, role="member"),
         ])
         db.session.commit()
+        space_id = space.id
 
     _login(client, owner_id)
     assert client.post(
@@ -287,7 +290,7 @@ def test_owner_removal_requires_confirmation_and_cannot_target_owner(client, app
 
     with app.app_context():
         assert SpaceMembership.query.filter_by(
-            space_id=space.id, user_id=member_id
+            space_id=space_id, user_id=member_id
         ).count() == 1
 
 
@@ -308,6 +311,7 @@ def test_removed_member_can_rejoin_public_space(client, app):
             SpaceMembership(space_id=space.id, user_id=member_id, role="member"),
         ])
         db.session.commit()
+        space_id = space.id
 
     _login(client, owner_id)
     assert client.post(
@@ -320,5 +324,5 @@ def test_removed_member_can_rejoin_public_space(client, app):
 
     with app.app_context():
         assert SpaceMembership.query.filter_by(
-            space_id=space.id, user_id=member_id
+            space_id=space_id, user_id=member_id
         ).one().role == "member"
