@@ -81,3 +81,112 @@ def test_spaces_are_publicly_discoverable(client, app):
     assert response.status_code == 200
     assert b"Linux" in response.data
     assert b"Membership does not affect your global reputation" in response.data
+
+
+def test_owner_can_transfer_space_ownership_to_existing_member(client, app):
+    owner_id = _user(app, "space_transfer_owner")
+    member_id = _user(app, "space_transfer_member")
+    with app.app_context():
+        space = Space(
+            slug="transferable",
+            name="Transferable",
+            description="Ownership can move safely.",
+            owner_id=owner_id,
+        )
+        db.session.add(space)
+        db.session.flush()
+        db.session.add_all([
+            SpaceMembership(space_id=space.id, user_id=owner_id, role="owner"),
+            SpaceMembership(space_id=space.id, user_id=member_id, role="member"),
+        ])
+        db.session.commit()
+
+    _login(client, owner_id)
+    response = client.post(
+        "/spaces/transferable/ownership",
+        data={"user_id": member_id, "confirm": "transfer"},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert b"Ownership transferred" in response.data
+    assert b"You remain a member and may now leave" in response.data
+
+    with app.app_context():
+        space = Space.query.filter_by(slug="transferable").one()
+        owner_membership = SpaceMembership.query.filter_by(
+            space_id=space.id, user_id=owner_id
+        ).one()
+        new_owner_membership = SpaceMembership.query.filter_by(
+            space_id=space.id, user_id=member_id
+        ).one()
+        assert space.owner_id == member_id
+        assert owner_membership.role == "member"
+        assert new_owner_membership.role == "owner"
+
+
+def test_transfer_requires_owner_and_explicit_confirmation(client, app):
+    owner_id = _user(app, "space_transfer_guard_owner")
+    member_id = _user(app, "space_transfer_guard_member")
+    with app.app_context():
+        space = Space(
+            slug="guarded-transfer",
+            name="Guarded Transfer",
+            description="Transfer confirmation boundary.",
+            owner_id=owner_id,
+        )
+        db.session.add(space)
+        db.session.flush()
+        db.session.add_all([
+            SpaceMembership(space_id=space.id, user_id=owner_id, role="owner"),
+            SpaceMembership(space_id=space.id, user_id=member_id, role="member"),
+        ])
+        db.session.commit()
+
+    _login(client, member_id)
+    assert client.post(
+        "/spaces/guarded-transfer/ownership",
+        data={"user_id": owner_id, "confirm": "transfer"},
+    ).status_code == 403
+
+    _login(client, owner_id)
+    assert client.post(
+        "/spaces/guarded-transfer/ownership",
+        data={"user_id": member_id},
+    ).status_code == 400
+
+    with app.app_context():
+        space = Space.query.filter_by(slug="guarded-transfer").one()
+        assert space.owner_id == owner_id
+
+
+def test_previous_owner_can_leave_after_transfer(client, app):
+    owner_id = _user(app, "space_transfer_leave_owner")
+    member_id = _user(app, "space_transfer_leave_member")
+    with app.app_context():
+        space = Space(
+            slug="transfer-leave",
+            name="Transfer Leave",
+            description="Former owner can leave after transfer.",
+            owner_id=owner_id,
+        )
+        db.session.add(space)
+        db.session.flush()
+        db.session.add_all([
+            SpaceMembership(space_id=space.id, user_id=owner_id, role="owner"),
+            SpaceMembership(space_id=space.id, user_id=member_id, role="member"),
+        ])
+        db.session.commit()
+
+    _login(client, owner_id)
+    assert client.post(
+        "/spaces/transfer-leave/ownership",
+        data={"user_id": member_id, "confirm": "transfer"},
+    ).status_code == 302
+    assert client.post("/spaces/transfer-leave/leave").status_code == 302
+
+    with app.app_context():
+        space = Space.query.filter_by(slug="transfer-leave").one()
+        assert space.owner_id == member_id
+        assert SpaceMembership.query.filter_by(
+            space_id=space.id, user_id=owner_id
+        ).first() is None
