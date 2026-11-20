@@ -6,11 +6,21 @@ customer demand, or willingness to pay.
 
 ## Demo setup
 
-Use the existing local Docker Compose environment:
+Use the supported one-command local Docker demo path:
 
 ```bash
-docker compose up -d --build
-docker compose exec web flask --app application seed-demo-content
+bash scripts/run-pilot-demo.sh
+```
+
+The launcher builds/starts Docker Compose, waits for `/health/ready`, seeds the
+idempotent operator demo, verifies that anonymous access to the protected
+operator route redirects to login, and prints local/LAN URLs plus demo
+credentials.
+
+For a repeat session where images are already built:
+
+```bash
+PILOT_DEMO_SKIP_BUILD=true bash scripts/run-pilot-demo.sh
 ```
 
 The application binds to `0.0.0.0` by default, so it can be demonstrated from
