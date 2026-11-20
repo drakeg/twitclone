@@ -13,6 +13,7 @@ from twitclone.spaces import spaces_blueprint
 from twitclone.spaces.models import (
     Space,
     SpaceInvitation,
+    SpaceLifecycleAction,
     SpaceMembership,
     SpaceMembershipAction,
     SpaceModerationAction,
@@ -96,6 +97,30 @@ def _resource_candidates(space):
     if linked_ids:
         query = query.filter(~Resource.id.in_(linked_ids))
     return query.order_by(Resource.updated_at.desc(), Resource.id.desc()).limit(100).all()
+
+
+def _audit_lifecycle(
+    space,
+    *,
+    action_type,
+    previous_name=None,
+    new_name=None,
+    previous_visibility=None,
+    new_visibility=None,
+    details=None,
+):
+    action = SpaceLifecycleAction(
+        space_id=space.id,
+        actor_id=current_user.id,
+        action_type=action_type,
+        previous_name=previous_name,
+        new_name=new_name,
+        previous_visibility=previous_visibility,
+        new_visibility=new_visibility,
+        details=details,
+    )
+    db.session.add(action)
+    return action
 
 
 def _audit_membership(
@@ -277,11 +302,48 @@ def archive_space(slug):
 
     space.archived_at = _utcnow()
     space.archived_by_id = current_user.id
+    _audit_lifecycle(
+        space,
+        action_type="archived",
+        previous_name=space.name,
+        new_name=space.name,
+        previous_visibility=space.visibility,
+        new_visibility=space.visibility,
+        details="Participation paused; existing Space data preserved.",
+    )
     db.session.commit()
     flash(
         f"{space.name} was archived. Existing history remains available, but new participation is paused.",
         "success",
     )
+    return redirect(url_for("spaces.detail", slug=space.slug))
+
+
+@spaces_blueprint.post("/<slug>/restore")
+@login_required
+def restore_space(slug):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    membership = _membership(space)
+    if membership is None or membership.role != "owner" or space.owner_id != current_user.id:
+        abort(403)
+    if space.archived_at is None:
+        return redirect(url_for("spaces.detail", slug=space.slug))
+    if request.form.get("confirm") != "restore":
+        abort(400, description="Confirm the Space restore action.")
+
+    space.archived_at = None
+    space.archived_by_id = None
+    _audit_lifecycle(
+        space,
+        action_type="restored",
+        previous_name=space.name,
+        new_name=space.name,
+        previous_visibility=space.visibility,
+        new_visibility=space.visibility,
+        details="Participation resumed under the existing visibility settings.",
+    )
+    db.session.commit()
+    flash(f"{space.name} was restored and is accepting participation again.", "success")
     return redirect(url_for("spaces.detail", slug=space.slug))
 
 
@@ -312,9 +374,25 @@ def settings(slug):
                 flash(error, "danger")
             return render_template("spaces/settings.html", space=space), 400
 
+        previous_name = space.name
+        previous_description = space.description
+        previous_visibility = space.visibility
         space.name = name
         space.description = description
         space.visibility = visibility
+        _audit_lifecycle(
+            space,
+            action_type="settings_updated",
+            previous_name=previous_name,
+            new_name=name,
+            previous_visibility=previous_visibility,
+            new_visibility=visibility,
+            details=(
+                "description_updated"
+                if previous_description != description
+                else "description_unchanged"
+            ),
+        )
         db.session.commit()
         flash("Space settings updated.", "success")
         return redirect(url_for("spaces.detail", slug=space.slug))
@@ -388,10 +466,17 @@ def operator_dashboard(slug):
         .all()
     )
     membership_history = []
+    lifecycle_history = []
     if membership.role == "owner":
         membership_history = (
             SpaceMembershipAction.query.filter_by(space_id=space.id)
             .order_by(SpaceMembershipAction.created_at.desc(), SpaceMembershipAction.id.desc())
+            .limit(50)
+            .all()
+        )
+        lifecycle_history = (
+            SpaceLifecycleAction.query.filter_by(space_id=space.id)
+            .order_by(SpaceLifecycleAction.created_at.desc(), SpaceLifecycleAction.id.desc())
             .limit(50)
             .all()
         )
@@ -413,6 +498,7 @@ def operator_dashboard(slug):
         metrics=metrics,
         recent_members=recent_members,
         membership_history=membership_history,
+        lifecycle_history=lifecycle_history,
         pending_invitations=pending_invitations,
     )
 
