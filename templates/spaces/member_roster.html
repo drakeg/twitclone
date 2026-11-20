@@ -40,9 +40,12 @@
       <span class="auth-kicker">Membership</span>
       <h2 class="h5 mb-0" id="member-roster-heading">Member roster</h2>
     </div>
-    <span class="small text-muted" data-member-result-count="{{ total_items }}">{{ total_items }} result{% if total_items != 1 %}s{% endif %}</span>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <span class="small text-muted" data-member-result-count="{{ total_items }}">{{ total_items }} result{% if total_items != 1 %}s{% endif %}</span>
+      <a class="btn btn-sm btn-outline-secondary" data-member-export-link href="{{ url_for('spaces.export_member_roster', slug=space.slug, q=search or None, role=selected_role or None) }}">Export CSV</a>
+    </div>
   </div>
-  <p class="form-text">Results are alphabetical and operational only. Ripple does not rank members here.</p>
+  <p class="form-text">Results are alphabetical and operational only. Ripple does not rank members here. CSV export uses the current filters, excludes private account fields, and is limited to {{ export_limit }} rows.</p>
   <div class="table-responsive">
     <table class="table align-middle mb-0">
       <caption class="visually-hidden">Filtered members of {{ space.name }}</caption>
