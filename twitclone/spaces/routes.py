@@ -166,7 +166,6 @@ def index():
 @login_required
 def create():
     if request.method == "POST":
-        _require_space_active(space)
         name = (request.form.get("name") or "").strip()
         description = (request.form.get("description") or "").strip()
         slug = _slugify(request.form.get("slug") or name)
@@ -295,6 +294,7 @@ def settings(slug):
         abort(403)
 
     if request.method == "POST":
+        _require_space_active(space)
         name = (request.form.get("name") or "").strip()
         description = (request.form.get("description") or "").strip()
         visibility = (request.form.get("visibility") or "").strip().lower()
