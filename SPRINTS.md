@@ -21,8 +21,8 @@ Current work:
 - [x] Repository-side AWS architecture, validation, backup/restore, plan-policy,
       guarded-apply, budget-alert, and readiness controls implemented.
 - [ ] Adopt root Mad Mallard governance documents and automated standards checks.
-- [ ] Keep dependency update PRs green and reviewable.
-- [ ] Complete the AWS activation handoff documentation.
+- [x] Clear the current green dependency update queue; continue reviewing new Renovate PRs as they appear.
+- [x] Complete the AWS activation handoff documentation.
 - [ ] Complete live AWS evidence only after explicit spend authorization.
 - [ ] Complete manual accessibility evidence before any public conformance claim.
 
