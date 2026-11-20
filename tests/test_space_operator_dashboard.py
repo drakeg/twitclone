@@ -139,9 +139,10 @@ def test_space_detail_links_operator_dashboard_only_for_moderators(client, app):
     _login(client, context["moderator_id"])
     moderator_response = client.get(f"/spaces/{context['slug']}")
     assert moderator_response.status_code == 200
-    assert b"Operator dashboard" in moderator_response.data
+    operator_href = f"/spaces/{context['slug']}/operator".encode()
+    assert operator_href in moderator_response.data
 
     _login(client, context["member_id"])
     member_response = client.get(f"/spaces/{context['slug']}")
     assert member_response.status_code == 200
-    assert b"Operator dashboard" not in member_response.data
+    assert operator_href not in member_response.data
