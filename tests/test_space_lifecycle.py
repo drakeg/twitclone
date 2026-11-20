@@ -166,6 +166,15 @@ def test_lifecycle_history_is_owner_only_on_operator_dashboard(client, app):
     assert b"Space lifecycle history" in owner_page.data
     assert b"Settings Updated" in owner_page.data
 
+    with app.app_context():
+        membership = SpaceMembership.query.filter_by(
+            space_id=ids["space"],
+            user_id=ids["member"],
+        ).one()
+        membership.role = "moderator"
+        db.session.commit()
+
     _login(client, ids["member"])
-    member_page = client.get(f"/spaces/{ids['slug']}/operator")
-    assert member_page.status_code == 403
+    moderator_page = client.get(f"/spaces/{ids['slug']}/operator")
+    assert moderator_page.status_code == 200
+    assert b"Space lifecycle history" not in moderator_page.data
