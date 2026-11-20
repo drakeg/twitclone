@@ -66,4 +66,31 @@
     </table>
   </div>
 </section>
+
+{% if membership.role == 'owner' %}
+<section class="surface-card mt-3" aria-labelledby="membership-history-heading">
+  <span class="auth-kicker">Administration</span>
+  <h2 class="h5" id="membership-history-heading">Membership administration history</h2>
+  <p class="form-text">Owner-only history for ownership transfers, member removals, and role changes. Content moderation remains in its separate audit trail.</p>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <caption class="visually-hidden">Recent membership administration actions for {{ space.name }}</caption>
+      <thead><tr><th scope="col">When</th><th scope="col">Action</th><th scope="col">Member</th><th scope="col">Role change</th><th scope="col">Actor</th></tr></thead>
+      <tbody>
+      {% for action in membership_history %}
+        <tr>
+          <td>{{ action.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>{{ action.action_type.replace('_', ' ')|title }}</td>
+          <td>{% if action.affected_user %}@{{ action.affected_user.username }}{% else %}deleted account{% endif %}</td>
+          <td>{{ action.previous_role or '—' }} → {{ action.new_role or '—' }}</td>
+          <td>{% if action.actor %}@{{ action.actor.username }}{% else %}deleted account{% endif %}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="text-muted">No membership administration actions recorded yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
 {% endblock %}
