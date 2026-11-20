@@ -12,6 +12,7 @@ from twitclone.resource_models import Resource
 from twitclone.spaces import spaces_blueprint
 from twitclone.spaces.models import (
     Space,
+    SpaceInvitation,
     SpaceMembership,
     SpaceMembershipAction,
     SpaceModerationAction,
@@ -309,6 +310,116 @@ def operator_dashboard(slug):
         recent_members=recent_members,
         membership_history=membership_history,
     )
+
+
+
+@spaces_blueprint.get("/invitations")
+@login_required
+def invitations():
+    pending = (
+        SpaceInvitation.query.filter_by(
+            invited_user_id=current_user.id,
+            status="pending",
+        )
+        .order_by(SpaceInvitation.created_at.desc(), SpaceInvitation.id.desc())
+        .all()
+    )
+    return render_template("spaces/invitations.html", invitations=pending)
+
+
+@spaces_blueprint.post("/<slug>/invitations")
+@login_required
+def create_invitation(slug):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    membership = _membership(space)
+    if not _can_moderate(membership):
+        abort(403)
+
+    username = (request.form.get("username") or "").strip()
+    if not username:
+        abort(400, description="Enter a Ripple username to invite.")
+
+    invited_user = User.query.filter(
+        db.func.lower(User.username) == username.casefold()
+    ).first()
+    if invited_user is None:
+        abort(404, description="No Ripple user matches that username.")
+    if SpaceMembership.query.filter_by(
+        space_id=space.id,
+        user_id=invited_user.id,
+    ).first() is not None:
+        abort(400, description="That user is already a member of this space.")
+
+    existing = SpaceInvitation.query.filter_by(
+        space_id=space.id,
+        invited_user_id=invited_user.id,
+        status="pending",
+    ).first()
+    if existing is not None:
+        flash(f"@{invited_user.username} already has a pending invitation.", "info")
+        return redirect(url_for("spaces.detail", slug=space.slug))
+
+    db.session.add(
+        SpaceInvitation(
+            space_id=space.id,
+            invited_user_id=invited_user.id,
+            invited_by_id=current_user.id,
+        )
+    )
+    db.session.add(
+        Notification(
+            user_id=invited_user.id,
+            message=f"You were invited to join the {space.name} space.",
+        )
+    )
+    db.session.commit()
+    flash(f"Invitation sent to @{invited_user.username}.", "success")
+    return redirect(url_for("spaces.detail", slug=space.slug))
+
+
+def _respond_to_invitation(invitation_id, *, decision):
+    invitation = SpaceInvitation.query.filter_by(
+        id=invitation_id,
+        invited_user_id=current_user.id,
+    ).first_or_404()
+    if invitation.status != "pending":
+        abort(400, description="That invitation is no longer pending.")
+
+    invitation.status = decision
+    invitation.responded_at = _utcnow()
+    if decision == "accepted":
+        membership = SpaceMembership.query.filter_by(
+            space_id=invitation.space_id,
+            user_id=current_user.id,
+        ).first()
+        if membership is None:
+            db.session.add(
+                SpaceMembership(
+                    space_id=invitation.space_id,
+                    user_id=current_user.id,
+                    role="member",
+                )
+            )
+    db.session.commit()
+    flash(
+        f"You joined {invitation.space.name}."
+        if decision == "accepted"
+        else f"You declined the invitation to {invitation.space.name}.",
+        "success" if decision == "accepted" else "info",
+    )
+    return redirect(url_for("spaces.invitations"))
+
+
+@spaces_blueprint.post("/invitations/<int:invitation_id>/accept")
+@login_required
+def accept_invitation(invitation_id):
+    return _respond_to_invitation(invitation_id, decision="accepted")
+
+
+@spaces_blueprint.post("/invitations/<int:invitation_id>/decline")
+@login_required
+def decline_invitation(invitation_id):
+    return _respond_to_invitation(invitation_id, decision="declined")
 
 
 @spaces_blueprint.post("/<slug>/posts")
