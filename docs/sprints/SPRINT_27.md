@@ -1,6 +1,6 @@
 # Sprint 27 — Space invitations and access control
 
-**Status:** In progress.
+**Status:** Completed.
 
 ## Goal
 
@@ -56,3 +56,14 @@ access boundaries while keeping public Spaces unchanged.
 
 Sprint 27 does not add email invitations to non-users, enterprise directory sync,
 paid membership gating, or global account access control.
+
+## Sprint outcome
+
+Sprint 27 delivered consent-based existing-user invitations, operator invitation
+management, and private Space visibility/access controls while preserving public
+Space behavior.
+
+## Definition of done
+
+Completed. Invitations require recipient consent, operators can manage pending
+invitations, and private Spaces are discoverable/viewable only by members.
