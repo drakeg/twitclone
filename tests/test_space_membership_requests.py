@@ -333,3 +333,12 @@ def test_public_operator_dashboard_has_no_membership_request_link(client, app):
     assert response.status_code == 200
     assert b"Private Space request link" not in response.data
     assert b'data-private-request-link' not in response.data
+
+
+def test_operator_route_supplies_request_link_only_for_private_spaces():
+    from pathlib import Path
+
+    routes = Path("twitclone/spaces/routes.py").read_text()
+    assert 'request_access_url=(' in routes
+    assert 'if space.visibility == "private"' in routes
+    assert 'url_for("spaces.request_access", slug=space.slug, _external=True)' in routes
