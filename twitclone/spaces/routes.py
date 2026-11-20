@@ -7,7 +7,7 @@ from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from twitclone.extensions import db
-from twitclone.models import Tweet
+from twitclone.models import Notification, Tweet
 from twitclone.resource_models import Resource
 from twitclone.spaces import spaces_blueprint
 from twitclone.spaces.models import (
@@ -336,6 +336,43 @@ def unlink_resource(slug, resource_id):
     db.session.delete(link)
     db.session.commit()
     flash("Resource removed from this space's knowledge list. The resource itself was not deleted.", "success")
+    return redirect(url_for("spaces.detail", slug=space.slug))
+
+
+@spaces_blueprint.post("/<slug>/ownership")
+@login_required
+def transfer_ownership(slug):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    membership = _membership(space)
+    if membership is None or membership.role != "owner" or space.owner_id != current_user.id:
+        abort(403)
+
+    target_user_id = request.form.get("user_id", type=int)
+    if target_user_id is None or request.form.get("confirm") != "transfer":
+        abort(400, description="Choose a member and confirm the ownership transfer.")
+
+    target = SpaceMembership.query.filter_by(
+        space_id=space.id,
+        user_id=target_user_id,
+    ).first_or_404()
+    if target.user_id == current_user.id or target.role == "owner":
+        abort(400, description="Choose another current member as the new owner.")
+
+    previous_owner = membership
+    previous_owner.role = "member"
+    target.role = "owner"
+    space.owner_id = target.user_id
+    db.session.add(
+        Notification(
+            user_id=target.user_id,
+            message=f"You are now the owner of the {space.name} space.",
+        )
+    )
+    db.session.commit()
+    flash(
+        f"Ownership transferred to @{target.user.username}. You remain a member and may now leave the space.",
+        "success",
+    )
     return redirect(url_for("spaces.detail", slug=space.slug))
 
 
