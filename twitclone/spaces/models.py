@@ -77,10 +77,13 @@ class SpacePost(db.Model):
     hidden_at = db.Column(db.DateTime, nullable=True)
     hidden_by_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="SET NULL"), nullable=True)
     hidden_reason = db.Column(db.String(500), nullable=True)
+    pinned_at = db.Column(db.DateTime, nullable=True)
+    pinned_by_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="SET NULL"), nullable=True)
 
     space = db.relationship("Space", back_populates="posts")
     tweet = db.relationship("Tweet")
     hidden_by = db.relationship("User", foreign_keys=[hidden_by_id])
+    pinned_by = db.relationship("User", foreign_keys=[pinned_by_id])
 
 
 class SpaceResource(db.Model):
@@ -138,6 +141,32 @@ class SpaceLifecycleAction(db.Model):
         "User",
         foreign_keys=[actor_id],
         backref=db.backref("space_lifecycle_actions", passive_deletes=False),
+    )
+
+
+class SpaceCurationAction(db.Model):
+    __tablename__ = "space_curation_action"
+    __table_args__ = (
+        db.CheckConstraint(
+            "action_type in ('pin_post', 'unpin_post')",
+            name="ck_space_curation_action_type",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    space_id = db.Column(db.Integer, db.ForeignKey("space.id", ondelete="CASCADE"), nullable=False)
+    space_post_id = db.Column(db.Integer, db.ForeignKey("space_post.id", ondelete="CASCADE"), nullable=False)
+    actor_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="SET NULL"), nullable=True)
+    action_type = db.Column(db.String(40), nullable=False)
+    details = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+
+    space = db.relationship("Space")
+    space_post = db.relationship("SpacePost")
+    actor = db.relationship(
+        "User",
+        foreign_keys=[actor_id],
+        backref=db.backref("space_curation_actions", passive_deletes=False),
     )
 
 
@@ -248,6 +277,7 @@ __all__ = [
     "Space",
     "SpaceInvitation",
     "SpaceLifecycleAction",
+    "SpaceCurationAction",
     "SpaceMembership",
     "SpaceMembershipAction",
     "SpacePost",
