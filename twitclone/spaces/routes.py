@@ -57,6 +57,11 @@ def _require_space_visibility(space, membership=None):
         abort(404)
 
 
+def _require_space_active(space):
+    if space.archived_at is not None:
+        abort(409, description="This space is archived and no longer accepts new participation.")
+
+
 def _visible_space_posts(space):
     return (
         SpacePost.query.join(SpacePost.tweet)
@@ -161,6 +166,7 @@ def index():
 @login_required
 def create():
     if request.method == "POST":
+        _require_space_active(space)
         name = (request.form.get("name") or "").strip()
         description = (request.form.get("description") or "").strip()
         slug = _slugify(request.form.get("slug") or name)
@@ -256,6 +262,28 @@ def detail(slug):
 
 
 
+
+
+@spaces_blueprint.post("/<slug>/archive")
+@login_required
+def archive_space(slug):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    membership = _membership(space)
+    if membership is None or membership.role != "owner" or space.owner_id != current_user.id:
+        abort(403)
+    if space.archived_at is not None:
+        return redirect(url_for("spaces.detail", slug=space.slug))
+    if request.form.get("confirm") != "archive":
+        abort(400, description="Confirm the Space archive action.")
+
+    space.archived_at = _utcnow()
+    space.archived_by_id = current_user.id
+    db.session.commit()
+    flash(
+        f"{space.name} was archived. Existing history remains available, but new participation is paused.",
+        "success",
+    )
+    return redirect(url_for("spaces.detail", slug=space.slug))
 
 
 @spaces_blueprint.route("/<slug>/settings", methods=["GET", "POST"])
@@ -408,6 +436,7 @@ def invitations():
 @login_required
 def create_invitation(slug):
     space = Space.query.filter_by(slug=slug).first_or_404()
+    _require_space_active(space)
     membership = _membership(space)
     if not _can_moderate(membership):
         abort(403)
@@ -489,6 +518,9 @@ def _respond_to_invitation(invitation_id, *, decision):
     if invitation.status != "pending":
         abort(400, description="That invitation is no longer pending.")
 
+    if decision == "accepted":
+        _require_space_active(invitation.space)
+
     invitation.status = decision
     invitation.responded_at = _utcnow()
     if decision == "accepted":
@@ -530,6 +562,7 @@ def decline_invitation(invitation_id):
 @login_required
 def publish_post(slug):
     space = Space.query.filter_by(slug=slug).first_or_404()
+    _require_space_active(space)
     membership = _membership(space)
     if membership is None:
         abort(403)
@@ -551,6 +584,7 @@ def publish_post(slug):
 @login_required
 def link_resource(slug):
     space = Space.query.filter_by(slug=slug).first_or_404()
+    _require_space_active(space)
     if _membership(space) is None:
         abort(403)
     resource_id = request.form.get("resource_id", type=int)
@@ -895,6 +929,7 @@ def resolve_appeal(slug, appeal_id):
 @login_required
 def join(slug):
     space = Space.query.filter_by(slug=slug).first_or_404()
+    _require_space_active(space)
     existing = _membership(space)
     if space.visibility == "private" and existing is None:
         abort(403, description="Private spaces require an accepted invitation.")
