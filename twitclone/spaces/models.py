@@ -13,7 +13,7 @@ class Space(db.Model):
     __tablename__ = "space"
     __table_args__ = (
         db.UniqueConstraint("slug", name="uq_space_slug"),
-        db.CheckConstraint("visibility in ('public')", name="ck_space_visibility"),
+        db.CheckConstraint("visibility in ('public', 'private')", name="ck_space_visibility"),
     )
 
     id = db.Column(db.Integer, primary_key=True)
