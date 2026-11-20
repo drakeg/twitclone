@@ -10,7 +10,7 @@ owner/moderator/privacy boundaries.
 
 ## Story 29.1 — Operator member roster
 
-**Status:** In progress.
+**Status:** Completed in PR #394.
 
 Add a dedicated operator roster that scales beyond the existing 10-most-recent
 summary.
@@ -30,12 +30,23 @@ summary.
 
 ## Story 29.2 — Member-management workflow refinement
 
-**Status:** Planned after Story 29.1 is exercised.
+**Status:** In progress.
 
-Use concrete roster usability gaps to improve common member-administration
-actions without adding bulk/destructive behavior by default. Candidate scope may
-include clearer action affordances, safer return-to-filter behavior, or other
-small repeatable workflow improvements discovered while testing Story 29.1.
+Make the new roster operational for owners without broadening moderator authority:
+
+- allow owners to change member/moderator roles from roster rows using existing audited role-change behavior;
+- allow owners to remove non-owner members from roster rows using the existing explicit removal contract;
+- preserve search, role filter, and page context after successful owner actions;
+- keep moderators read-only and keep ownership transfer on the existing dedicated workflow.
+
+### Acceptance criteria
+
+- Moderator roster access remains read-only.
+- Owners cannot change/remove the current owner from roster controls.
+- Role changes and removals continue writing the existing membership-administration audit history.
+- Successful roster actions redirect back to the same roster search/filter/page context.
+- Detail-page member administration continues to work and still redirects to the Space detail page.
+- No bulk removal or ownership-transfer shortcut is added.
 
 ## Story 29.3 — Sprint regression hardening
 
