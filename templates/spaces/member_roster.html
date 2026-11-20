@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ space.name }} member roster · Ripple{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <span class="auth-kicker">Community operations</span>
+    <h1>{{ space.name }} members</h1>
+    <small>Operator-only roster · no ranking or engagement scoring</small>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-secondary" href="{{ url_for('spaces.operator_dashboard', slug=space.slug) }}">Operator dashboard</a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('spaces.detail', slug=space.slug) }}">View space</a>
+  </div>
+</header>
+
+<section class="surface-card mb-3" aria-labelledby="member-roster-filter-heading">
+  <span class="auth-kicker">Find members</span>
+  <h2 class="h5" id="member-roster-filter-heading">Filter the roster</h2>
+  <form class="row g-2 align-items-end" method="GET">
+    <div class="col-md-7">
+      <label class="form-label" for="member-search">Username</label>
+      <input class="form-control" id="member-search" name="q" value="{{ search }}" placeholder="Search username">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="member-role">Role</label>
+      <select class="form-select" id="member-role" name="role">
+        <option value=""{% if not selected_role %} selected{% endif %}>All roles</option>
+        <option value="owner"{% if selected_role == 'owner' %} selected{% endif %}>Owner</option>
+        <option value="moderator"{% if selected_role == 'moderator' %} selected{% endif %}>Moderator</option>
+        <option value="member"{% if selected_role == 'member' %} selected{% endif %}>Member</option>
+      </select>
+    </div>
+    <div class="col-md-2 d-grid"><button class="btn btn-primary" type="submit">Apply</button></div>
+  </form>
+</section>
+
+<section class="surface-card" aria-labelledby="member-roster-heading">
+  <div class="d-flex justify-content-between align-items-center gap-3 mb-2">
+    <div>
+      <span class="auth-kicker">Membership</span>
+      <h2 class="h5 mb-0" id="member-roster-heading">Member roster</h2>
+    </div>
+    <span class="small text-muted" data-member-result-count="{{ total_items }}">{{ total_items }} result{% if total_items != 1 %}s{% endif %}</span>
+  </div>
+  <p class="form-text">Results are alphabetical and operational only. Ripple does not rank members here.</p>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <caption class="visually-hidden">Filtered members of {{ space.name }}</caption>
+      <thead><tr><th scope="col">Member</th><th scope="col">Role</th><th scope="col">Joined</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td><a href="{{ url_for('profile', username=row.user.username) }}">@{{ row.user.username }}</a></td>
+          <td>{{ row.role }}</td>
+          <td>{{ row.joined_at.strftime('%Y-%m-%d') }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3" class="text-muted">No members match these filters.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if total_pages > 1 %}
+  <nav class="mt-3" aria-label="Member roster pages">
+    <ul class="pagination mb-0">
+      <li class="page-item{% if page <= 1 %} disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('spaces.member_roster', slug=space.slug, q=search or None, role=selected_role or None, page=page-1) }}">Previous</a>
+      </li>
+      <li class="page-item disabled"><span class="page-link">Page {{ page }} of {{ total_pages }}</span></li>
+      <li class="page-item{% if page >= total_pages %} disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('spaces.member_roster', slug=space.slug, q=search or None, role=selected_role or None, page=page+1) }}">Next</a>
+      </li>
+    </ul>
+  </nav>
+  {% endif %}
+</section>
+{% endblock %}
