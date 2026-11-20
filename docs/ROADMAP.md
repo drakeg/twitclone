@@ -293,9 +293,17 @@ Delivered capabilities include Space-local operator pin/unpin, deterministic pin
 
 **Goal:** Let people express interest in joining private Spaces without requiring operators to guess whom to invite, while keeping membership approval explicitly operator-controlled.
 
-**Status:** In progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_31.md`.
+**Status:** Completed. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_31.md`.
 
-Story 31.1 adds a requester-initiated pending membership-request workflow for visible private-Space entry points, with owner/moderator review and explicit approve/deny decisions.
+Delivered capabilities include a privacy-preserving request-access surface, operator approve/deny review, all-operator notifications, shareable operator request links, durable resolution audit, and invitation/request state reconciliation without exposing private content or creating automatic approvals.
+
+## Sprint 32 — Space membership reporting and export
+
+**Goal:** Give Space operators a practical, portable view of membership operations without exporting private account data or turning the roster into a ranking surface.
+
+**Status:** In progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_32.md`.
+
+Story 32.1 adds an operator-only CSV export of the current roster/search/role-filter result using public username, Space role, and join timestamp only.
 
 ## Cross-cutting release gates and deferred work
 
