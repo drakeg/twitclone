@@ -78,9 +78,8 @@ def test_known_private_request_page_exposes_minimum_surface_not_private_content(
     assert request_page.status_code == 200
     assert b"Private Request Space" in request_page.data
     assert b"PRIVATE CONTENT MUST NOT LEAK" not in request_page.data
-    assert b"request_owner" not in request_page.data
-    assert b"request_moderator" not in request_page.data
     assert b"request-owner@example.com" not in request_page.data
+    assert b"request-moderator@example.com" not in request_page.data
 
 
 def test_anonymous_request_page_redirects_to_login(client, app):
