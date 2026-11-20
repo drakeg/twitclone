@@ -166,6 +166,26 @@ def _require_reason():
     return reason
 
 
+def _member_admin_redirect(space):
+    if request.form.get("return_to") != "roster":
+        return redirect(url_for("spaces.detail", slug=space.slug))
+
+    search = (request.form.get("roster_q") or "").strip()
+    role = (request.form.get("roster_role") or "").strip().lower()
+    if role not in {"", "owner", "moderator", "member"}:
+        role = ""
+    page = request.form.get("roster_page", type=int) or 1
+    return redirect(
+        url_for(
+            "spaces.member_roster",
+            slug=space.slug,
+            q=search or None,
+            role=role or None,
+            page=max(page, 1),
+        )
+    )
+
+
 @spaces_blueprint.get("/")
 def index():
     memberships = set()
@@ -842,7 +862,7 @@ def remove_member(slug, user_id):
         f"@{removed_user.username} was removed from {space.name}. Because this is a public space, they may join again.",
         "success",
     )
-    return redirect(url_for("spaces.detail", slug=space.slug))
+    return _member_admin_redirect(space)
 
 
 @spaces_blueprint.post("/<slug>/members/<int:user_id>/role")
@@ -871,7 +891,7 @@ def set_member_role(slug, user_id):
         )
         db.session.commit()
         flash(f"@{target.user.username} is now a {role}.", "success")
-    return redirect(url_for("spaces.detail", slug=space.slug))
+    return _member_admin_redirect(space)
 
 
 @spaces_blueprint.post("/<slug>/posts/<int:space_post_id>/hide")
