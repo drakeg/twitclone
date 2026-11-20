@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ space.name }} settings · Ripple{% endblock %}
+{% block content %}
+<header class="page-header"><div><span class="auth-kicker">Space administration</span><h1>{{ space.name }} settings</h1><small>/spaces/{{ space.slug }} · URL remains stable</small></div><a class="btn btn-secondary" href="{{ url_for('spaces.detail', slug=space.slug) }}">Back to space</a></header>
+<section class="surface-card" aria-labelledby="space-settings-heading"><h2 class="h5" id="space-settings-heading">Space details</h2><p class="form-text">Changing visibility affects who can discover and open this space. Existing memberships and content are preserved. The space URL cannot be changed here.</p>
+<form method="POST" action="{{ url_for('spaces.settings', slug=space.slug) }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="mb-3"><label class="form-label" for="space-settings-name">Name</label><input class="form-control" id="space-settings-name" name="name" maxlength="120" required value="{{ space.name }}"></div>
+<div class="mb-3"><label class="form-label" for="space-settings-description">Description</label><textarea class="form-control" id="space-settings-description" name="description" maxlength="500" rows="4" required>{{ space.description }}</textarea></div>
+<div class="mb-3"><label class="form-label" for="space-settings-visibility">Visibility</label><select class="form-select" id="space-settings-visibility" name="visibility"><option value="public" {% if space.visibility == 'public' %}selected{% endif %}>Public — discoverable and anyone can join</option><option value="private" {% if space.visibility == 'private' %}selected{% endif %}>Private — hidden from nonmembers; invitation required</option></select></div>
+<div class="alert alert-secondary" role="note"><strong>Stable URL:</strong> /spaces/{{ space.slug }}</div>
+<button class="btn btn-primary" type="submit">Save settings</button>
+</form></section>
+{% endblock %}
