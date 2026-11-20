@@ -61,6 +61,9 @@ environment:
 This is engineering and demo-readiness evidence only. It is **not** evidence of
 customer demand, product-market fit, or willingness to pay.
 
+For repeatable outreach and qualification messaging, see
+[`docs/PILOT_OUTREACH.md`](PILOT_OUTREACH.md).
+
 ## Ideal prospect hypothesis
 
 Prioritize organizations with roughly 25–500 members where one or a few people

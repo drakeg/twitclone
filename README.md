@@ -200,6 +200,7 @@ See:
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - [`docs/COMMERCIALIZATION.md`](docs/COMMERCIALIZATION.md)
 - [`docs/PILOT_VALIDATION.md`](docs/PILOT_VALIDATION.md)
+- [`docs/PILOT_OUTREACH.md`](docs/PILOT_OUTREACH.md)
 - [`docs/sprints/SPRINT_0.md`](docs/sprints/SPRINT_0.md)
 
 ## Roadmap
