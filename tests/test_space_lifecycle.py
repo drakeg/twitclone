@@ -178,3 +178,42 @@ def test_lifecycle_history_is_owner_only_on_operator_dashboard(client, app):
     moderator_page = client.get(f"/spaces/{ids['slug']}/operator")
     assert moderator_page.status_code == 200
     assert b"Space lifecycle history" not in moderator_page.data
+
+
+def test_lifecycle_history_survives_actor_account_deletion(client, app):
+    ids = _fixture(app, visibility="public", archived=False)
+    _login(client, ids["owner"])
+
+    assert client.post(
+        f"/spaces/{ids['slug']}/settings",
+        data={
+            "name": "Actor Retention",
+            "description": "Lifecycle action should survive actor deletion.",
+            "visibility": "public",
+        },
+    ).status_code == 302
+
+    assert client.post(
+        f"/spaces/{ids['slug']}/ownership",
+        data={"user_id": ids["member"], "confirm": "transfer"},
+    ).status_code == 302
+
+    with app.app_context():
+        former_owner = db.session.get(User, ids["owner"])
+        db.session.delete(former_owner)
+        db.session.commit()
+
+        action = SpaceLifecycleAction.query.filter_by(
+            space_id=ids["space"],
+            action_type="settings_updated",
+        ).one()
+        assert action.actor_id is None
+        assert action.actor is None
+        assert action.previous_name == "Lifecycle Space"
+        assert action.new_name == "Actor Retention"
+
+    _login(client, ids["member"])
+    owner_page = client.get(f"/spaces/{ids['slug']}/operator")
+    assert owner_page.status_code == 200
+    assert b"Space lifecycle history" in owner_page.data
+    assert b"deleted account" in owner_page.data
