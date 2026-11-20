@@ -75,5 +75,11 @@ services:
       PYTEST_ADDOPTS: "-o cache_dir=/tmp/pytest-cache"
       PYTHONDONTWRITEBYTECODE: "1"
 
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: "${RIPPLE_DOCKER_SUBNET:-10.254.250.0/24}"
+
 volumes:
   twitclone_data:
