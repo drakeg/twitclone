@@ -68,10 +68,16 @@ docker compose exec web flask --app application seed-demo-content
 ```
 
 The command creates eight demo users, sample posts, hashtags, `@mentions`,
-follows, reposts, and quotes. It is idempotent, so running it again does not
-recreate the same base content. All generated demo accounts use the local-test
-password `Passw0rd!`; their email addresses use the reserved `example.test`
-domain.
+follows, reposts, quotes, and an operator-ready sample Space named **Roadside
+Creators Club**. The sample community includes owner/moderator/member roles,
+space activity, and one pending moderation appeal so the operator dashboard can
+be reviewed immediately. It is idempotent, so running it again does not recreate
+the same base content.
+
+Log in as `campfirecode@example.test` to review the owner workflow at
+`/spaces/roadside-creators-club/operator`; `bytebloom@example.test` is the
+sample moderator. All generated demo accounts use the local-test password
+`Passw0rd!`; their email addresses use the reserved `example.test` domain.
 
 The demo seeder is intentionally blocked when `TWITCLONE_ENV=production`. Never
 use the shared demo password for real accounts.
