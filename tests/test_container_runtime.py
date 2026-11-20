@@ -83,3 +83,14 @@ def test_compose_application_settings_are_env_configurable_with_durable_defaults
     assert "DATABASE_URL=sqlite:////data/twitclone.db" in env_example
     assert "UPLOAD_FOLDER=/data/uploads" in env_example
     assert "SCHEDULER_ENABLED=false" in env_example
+
+
+def test_compose_app_services_use_runtime_image_target():
+    compose = read_project_file("compose.yaml")
+
+    app_service = compose.split("x-app-service: &app-service\n", maxsplit=1)[1].split("\n\nservices:", maxsplit=1)[0]
+    assert "target: runtime" in app_service
+
+    test_service = compose.split("  test:\n", maxsplit=1)[1].split("\n\nnetworks:", maxsplit=1)[0]
+    assert "target: development" in test_service
+    assert "target: runtime" not in test_service
