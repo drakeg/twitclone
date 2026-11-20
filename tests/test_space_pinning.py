@@ -262,3 +262,73 @@ def test_hiding_unpinned_post_does_not_create_curation_event(client, app):
             space_id=ids["space"],
             space_post_id=ids["new_row"],
         ).count() == 0
+
+
+def test_repeated_pin_and_unpin_are_idempotent(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+
+    assert client.post(
+        f"/spaces/{ids['slug']}/posts/{ids['old_row']}/pin"
+    ).status_code == 302
+    assert client.post(
+        f"/spaces/{ids['slug']}/posts/{ids['old_row']}/pin"
+    ).status_code == 302
+    assert client.post(
+        f"/spaces/{ids['slug']}/posts/{ids['old_row']}/unpin"
+    ).status_code == 302
+    assert client.post(
+        f"/spaces/{ids['slug']}/posts/{ids['old_row']}/unpin"
+    ).status_code == 302
+
+    with app.app_context():
+        actions = SpaceCurationAction.query.filter_by(
+            space_id=ids["space"],
+            space_post_id=ids["old_row"],
+        ).order_by(SpaceCurationAction.id.asc()).all()
+        assert [action.action_type for action in actions] == ["pin_post", "unpin_post"]
+
+
+def test_multiple_pinned_posts_use_latest_pin_first_then_chronological_unpinned(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+
+    assert client.post(
+        f"/spaces/{ids['slug']}/posts/{ids['old_row']}/pin"
+    ).status_code == 302
+    assert client.post(
+        f"/spaces/{ids['slug']}/posts/{ids['new_row']}/pin"
+    ).status_code == 302
+
+    page = client.get(f"/spaces/{ids['slug']}")
+    assert page.status_code == 200
+    new_position = page.data.index(b"Newer ordinary conversation")
+    old_position = page.data.index(b"Older important conversation")
+    assert new_position < old_position
+
+
+def test_curation_history_survives_actor_account_deletion(client, app):
+    ids = _fixture(app)
+    _login(client, ids["moderator"])
+
+    assert client.post(
+        f"/spaces/{ids['slug']}/posts/{ids['old_row']}/pin"
+    ).status_code == 302
+
+    with app.app_context():
+        moderator = db.session.get(User, ids["moderator"])
+        db.session.delete(moderator)
+        db.session.commit()
+
+        action = SpaceCurationAction.query.filter_by(
+            space_id=ids["space"],
+            action_type="pin_post",
+        ).one()
+        assert action.actor_id is None
+        assert action.actor is None
+
+    _login(client, ids["owner"])
+    page = client.get(f"/spaces/{ids['slug']}/operator")
+    assert page.status_code == 200
+    assert b"Recent conversation curation" in page.data
+    assert b"deleted account" in page.data

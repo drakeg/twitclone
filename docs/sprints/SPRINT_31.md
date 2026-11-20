@@ -1,0 +1,55 @@
+# Sprint 31 — Private Space membership requests
+
+**Status:** In progress.
+
+## Goal
+
+Let people express interest in joining private Spaces without weakening operator
+control, privacy, invitation consent, or Ripple-wide safety boundaries.
+
+## Story 31.1 — Request private Space membership
+
+**Status:** In progress.
+
+Add a requester-initiated workflow that creates a pending membership request for
+a private Space and lets owners/moderators explicitly approve or deny it.
+
+### Acceptance criteria
+
+- Only authenticated nonmembers may create a membership request.
+- Requests are available only for private Spaces; public Spaces keep normal
+  self-join behavior.
+- A user can have at most one pending request per Space.
+- Existing members and users with an already-pending request cannot create
+  duplicates.
+- Requesters may include a bounded optional note visible only to Space operators.
+- Owners/moderators can review pending requests.
+- Approval creates membership exactly once and resolves the request.
+- Denial resolves the request without creating membership.
+- Operator decisions record actor/time and remain auditable if an actor account
+  is later deleted.
+- Archived Spaces reject new requests and approval/denial mutations.
+- Private Space content remains hidden from nonmembers while a request is
+  pending; the request flow must not become a content-discovery bypass.
+- Membership requests do not affect global ranking, reputation, verification,
+  or paid status.
+
+## Story 31.2 — Membership-request usability refinement
+
+**Status:** Planned after Story 31.1 is exercised.
+
+Use implementation/testing gaps to refine operator/requester usability without
+adding automatic approvals or weakening privacy.
+
+## Story 31.3 — Sprint regression hardening
+
+**Status:** Planned.
+
+Close the sprint with duplicate, authorization, privacy, lifecycle, audit, and
+invitation-interaction regression coverage.
+
+## Boundary
+
+Sprint 31 adds explicit request/review mechanics only. It does not automatically
+approve membership, expose private Space content to requesters, sell access, or
+change global social/reputation systems.

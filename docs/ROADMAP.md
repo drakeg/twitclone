@@ -285,9 +285,17 @@ Delivered capabilities include an operator-only searchable/filterable paginated 
 
 **Goal:** Give Space operators lightweight tools to keep important community conversations visible without turning curation into paid reach or global ranking authority.
 
-**Status:** In progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_30.md`.
+**Status:** Completed. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_30.md`.
 
-Story 30.1 adds operator-controlled pin/unpin state for Space posts and displays pinned conversations ahead of ordinary chronological Space posts while preserving normal global post semantics.
+Delivered capabilities include Space-local operator pin/unpin, deterministic pinned-first ordering, dedicated curation audit history, moderation-safe automatic unpin, archive safeguards, and regression coverage preserving global Tweet/feed/reputation/paid-reach boundaries.
+
+## Sprint 31 — Private Space membership requests
+
+**Goal:** Let people express interest in joining private Spaces without requiring operators to guess whom to invite, while keeping membership approval explicitly operator-controlled.
+
+**Status:** In progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_31.md`.
+
+Story 31.1 adds a requester-initiated pending membership-request workflow for visible private-Space entry points, with owner/moderator review and explicit approve/deny decisions.
 
 ## Cross-cutting release gates and deferred work
 
