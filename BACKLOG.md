@@ -7,8 +7,8 @@ This file summarizes ready and deferred work. Detailed product history remains i
 | --- | --- | --- | --- |
 | P0 | Keep CI/build/test pipelines green | GitHub Actions | Continuous |
 | P0 | Adopt Mad Mallard governance docs, verified README badges, and CI standards validation | Current standards adoption | In progress |
-| P1 | Finish AWS activation handoff and preserve zero-spend boundary | Issue #16 / PR #368 | In review |
-| P1 | Review and merge safe dependency updates after green CI | Renovate / Issue #22 | Ongoing |
+| P1 | Preserve the completed AWS activation handoff and zero-spend boundary | Issue #16 / PR #368 | Implemented; live evidence still gated |
+| P1 | Review and merge safe dependency updates after green CI | Renovate / Issue #22 | Continuous; current queue cleared |
 | P1 | Complete manual NVDA/VoiceOver and 200%/400% zoom evidence before public launch | Sprint 7/25 launch gate | Awaiting manual evidence |
 | P1 | Complete real AWS plan/apply/idempotence/network/backup/restore evidence | Issue #16 | Blocked on explicit spend authorization |
 | P1 | Select and validate an SMB commercialization wedge for Ripple | Commercialization | Ready after standards adoption |
