@@ -29,7 +29,7 @@ lifecycle controls without breaking stable URLs or silently deleting community d
 
 ### Story 28.2 — Space archive state
 
-**Status:** In progress.
+**Status:** Completed in PR #390.
 
 - Allow only the canonical owner to archive a Space with explicit confirmation.
 - Preserve all memberships, posts, resources, invitations, moderation, and audit history.
@@ -49,8 +49,22 @@ lifecycle controls without breaking stable URLs or silently deleting community d
 
 ### Story 28.3 — Archive restore and lifecycle audit
 
-Allow owner restoration of archived Spaces and record settings/archive lifecycle
-changes in a durable owner-visible administrative history.
+**Status:** In progress.
+
+- Allow only the canonical owner to restore an archived Space with explicit confirmation.
+- Resume participation under the Space's existing visibility settings.
+- Add a dedicated lifecycle audit model for settings updates, archive, and restore.
+- Show lifecycle history only to the Space owner on the operator dashboard.
+- Preserve lifecycle history when actor accounts are later deleted.
+
+### Acceptance criteria
+
+- Restore clears archive state without changing slug, visibility, membership, or content.
+- Non-owners cannot restore.
+- Restored public Spaces resume discovery/self-join; restored private Spaces resume invitation-based membership.
+- Settings changes record previous/new name and visibility plus whether description changed.
+- Archive and restore actions record actor/time and lifecycle state.
+- Lifecycle audit remains separate from moderation and membership-administration histories.
 
 ## Boundary
 
