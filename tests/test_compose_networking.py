@@ -13,3 +13,12 @@ def test_example_environment_documents_lan_bind_host():
     env_example = Path(".env.example").read_text()
     assert "RIPPLE_BIND_HOST=0.0.0.0" in env_example
     assert "RIPPLE_PORT=8000" in env_example
+
+
+def test_compose_uses_configurable_dedicated_subnet():
+    compose = Path("compose.yaml").read_text()
+    env_example = Path(".env.example").read_text()
+
+    assert '${RIPPLE_DOCKER_SUBNET:-10.254.250.0/24}' in compose
+    assert "RIPPLE_DOCKER_SUBNET=10.254.250.0/24" in env_example
+    assert "Change this if 10.254.250.0/24 overlaps" in env_example
