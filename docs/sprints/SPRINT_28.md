@@ -9,7 +9,7 @@ lifecycle controls without breaking stable URLs or silently deleting community d
 
 ## Story 28.1 — Owner Space settings
 
-**Status:** In progress.
+**Status:** Completed in PR #389.
 
 - Add owner-only editing for Space name, description, and visibility.
 - Preserve the Space slug/URL during settings changes.
@@ -29,8 +29,23 @@ lifecycle controls without breaking stable URLs or silently deleting community d
 
 ### Story 28.2 — Space archive state
 
-Allow owners to archive a Space without deleting history. Archived Spaces become
-read-only and stop accepting new posts, resources, invitations, and memberships.
+**Status:** In progress.
+
+- Allow only the canonical owner to archive a Space with explicit confirmation.
+- Preserve all memberships, posts, resources, invitations, moderation, and audit history.
+- Keep archived Spaces viewable under their existing public/private visibility rules.
+- Block new memberships, accepted invitations, posts, resource links, and new invitations.
+- Keep moderation and existing-member leave available.
+
+### Acceptance criteria
+
+- Archiving never deletes Space data.
+- Archived state records when and by whom the action occurred.
+- Non-owners cannot archive.
+- Archived Spaces reject join, invitation acceptance, new invitation, posting, and resource-link creation.
+- Existing content/history remains readable to anyone who could already view the Space.
+- Existing members may leave and operators may continue moderation.
+- Settings mutations are paused until the Space is restored.
 
 ### Story 28.3 — Archive restore and lifecycle audit
 
