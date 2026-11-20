@@ -23,8 +23,11 @@ class Space(db.Model):
     owner_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
     visibility = db.Column(db.String(20), nullable=False, default="public", server_default="public")
     created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+    archived_at = db.Column(db.DateTime, nullable=True)
+    archived_by_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="SET NULL"), nullable=True)
 
     owner = db.relationship("User", foreign_keys=[owner_id])
+    archived_by = db.relationship("User", foreign_keys=[archived_by_id])
     memberships = db.relationship(
         "SpaceMembership",
         back_populates="space",
