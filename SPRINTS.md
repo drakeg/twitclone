@@ -7,7 +7,7 @@ it does not renumber or rewrite completed roadmap history.
 
 ## Completed product roadmap
 
-Sprints 0 through 27 are documented as completed in `docs/ROADMAP.md`, subject
+Sprints 0 through 28 are documented as completed in `docs/ROADMAP.md`, subject
 to the explicitly documented manual/live launch evidence gates. Do not recreate
 completed sprint work.
 
@@ -32,18 +32,18 @@ Current work:
 from repository configuration; CI validates the standards contract; existing
 tests remain green; no completed roadmap work is restarted.
 
-## Active product sprint — Sprint 28
+## Active product sprint — Sprint 29
 
-**Goal:** Add owner-controlled Space settings and reversible lifecycle controls.
+**Goal:** Improve operator member administration for growing Spaces.
 
 Current work:
 
-- [x] Story 28.1 — Owner Space settings.
-- [x] Story 28.2 — Space archive state.
-- [ ] Story 28.3 — Archive restore and lifecycle audit (in progress).
+- [ ] Story 29.1 — Searchable/filterable paginated operator member roster.
+- [ ] Story 29.2 — Member-management workflow refinements selected from concrete roster usability gaps.
+- [ ] Story 29.3 — Sprint closeout and regression hardening after implemented scope is exercised.
 
-See `docs/sprints/SPRINT_28.md` for acceptance criteria and scope boundaries.
+See `docs/sprints/SPRINT_29.md` for acceptance criteria and scope boundaries.
 
 ## Next product/commercial priority
 
-Commercialization validation for Issue #372 continues in parallel with product development; it is not a stop condition for the roadmap. Sprint 28 continues improving Ripple's Space/community product while preserving the existing launch, safety, cost, and standards gates. New numbered sprints must be added to `docs/ROADMAP.md` only when real scope is selected, rather than invented solely for process compliance.
+Commercialization validation for Issue #372 continues in parallel with product development; it is not a stop condition for the roadmap. Product work may follow an "if you build it, they will come" path when it meaningfully improves Ripple. Customer evidence can reprioritize work, but lack of customer evidence does not halt an active Sprint or backlog. Sprint 29 continues improving Ripple's Space/community product while preserving the existing launch, safety, cost, and standards gates. New numbered sprints must be added to `docs/ROADMAP.md` only when real scope is selected, rather than invented solely for process compliance.
