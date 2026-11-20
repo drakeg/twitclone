@@ -298,3 +298,36 @@ def test_ordinary_member_cannot_cancel_invitation(client, app):
 
     with app.app_context():
         assert db.session.get(SpaceInvitation, invitation_id).status == "pending"
+
+
+def test_accepting_private_space_invitation_grants_access(client, app):
+    with app.app_context():
+        owner = User(username="private_invite_owner", email="pio@example.com", password="hash")
+        invitee = User(username="private_invitee", email="pi@example.com", password="hash")
+        db.session.add_all([owner, invitee])
+        db.session.flush()
+        space = Space(
+            slug="private-invite",
+            name="Private Invite",
+            description="Invitation grants access.",
+            owner_id=owner.id,
+            visibility="private",
+        )
+        db.session.add(space)
+        db.session.flush()
+        db.session.add(SpaceMembership(space_id=space.id, user_id=owner.id, role="owner"))
+        invitation = SpaceInvitation(
+            space_id=space.id,
+            invited_user_id=invitee.id,
+            invited_by_id=owner.id,
+        )
+        db.session.add(invitation)
+        db.session.commit()
+        invitation_id = invitation.id
+        invitee_id = invitee.id
+
+    _login(client, invitee_id)
+    assert client.get("/spaces/private-invite").status_code == 404
+    assert client.post(f"/spaces/invitations/{invitation_id}/accept").status_code == 302
+    assert client.get("/spaces/private-invite").status_code == 200
+    assert b"Private Invite" in client.get("/spaces/").data

@@ -6,7 +6,7 @@
 <section class="surface-card mb-3"><p class="mb-0 text-muted">Spaces are explicit communities. Membership does not affect your global reputation, feed ranking, verification, or paid status.</p></section>
 <section aria-label="Community spaces">
 {% for space in spaces %}
-<article class="surface-card mb-3"><div class="d-flex justify-content-between gap-3 align-items-start"><div><h2 class="h5 mb-1"><a href="{{ url_for('spaces.detail', slug=space.slug) }}">{{ space.name }}</a></h2><p class="text-muted mb-1">{{ space.description }}</p><small>Owned by @{{ space.owner.username }}</small></div>{% if space.id in memberships %}<span class="badge rounded-pill text-bg-light border">Joined</span>{% endif %}</div></article>
+<article class="surface-card mb-3"><div class="d-flex justify-content-between gap-3 align-items-start"><div><h2 class="h5 mb-1"><a href="{{ url_for('spaces.detail', slug=space.slug) }}">{{ space.name }}</a></h2><p class="text-muted mb-1">{{ space.description }}</p><small>Owned by @{{ space.owner.username }} · {{ space.visibility|title }}</small></div>{% if space.id in memberships %}<span class="badge rounded-pill text-bg-light border">Joined</span>{% endif %}</div></article>
 {% else %}
 <div class="surface-card text-center"><h2 class="h5">No spaces yet</h2><p class="text-muted mb-0">The first community space can be created by any signed-in Ripple member.</p></div>
 {% endfor %}

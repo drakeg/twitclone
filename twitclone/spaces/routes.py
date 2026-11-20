@@ -44,6 +44,19 @@ def _can_moderate(membership):
     return membership is not None and membership.role in {"owner", "moderator"}
 
 
+def _can_view_space(space, membership=None):
+    if space.visibility == "public":
+        return True
+    if membership is None:
+        membership = _membership(space)
+    return membership is not None
+
+
+def _require_space_visibility(space, membership=None):
+    if not _can_view_space(space, membership):
+        abort(404)
+
+
 def _visible_space_posts(space):
     return (
         SpacePost.query.join(SpacePost.tweet)
@@ -125,13 +138,22 @@ def _require_reason():
 
 @spaces_blueprint.get("/")
 def index():
-    spaces = Space.query.order_by(Space.name.asc(), Space.id.asc()).all()
     memberships = set()
     if current_user.is_authenticated:
         memberships = {
             row.space_id
             for row in SpaceMembership.query.filter_by(user_id=current_user.id).all()
         }
+    spaces = (
+        Space.query.filter(
+            db.or_(
+                Space.visibility == "public",
+                Space.id.in_(memberships) if memberships else db.false(),
+            )
+        )
+        .order_by(Space.name.asc(), Space.id.asc())
+        .all()
+    )
     return render_template("spaces/index.html", spaces=spaces, memberships=memberships)
 
 
@@ -142,6 +164,7 @@ def create():
         name = (request.form.get("name") or "").strip()
         description = (request.form.get("description") or "").strip()
         slug = _slugify(request.form.get("slug") or name)
+        visibility = (request.form.get("visibility") or "public").strip().lower()
         if not name or len(name) > 120:
             flash("Space name must be between 1 and 120 characters.", "danger")
             return render_template("spaces/create.html"), 400
@@ -151,10 +174,19 @@ def create():
         if not slug:
             flash("Choose a name that produces a usable space URL.", "danger")
             return render_template("spaces/create.html"), 400
+        if visibility not in {"public", "private"}:
+            flash("Choose a valid space visibility.", "danger")
+            return render_template("spaces/create.html"), 400
         if Space.query.filter_by(slug=slug).first() is not None:
             flash("That space URL is already in use.", "danger")
             return render_template("spaces/create.html"), 400
-        space = Space(name=name, slug=slug, description=description, owner_id=current_user.id)
+        space = Space(
+            name=name,
+            slug=slug,
+            description=description,
+            owner_id=current_user.id,
+            visibility=visibility,
+        )
         db.session.add(space)
         db.session.flush()
         db.session.add(SpaceMembership(space_id=space.id, user_id=current_user.id, role="owner"))
@@ -168,6 +200,7 @@ def create():
 def detail(slug):
     space = Space.query.filter_by(slug=slug).first_or_404()
     membership = _membership(space)
+    _require_space_visibility(space, membership)
     member_count = SpaceMembership.query.filter_by(space_id=space.id).count()
     member_rows = (
         SpaceMembership.query.filter_by(space_id=space.id)
@@ -827,6 +860,8 @@ def resolve_appeal(slug, appeal_id):
 def join(slug):
     space = Space.query.filter_by(slug=slug).first_or_404()
     existing = _membership(space)
+    if space.visibility == "private" and existing is None:
+        abort(403, description="Private spaces require an accepted invitation.")
     if existing is None:
         db.session.add(SpaceMembership(space_id=space.id, user_id=current_user.id, role="member"))
         db.session.commit()
