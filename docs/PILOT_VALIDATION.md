@@ -41,6 +41,26 @@ Demo operator account:
 The seeded demo includes members, an owner, a moderator, recent Space activity,
 and one pending moderation appeal.
 
+## Engineering readiness evidence
+
+The pilot workflow was verified on 2026-11-20 in a real local Docker Compose
+environment:
+
+- the Compose network, migration, web, and worker processes started successfully;
+- `/health/ready` passed before demo seeding;
+- repeated demo seeding was idempotent;
+- anonymous access to the operator dashboard redirected to login;
+- the seeded owner completed the CSRF-protected login flow;
+- the authenticated operator dashboard returned HTTP 200 and showed the expected
+  eight-member demo community;
+- LAN binding was confirmed through the launcher;
+- local application services were rebuilt from the Dockerfile `runtime` target;
+- the running web container was verified not to contain pytest/dev-only
+  dependencies.
+
+This is engineering and demo-readiness evidence only. It is **not** evidence of
+customer demand, product-market fit, or willingness to pay.
+
 ## Ideal prospect hypothesis
 
 Prioritize organizations with roughly 25–500 members where one or a few people
