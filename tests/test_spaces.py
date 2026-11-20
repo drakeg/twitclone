@@ -190,3 +190,135 @@ def test_previous_owner_can_leave_after_transfer(client, app):
         assert SpaceMembership.query.filter_by(
             space_id=space.id, user_id=owner_id
         ).first() is None
+
+
+def test_owner_can_remove_nonowner_member(client, app):
+    owner_id = _user(app, "space_remove_owner")
+    member_id = _user(app, "space_remove_member")
+    with app.app_context():
+        space = Space(
+            slug="remove-member",
+            name="Remove Member",
+            description="Owner membership administration.",
+            owner_id=owner_id,
+        )
+        db.session.add(space)
+        db.session.flush()
+        db.session.add_all([
+            SpaceMembership(space_id=space.id, user_id=owner_id, role="owner"),
+            SpaceMembership(space_id=space.id, user_id=member_id, role="member"),
+        ])
+        db.session.commit()
+
+    _login(client, owner_id)
+    response = client.post(
+        f"/spaces/remove-member/members/{member_id}/remove",
+        data={"confirm": "remove"},
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+    assert b"was removed from Remove Member" in response.data
+    assert b"they may join again" in response.data
+
+    with app.app_context():
+        assert SpaceMembership.query.filter_by(
+            space_id=space.id, user_id=member_id
+        ).first() is None
+
+
+def test_nonowner_cannot_remove_member(client, app):
+    owner_id = _user(app, "space_remove_guard_owner")
+    member_id = _user(app, "space_remove_guard_member")
+    other_id = _user(app, "space_remove_guard_other")
+    with app.app_context():
+        space = Space(
+            slug="remove-guard",
+            name="Remove Guard",
+            description="Removal authorization boundary.",
+            owner_id=owner_id,
+        )
+        db.session.add(space)
+        db.session.flush()
+        db.session.add_all([
+            SpaceMembership(space_id=space.id, user_id=owner_id, role="owner"),
+            SpaceMembership(space_id=space.id, user_id=member_id, role="member"),
+            SpaceMembership(space_id=space.id, user_id=other_id, role="member"),
+        ])
+        db.session.commit()
+
+    _login(client, member_id)
+    assert client.post(
+        f"/spaces/remove-guard/members/{other_id}/remove",
+        data={"confirm": "remove"},
+    ).status_code == 403
+
+    with app.app_context():
+        assert SpaceMembership.query.filter_by(
+            space_id=space.id, user_id=other_id
+        ).count() == 1
+
+
+def test_owner_removal_requires_confirmation_and_cannot_target_owner(client, app):
+    owner_id = _user(app, "space_remove_confirm_owner")
+    member_id = _user(app, "space_remove_confirm_member")
+    with app.app_context():
+        space = Space(
+            slug="remove-confirm",
+            name="Remove Confirm",
+            description="Removal confirmation boundary.",
+            owner_id=owner_id,
+        )
+        db.session.add(space)
+        db.session.flush()
+        db.session.add_all([
+            SpaceMembership(space_id=space.id, user_id=owner_id, role="owner"),
+            SpaceMembership(space_id=space.id, user_id=member_id, role="member"),
+        ])
+        db.session.commit()
+
+    _login(client, owner_id)
+    assert client.post(
+        f"/spaces/remove-confirm/members/{member_id}/remove"
+    ).status_code == 400
+    assert client.post(
+        f"/spaces/remove-confirm/members/{owner_id}/remove",
+        data={"confirm": "remove"},
+    ).status_code == 400
+
+    with app.app_context():
+        assert SpaceMembership.query.filter_by(
+            space_id=space.id, user_id=member_id
+        ).count() == 1
+
+
+def test_removed_member_can_rejoin_public_space(client, app):
+    owner_id = _user(app, "space_remove_rejoin_owner")
+    member_id = _user(app, "space_remove_rejoin_member")
+    with app.app_context():
+        space = Space(
+            slug="remove-rejoin",
+            name="Remove Rejoin",
+            description="Public spaces remain joinable.",
+            owner_id=owner_id,
+        )
+        db.session.add(space)
+        db.session.flush()
+        db.session.add_all([
+            SpaceMembership(space_id=space.id, user_id=owner_id, role="owner"),
+            SpaceMembership(space_id=space.id, user_id=member_id, role="member"),
+        ])
+        db.session.commit()
+
+    _login(client, owner_id)
+    assert client.post(
+        f"/spaces/remove-rejoin/members/{member_id}/remove",
+        data={"confirm": "remove"},
+    ).status_code == 302
+
+    _login(client, member_id)
+    assert client.post("/spaces/remove-rejoin/join").status_code == 302
+
+    with app.app_context():
+        assert SpaceMembership.query.filter_by(
+            space_id=space.id, user_id=member_id
+        ).one().role == "member"
