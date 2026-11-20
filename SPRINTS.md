@@ -32,5 +32,5 @@ tests remain green; no completed roadmap work is restarted.
 
 ## Next product/commercial priority
 
-The current product/commercialization slice is the Issue #372 community operator dashboard pilot, selected because it reuses existing Space data and tests an SMB/community-management value proposition with minimal new infrastructure. New numbered sprints must be added to `docs/ROADMAP.md` only
+The current product/commercialization slice is the Issue #372 community operator dashboard pilot. The dashboard is implemented; current work makes the existing local demo seeder produce a realistic operator-ready Space so the workflow can be evaluated immediately in Docker. New numbered sprints must be added to `docs/ROADMAP.md` only
 when real scope is selected, rather than invented solely for process compliance.
