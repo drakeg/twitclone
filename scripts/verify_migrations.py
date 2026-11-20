@@ -10,6 +10,7 @@ from pathlib import Path
 
 EXPECTED_COLUMNS = {
     "space": {"archived_at", "archived_by_id"},
+    "space_post": {"pinned_at", "pinned_by_id"},
 }
 
 EXPECTED_TABLES = {
@@ -23,6 +24,7 @@ EXPECTED_TABLES = {
     "poll_vote",
     "quote",
     "retweet",
+    "space_curation_action",
     "space_invitation",
     "space_lifecycle_action",
     "space_membership_action",
