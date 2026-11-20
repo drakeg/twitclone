@@ -979,6 +979,15 @@ def hide_post(slug, space_post_id):
     row.hidden_at = _utcnow()
     row.hidden_by_id = current_user.id
     row.hidden_reason = reason
+    if row.pinned_at is not None:
+        row.pinned_at = None
+        row.pinned_by_id = None
+        _audit_curation(
+            space,
+            row,
+            action_type="unpin_post",
+            details="Automatically unpinned when the Space post was hidden.",
+        )
     _audit(
         space,
         action_type="hide_post",

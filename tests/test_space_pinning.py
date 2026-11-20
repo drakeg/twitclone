@@ -210,3 +210,55 @@ def test_operator_dashboard_shows_curation_audit(client, app):
     assert b"Recent conversation curation" in page.data
     assert b"Pin Post" in page.data
     assert b"pin_moderator" in page.data
+
+
+def test_hiding_pinned_post_auto_unpins_and_restore_does_not_resurrect_pin(client, app):
+    ids = _fixture(app)
+    _login(client, ids["moderator"])
+
+    assert client.post(
+        f"/spaces/{ids['slug']}/posts/{ids['old_row']}/pin"
+    ).status_code == 302
+    assert client.post(
+        f"/spaces/{ids['slug']}/posts/{ids['old_row']}/hide",
+        data={"reason": "Temporarily remove this conversation."},
+    ).status_code == 302
+
+    with app.app_context():
+        row = db.session.get(SpacePost, ids["old_row"])
+        assert row.is_hidden is True
+        assert row.pinned_at is None
+        assert row.pinned_by_id is None
+        actions = SpaceCurationAction.query.filter_by(
+            space_id=ids["space"],
+            space_post_id=ids["old_row"],
+        ).order_by(SpaceCurationAction.id.asc()).all()
+        assert [action.action_type for action in actions] == ["pin_post", "unpin_post"]
+        assert actions[-1].details == "Automatically unpinned when the Space post was hidden."
+
+    assert client.post(
+        f"/spaces/{ids['slug']}/posts/{ids['old_row']}/restore",
+        data={"reason": "Restore after review."},
+    ).status_code == 302
+
+    with app.app_context():
+        row = db.session.get(SpacePost, ids["old_row"])
+        assert row.is_hidden is False
+        assert row.pinned_at is None
+        assert row.pinned_by_id is None
+
+
+def test_hiding_unpinned_post_does_not_create_curation_event(client, app):
+    ids = _fixture(app)
+    _login(client, ids["moderator"])
+
+    assert client.post(
+        f"/spaces/{ids['slug']}/posts/{ids['new_row']}/hide",
+        data={"reason": "Hide without any prior curation."},
+    ).status_code == 302
+
+    with app.app_context():
+        assert SpaceCurationAction.query.filter_by(
+            space_id=ids["space"],
+            space_post_id=ids["new_row"],
+        ).count() == 0
