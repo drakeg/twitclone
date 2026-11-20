@@ -7,7 +7,7 @@ from flask import abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from twitclone.extensions import db
-from twitclone.models import Notification, Tweet
+from twitclone.models import Notification, Tweet, User
 from twitclone.resource_models import Resource
 from twitclone.spaces import spaces_blueprint
 from twitclone.spaces.models import (
