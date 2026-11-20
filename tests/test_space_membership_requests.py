@@ -1,7 +1,7 @@
 """Sprint 31 Story 31.1 private Space membership-request coverage."""
 
 from twitclone.extensions import db
-from twitclone.models import User
+from twitclone.models import Notification, User
 from twitclone.spaces.models import (
     Space,
     SpaceMembership,
@@ -287,3 +287,58 @@ def test_resolution_audit_survives_operator_account_deletion(client, app):
         assert row.resolved_at is not None
         assert row.resolved_by_id is None
         assert row.resolved_by is None
+
+
+def test_new_request_notifies_all_space_operators(client, app):
+    ids = _fixture(app)
+    _create_request(client, ids, note="Please review.")
+
+    with app.app_context():
+        owner_messages = [
+            row.message
+            for row in Notification.query.filter_by(user_id=ids["owner"]).all()
+        ]
+        moderator_messages = [
+            row.message
+            for row in Notification.query.filter_by(user_id=ids["moderator"]).all()
+        ]
+        outsider_messages = [
+            row.message
+            for row in Notification.query.filter_by(user_id=ids["outsider"]).all()
+        ]
+
+        expected = "@request_user requested access to the Private Request Space space."
+        assert expected in owner_messages
+        assert expected in moderator_messages
+        assert expected not in outsider_messages
+
+
+def test_private_operator_dashboard_exposes_safe_request_link(client, app):
+    ids = _fixture(app)
+    _login(client, ids["moderator"])
+
+    response = client.get(f"/spaces/{ids['private_slug']}/operator")
+    assert response.status_code == 200
+    assert b"Private Space request link" in response.data
+    assert b'data-private-request-link' in response.data
+    assert f"/spaces/{ids['private_slug']}/request-access".encode() in response.data
+    assert b"PRIVATE CONTENT MUST NOT LEAK" not in response.data
+
+
+def test_public_operator_dashboard_has_no_membership_request_link(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+
+    response = client.get(f"/spaces/{ids['public_slug']}/operator")
+    assert response.status_code == 200
+    assert b"Private Space request link" not in response.data
+    assert b'data-private-request-link' not in response.data
+
+
+def test_operator_route_supplies_request_link_only_for_private_spaces():
+    from pathlib import Path
+
+    routes = Path("twitclone/spaces/routes.py").read_text()
+    assert 'request_access_url=(' in routes
+    assert 'if space.visibility == "private"' in routes
+    assert 'url_for("spaces.request_access", slug=space.slug, _external=True)' in routes

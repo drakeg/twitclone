@@ -36,6 +36,13 @@
 <section class="surface-card mb-3" aria-labelledby="operator-actions-heading">
   <span class="auth-kicker">Actions</span>
   <h2 class="h5" id="operator-actions-heading">Manage the community</h2>
+  {% if request_access_url %}
+  <div class="alert alert-light border mb-3">
+    <div class="small fw-semibold">Private Space request link</div>
+    <p class="small text-muted mb-1">Share this link with people who should be able to request membership. It does not expose private Space content.</p>
+    <a href="{{ request_access_url }}" data-private-request-link>{{ request_access_url }}</a>
+  </div>
+  {% endif %}
   <div class="d-flex flex-wrap gap-2">
     <a class="btn btn-outline-primary" href="{{ url_for('spaces.member_roster', slug=space.slug) }}">Member roster</a>
     <a class="btn btn-outline-primary" href="{{ url_for('spaces.detail', slug=space.slug) }}#moderation-heading">Review moderation and appeals</a>
