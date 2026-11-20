@@ -7,7 +7,7 @@ it does not renumber or rewrite completed roadmap history.
 
 ## Completed product roadmap
 
-Sprints 0 through 25 are documented as completed in `docs/ROADMAP.md`, subject
+Sprints 0 through 26 are documented as completed in `docs/ROADMAP.md`, subject
 to the explicitly documented manual/live launch evidence gates. Do not recreate
 completed sprint work.
 
@@ -32,18 +32,18 @@ Current work:
 from repository configuration; CI validates the standards contract; existing
 tests remain green; no completed roadmap work is restarted.
 
-## Active product sprint — Sprint 26
+## Active product sprint — Sprint 27
 
-**Goal:** Add safe Space ownership handoff and member-administration workflows.
+**Goal:** Add consent-based Space invitations and access-control foundations.
 
 Current work:
 
-- [x] Story 26.1 — Safe ownership transfer.
-- [x] Story 26.2 — Owner member removal.
-- [ ] Story 26.3 — Membership administration audit (in progress).
+- [ ] Story 27.1 — Consent-based Space invitations (in progress).
+- [ ] Story 27.2 — Invitation management.
+- [ ] Story 27.3 — Private Space visibility.
 
-See `docs/sprints/SPRINT_26.md` for acceptance criteria and scope boundaries.
+See `docs/sprints/SPRINT_27.md` for acceptance criteria and scope boundaries.
 
 ## Next product/commercial priority
 
-Commercialization validation for Issue #372 continues in parallel with product development; it is not a stop condition for the roadmap. Sprint 26 continues improving Ripple's Space/community product while preserving the existing launch, safety, cost, and standards gates. New numbered sprints must be added to `docs/ROADMAP.md` only when real scope is selected, rather than invented solely for process compliance.
+Commercialization validation for Issue #372 continues in parallel with product development; it is not a stop condition for the roadmap. Sprint 27 continues improving Ripple's Space/community product while preserving the existing launch, safety, cost, and standards gates. New numbered sprints must be added to `docs/ROADMAP.md` only when real scope is selected, rather than invented solely for process compliance.
