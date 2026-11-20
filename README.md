@@ -60,8 +60,16 @@ Ripple will then be available at <http://localhost:8001> on the Docker host and 
 
 ### Demo users and public sample content
 
-For a fresh local installation, populate Ripple with sample accounts and public
-activity so anonymous visitors can immediately see what the network looks like:
+For a prospect/demo session, the supported one-command path builds/starts
+Compose, waits for readiness, seeds the operator-ready demo, checks the protected
+operator route, and prints local/LAN URLs:
+
+```bash
+bash scripts/run-pilot-demo.sh
+```
+
+For a fresh local installation where Ripple is already running, populate only
+the sample content with:
 
 ```bash
 docker compose exec web flask --app application seed-demo-content
