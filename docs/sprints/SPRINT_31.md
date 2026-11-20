@@ -1,6 +1,6 @@
 # Sprint 31 — Private Space membership requests
 
-**Status:** In progress.
+**Status:** Completed.
 
 ## Goal
 
@@ -36,7 +36,7 @@ a private Space and lets owners/moderators explicitly approve or deny it.
 
 ## Story 31.2 — Operator request-link and notification usability
 
-**Status:** In progress.
+**Status:** Completed in PR #401.
 
 Make the request workflow discoverable for operators without making private
 Spaces publicly discoverable.
@@ -54,10 +54,12 @@ Spaces publicly discoverable.
 
 ## Story 31.3 — Sprint regression hardening
 
-**Status:** Planned.
+**Status:** Completed in PR #402.
 
-Close the sprint with duplicate, authorization, privacy, lifecycle, audit, and
-invitation-interaction regression coverage.
+Closed the sprint by making pending invitations and membership requests mutually
+consistent, reconciling legacy overlapping states, and preserving the existing
+authorization, privacy, lifecycle, notification, audit, and duplicate-prevention
+regression coverage.
 
 ## Boundary
 

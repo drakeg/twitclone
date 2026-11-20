@@ -342,3 +342,131 @@ def test_operator_route_supplies_request_link_only_for_private_spaces():
     assert 'request_access_url=(' in routes
     assert 'if space.visibility == "private"' in routes
     assert 'url_for("spaces.request_access", slug=space.slug, _external=True)' in routes
+
+
+def test_pending_request_blocks_duplicate_invitation_path(client, app):
+    ids = _fixture(app)
+    _create_request(client, ids)
+
+    _login(client, ids["owner"])
+    response = client.post(
+        f"/spaces/{ids['private_slug']}/invitations",
+        data={"username": "request_user"},
+    )
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        f"/spaces/{ids['private_slug']}/operator"
+    )
+
+    with app.app_context():
+        from twitclone.spaces.models import SpaceInvitation
+
+        assert SpaceInvitation.query.filter_by(
+            space_id=ids["private_space"],
+            invited_user_id=ids["requester"],
+            status="pending",
+        ).count() == 0
+        assert SpaceMembershipRequest.query.filter_by(
+            space_id=ids["private_space"],
+            requester_id=ids["requester"],
+            status="pending",
+        ).count() == 1
+
+
+def test_pending_invitation_blocks_duplicate_request_path(client, app):
+    ids = _fixture(app)
+    with app.app_context():
+        from twitclone.spaces.models import SpaceInvitation
+
+        db.session.add(
+            SpaceInvitation(
+                space_id=ids["private_space"],
+                invited_user_id=ids["requester"],
+                invited_by_id=ids["owner"],
+            )
+        )
+        db.session.commit()
+
+    _login(client, ids["requester"])
+    response = client.post(
+        f"/spaces/{ids['private_slug']}/request-access",
+        data={"note": "Should use invitation instead."},
+    )
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/spaces/invitations")
+
+    with app.app_context():
+        assert SpaceMembershipRequest.query.filter_by(
+            space_id=ids["private_space"],
+            requester_id=ids["requester"],
+        ).count() == 0
+
+
+def test_request_approval_cancels_legacy_parallel_invitation(client, app):
+    ids = _fixture(app)
+    _create_request(client, ids)
+
+    with app.app_context():
+        from twitclone.spaces.models import SpaceInvitation
+
+        request_id = SpaceMembershipRequest.query.one().id
+        invitation = SpaceInvitation(
+            space_id=ids["private_space"],
+            invited_user_id=ids["requester"],
+            invited_by_id=ids["owner"],
+        )
+        db.session.add(invitation)
+        db.session.commit()
+        invitation_id = invitation.id
+
+    _login(client, ids["owner"])
+    assert client.post(
+        f"/spaces/{ids['private_slug']}/membership-requests/{request_id}/approve"
+    ).status_code == 302
+
+    with app.app_context():
+        from twitclone.spaces.models import SpaceInvitation
+
+        invitation = db.session.get(SpaceInvitation, invitation_id)
+        assert invitation.status == "canceled"
+        assert invitation.responded_at is not None
+        assert SpaceMembership.query.filter_by(
+            space_id=ids["private_space"],
+            user_id=ids["requester"],
+        ).count() == 1
+
+
+def test_invitation_acceptance_reconciles_legacy_parallel_request(client, app):
+    ids = _fixture(app)
+    with app.app_context():
+        from twitclone.spaces.models import SpaceInvitation
+
+        request_row = SpaceMembershipRequest(
+            space_id=ids["private_space"],
+            requester_id=ids["requester"],
+            note="Legacy overlap",
+        )
+        invitation = SpaceInvitation(
+            space_id=ids["private_space"],
+            invited_user_id=ids["requester"],
+            invited_by_id=ids["owner"],
+        )
+        db.session.add_all([request_row, invitation])
+        db.session.commit()
+        request_id = request_row.id
+        invitation_id = invitation.id
+
+    _login(client, ids["requester"])
+    assert client.post(
+        f"/spaces/invitations/{invitation_id}/accept"
+    ).status_code == 302
+
+    with app.app_context():
+        request_row = db.session.get(SpaceMembershipRequest, request_id)
+        assert request_row.status == "approved"
+        assert request_row.resolved_at is not None
+        assert request_row.resolved_by_id == ids["owner"]
+        assert SpaceMembership.query.filter_by(
+            space_id=ids["private_space"],
+            user_id=ids["requester"],
+        ).count() == 1
