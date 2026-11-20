@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Space invitations · Ripple{% endblock %}
+{% block content %}
+<header class="page-header"><div><span class="auth-kicker">Spaces</span><h1>Invitations</h1><p class="text-muted mb-0">Membership is created only when you accept.</p></div><a class="btn btn-secondary" href="{{ url_for('spaces.index') }}">All spaces</a></header>
+<section class="surface-card" aria-labelledby="space-invitations-heading"><h2 class="h5" id="space-invitations-heading">Pending invitations</h2>
+{% for invitation in invitations %}<article class="border rounded p-3 mb-2"><div class="d-flex flex-wrap justify-content-between gap-3"><div><strong>{{ invitation.space.name }}</strong><div class="small text-muted">Invited by {% if invitation.invited_by %}@{{ invitation.invited_by.username }}{% else %}a deleted account{% endif %} · {{ invitation.created_at.strftime('%Y-%m-%d') }}</div><p class="mb-0 mt-2">{{ invitation.space.description }}</p></div><div class="d-flex gap-2 align-items-start"><form method="POST" action="{{ url_for('spaces.accept_invitation', invitation_id=invitation.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-primary" type="submit">Accept</button></form><form method="POST" action="{{ url_for('spaces.decline_invitation', invitation_id=invitation.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-secondary" type="submit">Decline</button></form></div></div></article>{% else %}<p class="text-muted mb-0">No pending Space invitations.</p>{% endfor %}
+</section>
+{% endblock %}
