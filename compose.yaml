@@ -27,7 +27,9 @@ x-app-environment: &app-environment
   STRIPE_API_VERSION: ${STRIPE_API_VERSION:-2026-03-25.dahlia}
 
 x-app-service: &app-service
-  build: .
+  build:
+    context: .
+    target: runtime
   environment: *app-environment
   volumes:
     - twitclone_data:/data
@@ -60,7 +62,9 @@ services:
         condition: service_completed_successfully
 
   test:
-    build: .
+    build:
+      context: .
+      target: development
     profiles: ["tools"]
     command: python -m pytest --strict-markers --maxfail=1
     volumes:
