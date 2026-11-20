@@ -17,6 +17,7 @@ from twitclone.spaces.models import (
     SpaceLifecycleAction,
     SpaceMembership,
     SpaceMembershipAction,
+    SpaceMembershipRequest,
     SpaceModerationAction,
     SpaceModerationAppeal,
     SpacePost,
@@ -491,6 +492,12 @@ def operator_dashboard(slug):
         .all()
     )
     pending_invitations_count = len(pending_invitations)
+    pending_membership_requests = (
+        SpaceMembershipRequest.query.filter_by(space_id=space.id, status="pending")
+        .order_by(SpaceMembershipRequest.created_at.asc(), SpaceMembershipRequest.id.asc())
+        .all()
+    )
+    pending_membership_requests_count = len(pending_membership_requests)
     moderation_actions_30d = (
         SpaceModerationAction.query.filter(
             SpaceModerationAction.space_id == space.id,
@@ -533,6 +540,7 @@ def operator_dashboard(slug):
         "resources_30d": resources_30d,
         "pending_appeals": pending_appeals_count,
         "pending_invitations": pending_invitations_count,
+        "pending_membership_requests": pending_membership_requests_count,
         "moderation_actions_30d": moderation_actions_30d,
     }
     return render_template(
@@ -545,6 +553,7 @@ def operator_dashboard(slug):
         lifecycle_history=lifecycle_history,
         curation_history=curation_history,
         pending_invitations=pending_invitations,
+        pending_membership_requests=pending_membership_requests,
     )
 
 
@@ -601,6 +610,129 @@ def member_roster(slug):
         total_items=total_items,
         total_pages=total_pages,
     )
+
+
+@spaces_blueprint.route("/<slug>/request-access", methods=["GET", "POST"])
+@login_required
+def request_access(slug):
+    """Minimal private-Space membership request surface without content exposure."""
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    if space.visibility != "private":
+        return redirect(url_for("spaces.detail", slug=space.slug))
+    if _membership(space) is not None:
+        return redirect(url_for("spaces.detail", slug=space.slug))
+
+    pending = SpaceMembershipRequest.query.filter_by(
+        space_id=space.id,
+        requester_id=current_user.id,
+        status="pending",
+    ).first()
+
+    if request.method == "POST":
+        _require_space_active(space)
+        if pending is not None:
+            flash("You already have a pending membership request for this Space.", "info")
+            return redirect(url_for("spaces.request_access", slug=space.slug))
+
+        note = (request.form.get("note") or "").strip()
+        if len(note) > 500:
+            abort(400, description="Membership request notes must be 500 characters or fewer.")
+
+        membership_request = SpaceMembershipRequest(
+            space_id=space.id,
+            requester_id=current_user.id,
+            note=note or None,
+        )
+        db.session.add(membership_request)
+        db.session.add(
+            Notification(
+                user_id=space.owner_id,
+                message=f"@{current_user.username} requested access to the {space.name} space.",
+            )
+        )
+        db.session.commit()
+        flash("Membership request sent to the Space operators.", "success")
+        return redirect(url_for("spaces.request_access", slug=space.slug))
+
+    latest = (
+        SpaceMembershipRequest.query.filter_by(
+            space_id=space.id,
+            requester_id=current_user.id,
+        )
+        .order_by(SpaceMembershipRequest.created_at.desc(), SpaceMembershipRequest.id.desc())
+        .first()
+    )
+    return render_template(
+        "spaces/request_access.html",
+        space=space,
+        pending_request=pending,
+        latest_request=latest,
+    )
+
+
+def _resolve_membership_request(space, membership_request, *, decision):
+    _require_space_active(space)
+    if not _can_moderate(_membership(space)):
+        abort(403)
+    if membership_request.space_id != space.id:
+        abort(404)
+    if membership_request.status != "pending":
+        abort(400, description="That membership request is no longer pending.")
+
+    membership_request.status = decision
+    membership_request.resolved_at = _utcnow()
+    membership_request.resolved_by_id = current_user.id
+
+    if decision == "approved":
+        existing = SpaceMembership.query.filter_by(
+            space_id=space.id,
+            user_id=membership_request.requester_id,
+        ).first()
+        if existing is None:
+            db.session.add(
+                SpaceMembership(
+                    space_id=space.id,
+                    user_id=membership_request.requester_id,
+                    role="member",
+                )
+            )
+
+    db.session.add(
+        Notification(
+            user_id=membership_request.requester_id,
+            message=(
+                f"Your request to join the {space.name} space was approved."
+                if decision == "approved"
+                else f"Your request to join the {space.name} space was denied."
+            ),
+        )
+    )
+    db.session.commit()
+    flash(
+        (
+            f"@{membership_request.requester.username} is now a member."
+            if decision == "approved"
+            else f"Membership request from @{membership_request.requester.username} denied."
+        ),
+        "success" if decision == "approved" else "info",
+    )
+    return redirect(url_for("spaces.operator_dashboard", slug=space.slug))
+
+
+@spaces_blueprint.post("/<slug>/membership-requests/<int:request_id>/approve")
+@login_required
+def approve_membership_request(slug, request_id):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    membership_request = SpaceMembershipRequest.query.filter_by(id=request_id).first_or_404()
+    return _resolve_membership_request(space, membership_request, decision="approved")
+
+
+@spaces_blueprint.post("/<slug>/membership-requests/<int:request_id>/deny")
+@login_required
+def deny_membership_request(slug, request_id):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    membership_request = SpaceMembershipRequest.query.filter_by(id=request_id).first_or_404()
+    return _resolve_membership_request(space, membership_request, decision="denied")
 
 
 @spaces_blueprint.get("/invitations")

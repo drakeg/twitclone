@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Request access · Ripple{% endblock %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <span class="auth-kicker">Private Space</span>
+    <h1>Request access to {{ space.name }}</h1>
+    <p class="text-muted mb-0">Private Space content stays hidden until an operator approves membership.</p>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('spaces.index') }}">All spaces</a>
+</header>
+
+<section class="surface-card" aria-labelledby="request-access-heading">
+  <h2 class="h5" id="request-access-heading">Membership request</h2>
+  {% if space.archived_at %}
+    <div class="alert alert-secondary" role="status">This Space is archived and is not accepting membership requests.</div>
+  {% elif pending_request %}
+    <div class="alert alert-info" role="status">Your membership request is pending operator review.</div>
+    {% if pending_request.note %}<p class="small text-muted mb-0">Your note: {{ pending_request.note }}</p>{% endif %}
+  {% else %}
+    {% if latest_request and latest_request.status == 'denied' %}
+      <div class="alert alert-secondary" role="status">Your previous request was denied. You may submit a new request if circumstances changed.</div>
+    {% endif %}
+    <form method="POST">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="mb-3">
+        <label class="form-label" for="request-note">Optional note to the Space operators</label>
+        <textarea class="form-control" id="request-note" name="note" rows="4" maxlength="500" aria-describedby="request-note-help"></textarea>
+        <div class="form-text" id="request-note-help">Up to 500 characters. This note is visible only to Space operators.</div>
+      </div>
+      <button class="btn btn-primary" type="submit">Request membership</button>
+    </form>
+  {% endif %}
+</section>
+{% endblock %}

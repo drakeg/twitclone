@@ -192,6 +192,33 @@ class SpaceInvitation(db.Model):
     invited_by = db.relationship("User", foreign_keys=[invited_by_id])
 
 
+class SpaceMembershipRequest(db.Model):
+    __tablename__ = "space_membership_request"
+    __table_args__ = (
+        db.CheckConstraint(
+            "status in ('pending', 'approved', 'denied')",
+            name="ck_space_membership_request_status",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    space_id = db.Column(db.Integer, db.ForeignKey("space.id", ondelete="CASCADE"), nullable=False)
+    requester_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default="pending", server_default="pending")
+    note = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+    resolved_at = db.Column(db.DateTime, nullable=True)
+    resolved_by_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="SET NULL"), nullable=True)
+
+    space = db.relationship("Space")
+    requester = db.relationship("User", foreign_keys=[requester_id])
+    resolved_by = db.relationship(
+        "User",
+        foreign_keys=[resolved_by_id],
+        backref=db.backref("resolved_space_membership_requests", passive_deletes=False),
+    )
+
+
 class SpaceMembershipAction(db.Model):
     __tablename__ = "space_membership_action"
     __table_args__ = (
@@ -280,6 +307,7 @@ __all__ = [
     "SpaceCurationAction",
     "SpaceMembership",
     "SpaceMembershipAction",
+    "SpaceMembershipRequest",
     "SpacePost",
     "SpaceResource",
     "SpaceModerationAction",

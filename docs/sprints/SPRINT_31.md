@@ -9,7 +9,7 @@ control, privacy, invitation consent, or Ripple-wide safety boundaries.
 
 ## Story 31.1 — Request private Space membership
 
-**Status:** In progress.
+**Status:** In progress — implementation in PR #400.
 
 Add a requester-initiated workflow that creates a pending membership request for
 a private Space and lets owners/moderators explicitly approve or deny it.
