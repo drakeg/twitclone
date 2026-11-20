@@ -1,9 +1,11 @@
 """Routes for persistent community/topic spaces."""
 
+import csv
+import io
 import re
 from datetime import UTC, datetime, timedelta
 
-from flask import abort, flash, redirect, render_template, request, url_for
+from flask import Response, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from twitclone.extensions import db
@@ -563,20 +565,18 @@ def operator_dashboard(slug):
 
 
 
-@spaces_blueprint.get("/<slug>/members")
-@login_required
-def member_roster(slug):
-    """Searchable operator-only Space membership roster."""
-    space = Space.query.filter_by(slug=slug).first_or_404()
-    membership = _membership(space)
-    if not _can_moderate(membership):
-        abort(403)
+_MEMBER_EXPORT_LIMIT = 5000
 
+
+def _member_roster_filters():
     search = (request.args.get("q") or "").strip()
     role = (request.args.get("role") or "").strip().lower()
     if role not in {"", "owner", "moderator", "member"}:
         role = ""
+    return search, role
 
+
+def _member_roster_query(space, *, search, role):
     query = (
         SpaceMembership.query.join(SpaceMembership.user)
         .filter(SpaceMembership.space_id == space.id)
@@ -587,6 +587,34 @@ def member_roster(slug):
         )
     if role:
         query = query.filter(SpaceMembership.role == role)
+    return query
+
+
+def _ordered_member_roster_query(query):
+    return query.order_by(
+        db.func.lower(User.username).asc(),
+        SpaceMembership.id.asc(),
+    )
+
+
+def _csv_safe_cell(value):
+    text = str(value)
+    if text.startswith(("=", "+", "-", "@")):
+        return "'" + text
+    return text
+
+
+@spaces_blueprint.get("/<slug>/members")
+@login_required
+def member_roster(slug):
+    """Searchable operator-only Space membership roster."""
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    membership = _membership(space)
+    if not _can_moderate(membership):
+        abort(403)
+
+    search, role = _member_roster_filters()
+    query = _member_roster_query(space, search=search, role=role)
 
     total_items = query.count()
     per_page = 25
@@ -594,10 +622,7 @@ def member_roster(slug):
     requested_page = request.args.get("page", default=1, type=int) or 1
     page = min(max(requested_page, 1), total_pages)
     rows = (
-        query.order_by(
-            db.func.lower(User.username).asc(),
-            SpaceMembership.id.asc(),
-        )
+        _ordered_member_roster_query(query)
         .offset((page - 1) * per_page)
         .limit(per_page)
         .all()
@@ -614,7 +639,55 @@ def member_roster(slug):
         per_page=per_page,
         total_items=total_items,
         total_pages=total_pages,
+        export_limit=_MEMBER_EXPORT_LIMIT,
     )
+
+
+@spaces_blueprint.get("/<slug>/members.csv")
+@login_required
+def export_member_roster(slug):
+    """Export the filtered Space membership roster without private account data."""
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    if not _can_moderate(_membership(space)):
+        abort(403)
+
+    search, role = _member_roster_filters()
+    query = _member_roster_query(space, search=search, role=role)
+    total_items = query.count()
+    if total_items > _MEMBER_EXPORT_LIMIT:
+        abort(
+            413,
+            description=(
+                f"Filtered membership export exceeds the {_MEMBER_EXPORT_LIMIT}-row limit. "
+                "Narrow the username or role filter and try again."
+            ),
+        )
+
+    rows = _ordered_member_roster_query(query).all()
+    output = io.StringIO(newline="")
+    writer = csv.writer(output, lineterminator="\r\n")
+    writer.writerow(["username", "role", "joined_at"])
+    for row in rows:
+        writer.writerow(
+            [
+                _csv_safe_cell(row.user.username),
+                row.role,
+                row.joined_at.isoformat(timespec="seconds") + "Z",
+            ]
+        )
+
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="ripple-{space.slug}-members.csv"'
+            ),
+            "X-Ripple-Export-Count": str(total_items),
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
 
 
 @spaces_blueprint.route("/<slug>/request-access", methods=["GET", "POST"])
