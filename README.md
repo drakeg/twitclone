@@ -47,6 +47,10 @@ cp .env.example .env
 docker compose up --build
 ```
 
+Compose builds the `web`, `worker`, and `migrate` services from the lean
+Dockerfile `runtime` target; only the isolated `test` service uses the
+`development` target with pytest/dev dependencies.
+
 Compose automatically reads `.env` for interpolation. The example preserves Ripple's durable local defaults (`sqlite:////data/twitclone.db` and `/data/uploads`) while allowing the bind host, published port, scheduler interval, mail settings, media settings, and disabled-by-default Stripe configuration to be changed from the same file.
 
 Ripple also uses a dedicated Docker bridge subnet, defaulting to
