@@ -326,3 +326,97 @@ def test_removed_member_can_rejoin_public_space(client, app):
         assert SpaceMembership.query.filter_by(
             space_id=space_id, user_id=member_id
         ).one().role == "member"
+
+
+def test_private_space_is_hidden_from_anonymous_and_nonmembers(client, app):
+    owner_id = _user(app, "private_owner")
+    member_id = _user(app, "private_nonmember")
+    with app.app_context():
+        space = Space(
+            slug="private-club",
+            name="Private Club",
+            description="Invitation-only discussion.",
+            owner_id=owner_id,
+            visibility="private",
+        )
+        db.session.add(space)
+        db.session.flush()
+        db.session.add(SpaceMembership(space_id=space.id, user_id=owner_id, role="owner"))
+        db.session.commit()
+
+    index = client.get("/spaces/")
+    assert b"Private Club" not in index.data
+    assert client.get("/spaces/private-club").status_code == 404
+
+    _login(client, member_id)
+    assert client.get("/spaces/private-club").status_code == 404
+    assert client.post("/spaces/private-club/join").status_code == 403
+
+
+def test_private_space_member_can_discover_and_view_space(client, app):
+    owner_id = _user(app, "private_member_owner")
+    member_id = _user(app, "private_member")
+    with app.app_context():
+        space = Space(
+            slug="member-private",
+            name="Member Private",
+            description="Visible only to members.",
+            owner_id=owner_id,
+            visibility="private",
+        )
+        db.session.add(space)
+        db.session.flush()
+        db.session.add_all([
+            SpaceMembership(space_id=space.id, user_id=owner_id, role="owner"),
+            SpaceMembership(space_id=space.id, user_id=member_id, role="member"),
+        ])
+        db.session.commit()
+
+    _login(client, member_id)
+    index = client.get("/spaces/")
+    assert b"Member Private" in index.data
+    detail = client.get("/spaces/member-private")
+    assert detail.status_code == 200
+    assert b"Private" in detail.data
+
+
+def test_user_can_create_private_space(client, app):
+    owner_id = _user(app, "private_create_owner")
+    _login(client, owner_id)
+    response = client.post(
+        "/spaces/create",
+        data={
+            "name": "Invite Only",
+            "description": "Private-by-choice space.",
+            "visibility": "private",
+        },
+    )
+    assert response.status_code == 302
+    with app.app_context():
+        space = Space.query.filter_by(slug="invite-only").one()
+        assert space.visibility == "private"
+        assert SpaceMembership.query.filter_by(
+            space_id=space.id, user_id=owner_id, role="owner"
+        ).count() == 1
+
+
+def test_public_space_join_and_discovery_remain_unchanged(client, app):
+    owner_id = _user(app, "public_compat_owner")
+    joiner_id = _user(app, "public_compat_joiner")
+    with app.app_context():
+        space = Space(
+            slug="public-compat",
+            name="Public Compat",
+            description="Existing public behavior.",
+            owner_id=owner_id,
+            visibility="public",
+        )
+        db.session.add(space)
+        db.session.flush()
+        db.session.add(SpaceMembership(space_id=space.id, user_id=owner_id, role="owner"))
+        db.session.commit()
+
+    assert b"Public Compat" in client.get("/spaces/").data
+    assert client.get("/spaces/public-compat").status_code == 200
+    _login(client, joiner_id)
+    assert client.post("/spaces/public-compat/join").status_code == 302
