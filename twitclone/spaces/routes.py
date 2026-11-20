@@ -376,6 +376,36 @@ def transfer_ownership(slug):
     return redirect(url_for("spaces.detail", slug=space.slug))
 
 
+@spaces_blueprint.post("/<slug>/members/<int:user_id>/remove")
+@login_required
+def remove_member(slug, user_id):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    membership = _membership(space)
+    if membership is None or membership.role != "owner" or space.owner_id != current_user.id:
+        abort(403)
+
+    target = SpaceMembership.query.filter_by(space_id=space.id, user_id=user_id).first_or_404()
+    if target.role == "owner" or target.user_id == space.owner_id:
+        abort(400, description="Transfer ownership before removing the current owner.")
+    if request.form.get("confirm") != "remove":
+        abort(400, description="Confirm the member removal.")
+
+    removed_user = target.user
+    db.session.delete(target)
+    db.session.add(
+        Notification(
+            user_id=removed_user.id,
+            message=f"Your membership in the {space.name} space was ended by the owner.",
+        )
+    )
+    db.session.commit()
+    flash(
+        f"@{removed_user.username} was removed from {space.name}. Because this is a public space, they may join again.",
+        "success",
+    )
+    return redirect(url_for("spaces.detail", slug=space.slug))
+
+
 @spaces_blueprint.post("/<slug>/members/<int:user_id>/role")
 @login_required
 def set_member_role(slug, user_id):
