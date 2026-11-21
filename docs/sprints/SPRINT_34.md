@@ -35,14 +35,30 @@ current Space members.
 
 ## Story 34.2 — Event lifecycle
 
-**Status:** Planned.
+**Status:** Implemented; validation in progress.
 
-Add edit/cancel behavior with attributable audit history so schedules can change
-without silently rewriting member communication.
+Add non-destructive edit, cancel, and restore behavior with attributable audit
+history.
+
+### Acceptance criteria
+
+- Owners/moderators can edit active events using the same bounded/timezone-safe
+  validation as creation.
+- Edits preserve previous/new title, description, location, UTC start, and
+  timezone in audit history.
+- Cancel is non-destructive: regular members no longer see the event, while
+  operators retain visibility and may restore a future event.
+- Past canceled events cannot be restored.
+- Archived Spaces block edit/cancel/restore writes.
+- Operator audit history is newest-first, attributable, and capped at 50.
+- Actor deletion may null attribution without deleting event/audit history.
+- Lifecycle actions do not create delivery fanout or change feeds, ranking,
+  reputation, verification, or paid status.
+- Schema changes use a reversible Alembic migration.
 
 ## Story 34.3 — RSVP and sprint hardening
 
-**Status:** Planned.
+**Status:** Ready after Story 34.2 validation.
 
 Add lightweight member RSVP state without event-time fanout, then close the
 sprint with timezone, authorization, archive, lifecycle, migration, and
