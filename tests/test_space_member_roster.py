@@ -296,7 +296,7 @@ def test_owner_and_moderator_can_export_filtered_roster_csv(client, app):
         'attachment; filename="roster-space-members.csv"'
     )
     lines = owner_export.data.decode().splitlines()
-    assert lines[0] == "username,space_role,joined_at"
+    assert lines[0] == "username,space_role,joined_at_utc"
     assert [line.split(",", 1)[0] for line in lines[1:]] == [
         "member_00",
         "member_01",
@@ -396,3 +396,59 @@ def test_archived_space_roster_remains_exportable(client, app):
 
     assert response.status_code == 200
     assert b"roster_owner,owner," in response.data
+
+
+def test_roster_export_neutralizes_formula_leading_usernames(client, app):
+    ids = _fixture(app, member_count=0)
+    with app.app_context():
+        space = Space.query.filter_by(slug=ids["slug"]).one()
+        formula_user = User(
+            username="=2+3",
+            email="formula-roster@example.com",
+            password="hash",
+        )
+        db.session.add(formula_user)
+        db.session.flush()
+        db.session.add(
+            SpaceMembership(
+                space_id=space.id,
+                user_id=formula_user.id,
+                role="member",
+            )
+        )
+        db.session.commit()
+
+    _login(client, ids["owner"])
+    response = client.get(
+        f"/spaces/{ids['slug']}/members/export.csv?q=%3D2%2B3&role=member"
+    )
+
+    assert response.status_code == 200
+    assert b"'=2+3,member," in response.data
+    assert b"\n=2+3,member," not in response.data
+
+
+def test_roster_export_uses_explicit_utc_timestamps(client, app):
+    ids = _fixture(app, member_count=1)
+    _login(client, ids["owner"])
+
+    response = client.get(
+        f"/spaces/{ids['slug']}/members/export.csv?q=member_00"
+    )
+    lines = response.data.decode().splitlines()
+
+    assert response.status_code == 200
+    assert lines[0] == "username,space_role,joined_at_utc"
+    assert lines[1].endswith("Z")
+
+
+def test_roster_export_is_private_noncacheable_attachment(client, app):
+    ids = _fixture(app, member_count=1)
+    _login(client, ids["moderator"])
+
+    response = client.get(f"/spaces/{ids['slug']}/members/export.csv")
+
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "private, no-store"
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["Content-Disposition"].startswith("attachment;")

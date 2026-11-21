@@ -595,6 +595,23 @@ def _ordered_member_roster_query(query):
     )
 
 
+def _spreadsheet_safe_csv_text(value):
+    """Neutralize spreadsheet formula interpretation without changing stored data."""
+    text = str(value)
+    trimmed = text.lstrip()
+    if text[:1] in {"\t", "\r", "\n"} or trimmed[:1] in {"=", "+", "-", "@"}:
+        return f"'{text}"
+    return text
+
+
+def _utc_export_timestamp(value):
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=UTC)
+    else:
+        value = value.astimezone(UTC)
+    return value.isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
 @spaces_blueprint.get("/<slug>/members")
 @login_required
 def member_roster(slug):
@@ -659,15 +676,22 @@ def export_member_roster(slug):
 
     output = io.StringIO(newline="")
     writer = csv.writer(output)
-    writer.writerow(["username", "space_role", "joined_at"])
+    writer.writerow(["username", "space_role", "joined_at_utc"])
     for row in rows:
-        joined_at = row.joined_at.isoformat(timespec="seconds")
-        writer.writerow([row.user.username, row.role, joined_at])
+        writer.writerow(
+            [
+                _spreadsheet_safe_csv_text(row.user.username),
+                row.role,
+                _utc_export_timestamp(row.joined_at),
+            ]
+        )
 
     response = Response(output.getvalue(), content_type="text/csv; charset=utf-8")
     response.headers["Content-Disposition"] = (
         f'attachment; filename="{space.slug}-members.csv"'
     )
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
     return response
 
 
