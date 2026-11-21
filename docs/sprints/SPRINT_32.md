@@ -32,16 +32,26 @@ filter semantics as the on-screen member roster.
 - Archived Spaces remain exportable to authorized operators because reporting
   is read-only.
 
-## Story 32.2 — Export usability refinement
+## Story 32.2 — Spreadsheet-safe export refinement
 
-**Status:** Ready after Story 32.1 validation.
+**Status:** Implemented; validation in progress.
 
-Use implementation/testing gaps to improve operator reporting without adding
-private-data export or ranking/scoring.
+Harden the CSV workflow identified during Story 32.1 review:
+
+- neutralize formula-leading usernames only in the exported representation so
+  spreadsheet applications do not interpret user-controlled text as formulas;
+- label and serialize join timestamps explicitly as UTC;
+- mark authenticated roster downloads private/non-cacheable and disable MIME
+  sniffing;
+- preserve the stored username, roster UI, filters, ordering, privacy boundary,
+  and stable filename.
+
+These changes improve export safety without adding private-data fields,
+ranking/scoring, or mutations.
 
 ## Story 32.3 — Sprint regression hardening
 
-**Status:** Planned.
+**Status:** Ready after Story 32.2 validation.
 
 Close the sprint with authorization, filter parity, escaping, size-bound,
 archived-Space, and privacy regression coverage.
