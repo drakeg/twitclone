@@ -85,10 +85,10 @@ def test_directory_is_member_only_and_shows_only_opted_in_members(client, app):
 
     response = client.get(f"/spaces/{ids['slug']}/directory")
     assert response.status_code == 200
-    assert b"@directory_visible" in response.data
+    assert b'data-directory-user="directory_visible"' in response.data
     assert b"Public visible bio." in response.data
-    assert b"@directory_hidden" not in response.data
-    assert b"@directory_owner" not in response.data
+    assert b'data-directory-user="directory_hidden"' not in response.data
+    assert b'data-directory-user="directory_owner"' not in response.data
     assert b"directory-visible@example.com" not in response.data
 
     _login(client, ids["outsider"])
@@ -126,7 +126,7 @@ def test_member_can_opt_in_and_back_out_without_operator_approval(client, app):
     assert opt_in.status_code == 302
 
     directory = client.get(f"/spaces/{ids['slug']}/directory")
-    assert b"@directory_hidden" in directory.data
+    assert b'data-directory-user="directory_hidden"' in directory.data
 
     opt_out = client.post(
         f"/spaces/{ids['slug']}/directory-preference",
@@ -134,7 +134,7 @@ def test_member_can_opt_in_and_back_out_without_operator_approval(client, app):
     )
     assert opt_out.status_code == 302
     directory = client.get(f"/spaces/{ids['slug']}/directory")
-    assert b"@directory_hidden" not in directory.data
+    assert b'data-directory-user="directory_hidden"' not in directory.data
 
 
 def test_nonmember_cannot_change_directory_preference(client, app):
@@ -176,8 +176,10 @@ def test_directory_search_is_case_insensitive_and_deterministic(client, app):
     body = response.data
 
     assert response.status_code == 200
-    assert body.index(b"@AlphaMember") < body.index(b"@alphamember2")
-    assert b"@directory_visible" not in body
+    assert body.index(b'data-directory-user="AlphaMember"') < body.index(
+        b'data-directory-user="alphamember2"'
+    )
+    assert b'data-directory-user="directory_visible"' not in body
 
 
 def test_archived_space_keeps_directory_and_privacy_preference_available(client, app):
