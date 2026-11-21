@@ -38,9 +38,9 @@ tests remain green; no completed roadmap work is restarted.
 
 Current work:
 
-- [ ] Story 32.1 — Operator CSV export of filtered membership roster.
-- [ ] Story 32.2 — Export usability refinement selected from implementation/testing.
-- [ ] Story 32.3 — Sprint regression hardening and closeout.
+- [x] Story 32.1 — Operator CSV export of filtered membership roster.
+- [x] Story 32.2 — Spreadsheet-safe export and explicit UTC/cache hardening.
+- [ ] Story 32.3 — Sprint regression hardening and closeout (implementation in review).
 
 See `docs/sprints/SPRINT_32.md` for acceptance criteria and scope boundaries.
 
