@@ -56,6 +56,18 @@ Completed work:
 
 See `docs/sprints/SPRINT_34.md` for acceptance criteria and scope boundaries.
 
+## Active product sprint — Sprint 35
+
+**Goal:** Add private Space calendar portability.
+
+Current work:
+
+- [ ] Story 35.1 — Member-only iCalendar export (implementation in review).
+- [ ] Story 35.2 — Individual event calendar download.
+- [ ] Story 35.3 — Calendar regression hardening.
+
+See `docs/sprints/SPRINT_35.md` for acceptance criteria and scope boundaries.
+
 ## Next product/commercial priority
 
-Commercialization validation for Issue #372 continues in parallel with product development; it is not a stop condition for the roadmap. Product work may follow an "if you build it, they will come" path when it meaningfully improves Ripple. Customer evidence can reprioritize work, but lack of customer evidence does not halt an active Sprint or backlog. Sprint 34 continues improving Ripple's Space/community product while preserving the existing launch, safety, cost, and standards gates. New numbered sprints must be added to `docs/ROADMAP.md` only when real scope is selected, rather than invented solely for process compliance.
+Commercialization validation for Issue #372 continues in parallel with product development; it is not a stop condition for the roadmap. Product work may follow an "if you build it, they will come" path when it meaningfully improves Ripple. Customer evidence can reprioritize work, but lack of customer evidence does not halt an active Sprint or backlog. Sprint 35 continues improving Ripple's Space/community product while preserving the existing launch, safety, cost, and standards gates. New numbered sprints must be added to `docs/ROADMAP.md` only when real scope is selected, rather than invented solely for process compliance.

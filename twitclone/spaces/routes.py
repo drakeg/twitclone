@@ -36,6 +36,7 @@ from twitclone.timeline.validation import validate_post_content
 
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 _MEMBER_EXPORT_MAX_ROWS = 5000
+_EVENT_CALENDAR_MAX_ROWS = 100
 
 
 def _utcnow():
@@ -88,6 +89,43 @@ def _event_display_start(event):
         .astimezone(timezone)
         .strftime("%Y-%m-%d %H:%M")
     )
+
+
+def _ical_escape(value):
+    return (
+        str(value)
+        .replace("\\", "\\\\")
+        .replace("\r\n", "\n")
+        .replace("\r", "\n")
+        .replace("\n", "\\n")
+        .replace(";", "\\;")
+        .replace(",", "\\,")
+    )
+
+
+def _ical_datetime(value):
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=UTC)
+    else:
+        value = value.astimezone(UTC)
+    return value.strftime("%Y%m%dT%H%M%SZ")
+
+
+def _ical_fold_line(line, limit=75):
+    chunks = []
+    current = ""
+    current_bytes = 0
+    for character in line:
+        encoded_length = len(character.encode("utf-8"))
+        if current and current_bytes + encoded_length > limit:
+            chunks.append(current)
+            current = " " + character
+            current_bytes = 1 + encoded_length
+        else:
+            current += character
+            current_bytes += encoded_length
+    chunks.append(current)
+    return "\r\n".join(chunks)
 
 
 def _membership(space):
@@ -777,6 +815,60 @@ def rsvp_event(slug, event_id):
         db.session.commit()
 
     return redirect(url_for("spaces.detail", slug=space.slug) + "#space-events-heading")
+
+
+@spaces_blueprint.get("/<slug>/events/calendar.ics")
+@login_required
+def export_event_calendar(slug):
+    """Export upcoming active Space events as a private iCalendar attachment."""
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    membership = _membership(space)
+    if membership is None:
+        abort(403)
+
+    events = (
+        SpaceEvent.query.filter(
+            SpaceEvent.space_id == space.id,
+            SpaceEvent.starts_at >= _utcnow(),
+            SpaceEvent.is_canceled.is_(False),
+        )
+        .order_by(SpaceEvent.starts_at.asc(), SpaceEvent.id.asc())
+        .limit(_EVENT_CALENDAR_MAX_ROWS)
+        .all()
+    )
+
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Ripple//Space Events//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        f"X-WR-CALNAME:{_ical_escape(space.name)}",
+    ]
+    for event in events:
+        lines.extend(
+            [
+                "BEGIN:VEVENT",
+                f"UID:space-event-{event.id}@ripple.local",
+                f"DTSTAMP:{_ical_datetime(event.created_at)}",
+                f"DTSTART:{_ical_datetime(event.starts_at)}",
+                f"SUMMARY:{_ical_escape(event.title)}",
+                f"DESCRIPTION:{_ical_escape(event.description)}",
+            ]
+        )
+        if event.location:
+            lines.append(f"LOCATION:{_ical_escape(event.location)}")
+        lines.append("END:VEVENT")
+    lines.append("END:VCALENDAR")
+
+    payload = "\r\n".join(_ical_fold_line(line) for line in lines) + "\r\n"
+    response = Response(payload, content_type="text/calendar; charset=utf-8")
+    response.headers["Content-Disposition"] = (
+        f'attachment; filename="{space.slug}-events.ics"'
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 @spaces_blueprint.post("/<slug>/announcements")
