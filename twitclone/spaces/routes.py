@@ -15,6 +15,7 @@ from twitclone.spaces import spaces_blueprint
 from twitclone.spaces.models import (
     Space,
     SpaceAnnouncement,
+    SpaceAnnouncementAction,
     SpaceCurationAction,
     SpaceInvitation,
     SpaceLifecycleAction,
@@ -129,6 +130,30 @@ def _audit_lifecycle(
         previous_visibility=previous_visibility,
         new_visibility=new_visibility,
         details=details,
+    )
+    db.session.add(action)
+    return action
+
+
+def _audit_announcement(
+    space,
+    announcement,
+    *,
+    action_type,
+    previous_title=None,
+    new_title=None,
+    previous_body=None,
+    new_body=None,
+):
+    action = SpaceAnnouncementAction(
+        space_id=space.id,
+        announcement_id=announcement.id,
+        actor_id=current_user.id,
+        action_type=action_type,
+        previous_title=previous_title,
+        new_title=new_title,
+        previous_body=previous_body,
+        new_body=new_body,
     )
     db.session.add(action)
     return action
@@ -304,16 +329,31 @@ def detail(slug):
             .all()
         )
     space_announcements = []
+    announcement_history = []
     if membership is not None:
+        announcement_query = SpaceAnnouncement.query.filter_by(space_id=space.id)
+        if not _can_moderate(membership):
+            announcement_query = announcement_query.filter(
+                SpaceAnnouncement.is_withdrawn.is_(False)
+            )
         space_announcements = (
-            SpaceAnnouncement.query.filter_by(space_id=space.id)
-            .order_by(
+            announcement_query.order_by(
                 SpaceAnnouncement.created_at.desc(),
                 SpaceAnnouncement.id.desc(),
             )
             .limit(20)
             .all()
         )
+        if _can_moderate(membership):
+            announcement_history = (
+                SpaceAnnouncementAction.query.filter_by(space_id=space.id)
+                .order_by(
+                    SpaceAnnouncementAction.created_at.desc(),
+                    SpaceAnnouncementAction.id.desc(),
+                )
+                .limit(50)
+                .all()
+            )
 
     appeals_by_action = {}
     if my_moderation:
@@ -330,6 +370,7 @@ def detail(slug):
         member_count=member_count,
         member_rows=member_rows,
         space_announcements=space_announcements,
+        announcement_history=announcement_history,
         space_posts=_visible_space_posts(space),
         space_resources=_visible_space_resources(space),
         resource_candidates=_resource_candidates(space) if membership else [],
@@ -361,16 +402,122 @@ def create_announcement(slug):
     if not body or len(body) > 1000:
         abort(400, description="Announcement body must be between 1 and 1000 characters.")
 
-    db.session.add(
-        SpaceAnnouncement(
-            space_id=space.id,
-            author_id=current_user.id,
-            title=title,
-            body=body,
-        )
+    announcement = SpaceAnnouncement(
+        space_id=space.id,
+        author_id=current_user.id,
+        title=title,
+        body=body,
+    )
+    db.session.add(announcement)
+    db.session.flush()
+    _audit_announcement(
+        space,
+        announcement,
+        action_type="created",
+        new_title=title,
+        new_body=body,
     )
     db.session.commit()
     flash("Space announcement published.", "success")
+    return redirect(url_for("spaces.detail", slug=space.slug))
+
+
+@spaces_blueprint.post("/<slug>/announcements/<int:announcement_id>/edit")
+@login_required
+def edit_announcement(slug, announcement_id):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    _require_space_active(space)
+    if not _can_moderate(_membership(space)):
+        abort(403)
+    announcement = SpaceAnnouncement.query.filter_by(
+        id=announcement_id,
+        space_id=space.id,
+    ).first_or_404()
+    if announcement.is_withdrawn:
+        abort(409, description="Restore a withdrawn announcement before editing it.")
+
+    title = (request.form.get("title") or "").strip()
+    body = (request.form.get("body") or "").strip()
+    if not title or len(title) > 120:
+        abort(400, description="Announcement title must be between 1 and 120 characters.")
+    if not body or len(body) > 1000:
+        abort(400, description="Announcement body must be between 1 and 1000 characters.")
+
+    if announcement.title != title or announcement.body != body:
+        previous_title = announcement.title
+        previous_body = announcement.body
+        announcement.title = title
+        announcement.body = body
+        announcement.updated_at = _utcnow()
+        _audit_announcement(
+            space,
+            announcement,
+            action_type="edited",
+            previous_title=previous_title,
+            new_title=title,
+            previous_body=previous_body,
+            new_body=body,
+        )
+        db.session.commit()
+        flash("Space announcement updated.", "success")
+    return redirect(url_for("spaces.detail", slug=space.slug))
+
+
+@spaces_blueprint.post("/<slug>/announcements/<int:announcement_id>/withdraw")
+@login_required
+def withdraw_announcement(slug, announcement_id):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    _require_space_active(space)
+    if not _can_moderate(_membership(space)):
+        abort(403)
+    announcement = SpaceAnnouncement.query.filter_by(
+        id=announcement_id,
+        space_id=space.id,
+    ).first_or_404()
+    if not announcement.is_withdrawn:
+        announcement.is_withdrawn = True
+        announcement.withdrawn_at = _utcnow()
+        announcement.withdrawn_by_id = current_user.id
+        _audit_announcement(
+            space,
+            announcement,
+            action_type="withdrawn",
+            previous_title=announcement.title,
+            new_title=announcement.title,
+            previous_body=announcement.body,
+            new_body=announcement.body,
+        )
+        db.session.commit()
+        flash("Space announcement withdrawn from members.", "success")
+    return redirect(url_for("spaces.detail", slug=space.slug))
+
+
+@spaces_blueprint.post("/<slug>/announcements/<int:announcement_id>/restore")
+@login_required
+def restore_announcement(slug, announcement_id):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    _require_space_active(space)
+    if not _can_moderate(_membership(space)):
+        abort(403)
+    announcement = SpaceAnnouncement.query.filter_by(
+        id=announcement_id,
+        space_id=space.id,
+    ).first_or_404()
+    if announcement.is_withdrawn:
+        announcement.is_withdrawn = False
+        announcement.withdrawn_at = None
+        announcement.withdrawn_by_id = None
+        _audit_announcement(
+            space,
+            announcement,
+            action_type="restored",
+            previous_title=announcement.title,
+            new_title=announcement.title,
+            previous_body=announcement.body,
+            new_body=announcement.body,
+        )
+        db.session.commit()
+        flash("Space announcement restored to members.", "success")
     return redirect(url_for("spaces.detail", slug=space.slug))
 
 
