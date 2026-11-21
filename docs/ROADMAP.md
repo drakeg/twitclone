@@ -325,9 +325,9 @@ Delivered capabilities include persistent member-only upcoming events, explicit 
 
 **Goal:** Make Space events portable to members' existing calendar workflows without requiring Ripple to operate an external calendar service or expose attendee/private member data.
 
-**Status:** In progress. Detailed acceptance and implementation notes are maintained in docs/sprints/SPRINT_35.md.
+**Status:** Completed. Detailed acceptance and implementation notes are maintained in docs/sprints/SPRINT_35.md.
 
-Story 35.1 adds a private member-only iCalendar export of upcoming active Space events with UTC timestamps, text escaping/UTF-8 line folding, stable UIDs, bounded output, and no RSVP/member identity data.
+Delivered capabilities include private member-only full and single-event iCalendar downloads for upcoming active Space events, shared stable UIDs, UTC timestamps, escaped text, UTF-8-aware line folding, bounded chronological output, archived-Space read continuity, private/no-store response handling, and regression coverage excluding attendee/RSVP/private member data.
 
 ## Cross-cutting release gates and deferred work
 
