@@ -1,9 +1,11 @@
 """Routes for persistent community/topic spaces."""
 
+import csv
+import io
 import re
 from datetime import UTC, datetime, timedelta
 
-from flask import abort, flash, redirect, render_template, request, url_for
+from flask import Response, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from twitclone.extensions import db
@@ -26,6 +28,7 @@ from twitclone.spaces.models import (
 from twitclone.timeline.validation import validate_post_content
 
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
+_MEMBER_EXPORT_MAX_ROWS = 5000
 
 
 def _utcnow():
@@ -563,20 +566,15 @@ def operator_dashboard(slug):
 
 
 
-@spaces_blueprint.get("/<slug>/members")
-@login_required
-def member_roster(slug):
-    """Searchable operator-only Space membership roster."""
-    space = Space.query.filter_by(slug=slug).first_or_404()
-    membership = _membership(space)
-    if not _can_moderate(membership):
-        abort(403)
-
+def _member_roster_filters():
     search = (request.args.get("q") or "").strip()
     role = (request.args.get("role") or "").strip().lower()
     if role not in {"", "owner", "moderator", "member"}:
         role = ""
+    return search, role
 
+
+def _member_roster_query(space, search, role):
     query = (
         SpaceMembership.query.join(SpaceMembership.user)
         .filter(SpaceMembership.space_id == space.id)
@@ -587,6 +585,27 @@ def member_roster(slug):
         )
     if role:
         query = query.filter(SpaceMembership.role == role)
+    return query
+
+
+def _ordered_member_roster_query(query):
+    return query.order_by(
+        db.func.lower(User.username).asc(),
+        SpaceMembership.id.asc(),
+    )
+
+
+@spaces_blueprint.get("/<slug>/members")
+@login_required
+def member_roster(slug):
+    """Searchable operator-only Space membership roster."""
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    membership = _membership(space)
+    if not _can_moderate(membership):
+        abort(403)
+
+    search, role = _member_roster_filters()
+    query = _member_roster_query(space, search, role)
 
     total_items = query.count()
     per_page = 25
@@ -594,10 +613,7 @@ def member_roster(slug):
     requested_page = request.args.get("page", default=1, type=int) or 1
     page = min(max(requested_page, 1), total_pages)
     rows = (
-        query.order_by(
-            db.func.lower(User.username).asc(),
-            SpaceMembership.id.asc(),
-        )
+        _ordered_member_roster_query(query)
         .offset((page - 1) * per_page)
         .limit(per_page)
         .all()
@@ -614,7 +630,45 @@ def member_roster(slug):
         per_page=per_page,
         total_items=total_items,
         total_pages=total_pages,
+        export_max_rows=_MEMBER_EXPORT_MAX_ROWS,
     )
+
+
+@spaces_blueprint.get("/<slug>/members/export.csv")
+@login_required
+def export_member_roster(slug):
+    """Export a bounded, filtered operator membership report."""
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    membership = _membership(space)
+    if not _can_moderate(membership):
+        abort(403)
+
+    search, role = _member_roster_filters()
+    query = _ordered_member_roster_query(
+        _member_roster_query(space, search, role)
+    )
+    rows = query.limit(_MEMBER_EXPORT_MAX_ROWS + 1).all()
+    if len(rows) > _MEMBER_EXPORT_MAX_ROWS:
+        abort(
+            413,
+            description=(
+                f"Membership export is limited to {_MEMBER_EXPORT_MAX_ROWS} rows. "
+                "Narrow the username or role filter and try again."
+            ),
+        )
+
+    output = io.StringIO(newline="")
+    writer = csv.writer(output)
+    writer.writerow(["username", "space_role", "joined_at"])
+    for row in rows:
+        joined_at = row.joined_at.isoformat(timespec="seconds")
+        writer.writerow([row.user.username, row.role, joined_at])
+
+    response = Response(output.getvalue(), content_type="text/csv; charset=utf-8")
+    response.headers["Content-Disposition"] = (
+        f'attachment; filename="{space.slug}-members.csv"'
+    )
+    return response
 
 
 @spaces_blueprint.route("/<slug>/request-access", methods=["GET", "POST"])

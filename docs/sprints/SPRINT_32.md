@@ -10,7 +10,7 @@ controls.
 
 ## Story 32.1 — Filtered roster CSV export
 
-**Status:** In progress.
+**Status:** Implemented; validation in progress.
 
 Add an operator-only CSV export that uses the same username search and role
 filter semantics as the on-screen member roster.
@@ -34,7 +34,7 @@ filter semantics as the on-screen member roster.
 
 ## Story 32.2 — Export usability refinement
 
-**Status:** Planned after Story 32.1 is exercised.
+**Status:** Ready after Story 32.1 validation.
 
 Use implementation/testing gaps to improve operator reporting without adding
 private-data export or ranking/scoring.
