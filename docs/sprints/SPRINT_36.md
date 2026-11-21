@@ -32,14 +32,25 @@ preference.
 
 ## Story 36.2 — Directory usability
 
-**Status:** Planned.
+**Status:** Implemented; validation in progress.
 
-Add role filtering and lightweight member profile cards while preserving opt-in
+Add role filtering and clearer public-profile cards while preserving opt-in
 visibility and public-data-only boundaries.
+
+### Acceptance criteria
+
+- Members can combine case-insensitive username search with owner/moderator/member
+  role filters.
+- Invalid role values fall back safely to all roles rather than broadening data
+  beyond opted-in memberships.
+- Pagination preserves active search and role filters.
+- Directory cards link clearly to the existing public profile and show only
+  username, public bio, and Space role.
+- Opt-out rows remain excluded regardless of filters.
 
 ## Story 36.3 — Directory regression hardening
 
-**Status:** Planned.
+**Status:** Ready after Story 36.2 validation.
 
 Close the sprint with pagination, privacy default, search/filter parity,
 archived-Space, account deletion, role changes, and no-private-data regression
