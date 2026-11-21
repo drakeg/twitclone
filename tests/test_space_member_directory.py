@@ -196,3 +196,78 @@ def test_archived_space_keeps_directory_and_privacy_preference_available(client,
         data={"directory_visible": "yes"},
     ).status_code == 302
     assert client.get(f"/spaces/{ids['slug']}/directory").status_code == 200
+
+
+def test_directory_role_filter_is_opt_in_only(client, app):
+    ids = _fixture(app)
+    with app.app_context():
+        space = db.session.get(Space, ids["space_id"])
+        owner_membership = SpaceMembership.query.filter_by(
+            space_id=space.id,
+            user_id=ids["owner"],
+        ).one()
+        owner_membership.directory_visible = True
+        visible_membership = SpaceMembership.query.filter_by(
+            space_id=space.id,
+            user_id=ids["visible"],
+        ).one()
+        visible_membership.role = "moderator"
+        db.session.commit()
+
+    _login(client, ids["visible"])
+
+    moderators = client.get(
+        f"/spaces/{ids['slug']}/directory?role=moderator"
+    )
+    assert b'data-directory-user="directory_visible"' in moderators.data
+    assert b'data-directory-user="directory_owner"' not in moderators.data
+
+    owners = client.get(f"/spaces/{ids['slug']}/directory?role=owner")
+    assert b'data-directory-user="directory_owner"' in owners.data
+    assert b'data-directory-user="directory_visible"' not in owners.data
+
+
+def test_invalid_directory_role_filter_falls_back_to_all_visible(client, app):
+    ids = _fixture(app)
+    _login(client, ids["visible"])
+
+    response = client.get(
+        f"/spaces/{ids['slug']}/directory?role=administrator"
+    )
+
+    assert response.status_code == 200
+    assert b'data-directory-user="directory_visible"' in response.data
+    assert b"All roles" in response.data
+
+
+def test_directory_pagination_links_preserve_search_and_role(client, app, monkeypatch):
+    ids = _fixture(app)
+    with app.app_context():
+        for index in range(30):
+            user = User(
+                username=f"directory_page_{index:02d}",
+                email=f"directory-page-{index:02d}@example.com",
+                password="hash",
+            )
+            db.session.add(user)
+            db.session.flush()
+            db.session.add(
+                SpaceMembership(
+                    space_id=ids["space_id"],
+                    user_id=user.id,
+                    role="member",
+                    directory_visible=True,
+                )
+            )
+        db.session.commit()
+
+    _login(client, ids["visible"])
+    response = client.get(
+        f"/spaces/{ids['slug']}/directory?q=directory_page&role=member&page=1"
+    )
+
+    assert response.status_code == 200
+    assert b"page=2" in response.data
+    assert b"q=directory_page" in response.data
+    assert b"role=member" in response.data
+    assert b"View public profile" in response.data
