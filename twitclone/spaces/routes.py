@@ -14,6 +14,7 @@ from twitclone.resource_models import Resource
 from twitclone.spaces import spaces_blueprint
 from twitclone.spaces.models import (
     Space,
+    SpaceAnnouncement,
     SpaceCurationAction,
     SpaceInvitation,
     SpaceLifecycleAction,
@@ -302,6 +303,18 @@ def detail(slug):
             .limit(20)
             .all()
         )
+    space_announcements = []
+    if membership is not None:
+        space_announcements = (
+            SpaceAnnouncement.query.filter_by(space_id=space.id)
+            .order_by(
+                SpaceAnnouncement.created_at.desc(),
+                SpaceAnnouncement.id.desc(),
+            )
+            .limit(20)
+            .all()
+        )
+
     appeals_by_action = {}
     if my_moderation:
         appeals_by_action = {
@@ -316,6 +329,7 @@ def detail(slug):
         membership=membership,
         member_count=member_count,
         member_rows=member_rows,
+        space_announcements=space_announcements,
         space_posts=_visible_space_posts(space),
         space_resources=_visible_space_resources(space),
         resource_candidates=_resource_candidates(space) if membership else [],
@@ -328,6 +342,36 @@ def detail(slug):
 
 
 
+
+
+@spaces_blueprint.post("/<slug>/announcements")
+@login_required
+def create_announcement(slug):
+    """Publish a durable member-only Space announcement."""
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    _require_space_active(space)
+    membership = _membership(space)
+    if not _can_moderate(membership):
+        abort(403)
+
+    title = (request.form.get("title") or "").strip()
+    body = (request.form.get("body") or "").strip()
+    if not title or len(title) > 120:
+        abort(400, description="Announcement title must be between 1 and 120 characters.")
+    if not body or len(body) > 1000:
+        abort(400, description="Announcement body must be between 1 and 1000 characters.")
+
+    db.session.add(
+        SpaceAnnouncement(
+            space_id=space.id,
+            author_id=current_user.id,
+            title=title,
+            body=body,
+        )
+    )
+    db.session.commit()
+    flash("Space announcement published.", "success")
+    return redirect(url_for("spaces.detail", slug=space.slug))
 
 
 @spaces_blueprint.post("/<slug>/archive")
