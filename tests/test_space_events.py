@@ -1,0 +1,215 @@
+"""Sprint 34 Story 34.1 Space event coverage."""
+
+from datetime import datetime
+
+from twitclone.extensions import db
+from twitclone.models import User
+from twitclone.spaces.models import Space, SpaceEvent, SpaceMembership
+
+
+def _login(client, user_id):
+    with client.session_transaction() as session:
+        session["_user_id"] = str(user_id)
+        session["_fresh"] = True
+
+
+def _fixture(app):
+    with app.app_context():
+        owner = User(username="event_owner", email="event-owner@example.com", password="hash")
+        moderator = User(
+            username="event_moderator",
+            email="event-moderator@example.com",
+            password="hash",
+        )
+        member = User(username="event_member", email="event-member@example.com", password="hash")
+        outsider = User(username="event_outsider", email="event-outsider@example.com", password="hash")
+        db.session.add_all([owner, moderator, member, outsider])
+        db.session.flush()
+        space = Space(
+            slug="event-space",
+            name="Event Space",
+            description="Space event coverage.",
+            owner_id=owner.id,
+        )
+        db.session.add(space)
+        db.session.flush()
+        db.session.add_all(
+            [
+                SpaceMembership(space_id=space.id, user_id=owner.id, role="owner"),
+                SpaceMembership(space_id=space.id, user_id=moderator.id, role="moderator"),
+                SpaceMembership(space_id=space.id, user_id=member.id, role="member"),
+            ]
+        )
+        db.session.commit()
+        return {
+            "slug": space.slug,
+            "space_id": space.id,
+            "owner": owner.id,
+            "moderator": moderator.id,
+            "member": member.id,
+            "outsider": outsider.id,
+        }
+
+
+def _create(
+    client,
+    slug,
+    *,
+    title="Monthly meetup",
+    description="Bring project updates.",
+    location="Community room",
+    starts_at="2030-06-15T10:00",
+    timezone="America/New_York",
+):
+    return client.post(
+        f"/spaces/{slug}/events",
+        data={
+            "title": title,
+            "description": description,
+            "location": location,
+            "starts_at": starts_at,
+            "timezone": timezone,
+        },
+    )
+
+
+def test_owner_and_moderator_can_create_timezone_explicit_events(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    assert _create(client, ids["slug"]).status_code == 302
+
+    _login(client, ids["moderator"])
+    assert _create(
+        client,
+        ids["slug"],
+        title="Volunteer night",
+        starts_at="2030-06-16T18:30",
+    ).status_code == 302
+
+    with app.app_context():
+        rows = SpaceEvent.query.order_by(SpaceEvent.id.asc()).all()
+        assert len(rows) == 2
+        assert rows[0].timezone == "America/New_York"
+        assert rows[0].starts_at == datetime(2030, 6, 15, 14, 0)
+        assert rows[0].created_by_id == ids["owner"]
+        assert rows[1].created_by_id == ids["moderator"]
+
+
+def test_regular_member_and_anonymous_user_cannot_create_events(client, app):
+    ids = _fixture(app)
+    _login(client, ids["member"])
+    assert _create(client, ids["slug"]).status_code == 403
+
+    with client.session_transaction() as session:
+        session.clear()
+    response = _create(client, ids["slug"])
+    assert response.status_code == 302
+    assert "/login" in response.headers["Location"]
+
+
+def test_event_validation_rejects_invalid_timezone_and_dst_edge_times(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+
+    assert _create(
+        client,
+        ids["slug"],
+        timezone="Not/A_Zone",
+    ).status_code == 400
+    assert _create(
+        client,
+        ids["slug"],
+        starts_at="2027-03-14T02:30",
+        timezone="America/New_York",
+    ).status_code == 400
+    assert _create(
+        client,
+        ids["slug"],
+        starts_at="2027-11-07T01:30",
+        timezone="America/New_York",
+    ).status_code == 400
+
+    with app.app_context():
+        assert SpaceEvent.query.count() == 0
+
+
+def test_event_validation_is_bounded_and_future_only(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+
+    assert _create(client, ids["slug"], title="").status_code == 400
+    assert _create(client, ids["slug"], title="x" * 121).status_code == 400
+    assert _create(client, ids["slug"], description="").status_code == 400
+    assert _create(client, ids["slug"], description="x" * 1001).status_code == 400
+    assert _create(client, ids["slug"], location="x" * 201).status_code == 400
+    assert _create(client, ids["slug"], starts_at="2020-01-01T10:00").status_code == 400
+
+
+def test_events_are_member_only_and_render_in_explicit_timezone(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _create(client, ids["slug"])
+
+    _login(client, ids["member"])
+    member_page = client.get(f"/spaces/{ids['slug']}")
+    assert member_page.status_code == 200
+    assert b"Monthly meetup" in member_page.data
+    assert b"2030-06-15 10:00" in member_page.data
+    assert b"America/New_York" in member_page.data
+    assert b"Community room" in member_page.data
+
+    _login(client, ids["outsider"])
+    outsider_page = client.get(f"/spaces/{ids['slug']}")
+    assert outsider_page.status_code == 200
+    assert b"Monthly meetup" not in outsider_page.data
+    assert b"Upcoming events" not in outsider_page.data
+
+
+def test_archived_space_keeps_existing_events_readable_but_blocks_new_ones(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _create(client, ids["slug"])
+
+    with app.app_context():
+        space = db.session.get(Space, ids["space_id"])
+        space.archived_at = space.created_at
+        space.archived_by_id = ids["owner"]
+        db.session.commit()
+
+    assert _create(
+        client,
+        ids["slug"],
+        title="Blocked event",
+        starts_at="2030-06-20T12:00",
+    ).status_code == 409
+
+    _login(client, ids["member"])
+    page = client.get(f"/spaces/{ids['slug']}")
+    assert page.status_code == 200
+    assert b"Monthly meetup" in page.data
+    assert b"Blocked event" not in page.data
+
+
+def test_upcoming_events_are_chronological_and_bounded(client, app):
+    ids = _fixture(app)
+    with app.app_context():
+        for index in range(25):
+            db.session.add(
+                SpaceEvent(
+                    space_id=ids["space_id"],
+                    created_by_id=ids["owner"],
+                    title=f"Event {index:02d}",
+                    description="Event body",
+                    starts_at=datetime(2030, 7, 1, 12, index),
+                    timezone="UTC",
+                )
+            )
+        db.session.commit()
+
+    _login(client, ids["member"])
+    page = client.get(f"/spaces/{ids['slug']}")
+    assert page.status_code == 200
+    assert b"Event 00" in page.data
+    assert b"Event 19" in page.data
+    assert b"Event 20" not in page.data
+    assert page.data.index(b"Event 00") < page.data.index(b"Event 01")
