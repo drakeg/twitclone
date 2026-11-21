@@ -174,3 +174,90 @@ def test_calendar_export_folds_long_utf8_lines_to_75_octets(client, app):
 
     assert any(line.startswith(" ") for line in physical_lines)
     assert all(len(line.encode("utf-8")) <= 75 for line in physical_lines if line)
+
+
+def test_member_can_download_single_event_calendar(client, app):
+    ids = _fixture(app)
+    first_id = _event(
+        app,
+        ids,
+        title="Selected event",
+        starts_at=datetime(2030, 6, 15, 14, 0),
+    )
+    _event(
+        app,
+        ids,
+        title="Other event",
+        starts_at=datetime(2030, 6, 16, 14, 0),
+    )
+    _login(client, ids["member"])
+
+    response = client.get(
+        f"/spaces/{ids['slug']}/events/{first_id}/calendar.ics"
+    )
+    body = response.data.decode()
+
+    assert response.status_code == 200
+    assert response.headers["Content-Disposition"] == (
+        f'attachment; filename="calendar-space-event-{first_id}.ics"'
+    )
+    assert f"UID:space-event-{first_id}@ripple.local" in body
+    assert "SUMMARY:Selected event" in body
+    assert "SUMMARY:Other event" not in body
+
+
+def test_single_event_calendar_is_member_only(client, app):
+    ids = _fixture(app)
+    event_id = _event(
+        app,
+        ids,
+        title="Selected event",
+        starts_at=datetime(2030, 6, 15, 14, 0),
+    )
+
+    _login(client, ids["outsider"])
+    assert client.get(
+        f"/spaces/{ids['slug']}/events/{event_id}/calendar.ics"
+    ).status_code == 403
+
+
+def test_single_event_calendar_rejects_canceled_and_past_events(client, app):
+    ids = _fixture(app)
+    canceled_id = _event(
+        app,
+        ids,
+        title="Canceled",
+        starts_at=datetime(2030, 6, 15, 14, 0),
+        canceled=True,
+    )
+    past_id = _event(
+        app,
+        ids,
+        title="Past",
+        starts_at=datetime(2020, 6, 15, 14, 0),
+    )
+    _login(client, ids["owner"])
+
+    assert client.get(
+        f"/spaces/{ids['slug']}/events/{canceled_id}/calendar.ics"
+    ).status_code == 404
+    assert client.get(
+        f"/spaces/{ids['slug']}/events/{past_id}/calendar.ics"
+    ).status_code == 404
+
+
+def test_space_event_page_exposes_single_event_calendar_control(client, app):
+    ids = _fixture(app)
+    event_id = _event(
+        app,
+        ids,
+        title="Selected event",
+        starts_at=datetime(2030, 6, 15, 14, 0),
+    )
+    _login(client, ids["member"])
+
+    response = client.get(f"/spaces/{ids['slug']}")
+
+    assert response.status_code == 200
+    assert b"Add to calendar" in response.data
+    assert f"/events/{event_id}/calendar.ics".encode() in response.data
