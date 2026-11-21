@@ -44,6 +44,18 @@ Completed work:
 
 See `docs/sprints/SPRINT_33.md` for acceptance criteria and scope boundaries.
 
+## Active product sprint — Sprint 34
+
+**Goal:** Add timezone-safe Space events and meetups.
+
+Current work:
+
+- [ ] Story 34.1 — Timezone-safe upcoming events (implementation in review).
+- [ ] Story 34.2 — Event lifecycle and audit.
+- [ ] Story 34.3 — RSVP state and sprint regression hardening.
+
+See `docs/sprints/SPRINT_34.md` for acceptance criteria and scope boundaries.
+
 ## Next product/commercial priority
 
-Commercialization validation for Issue #372 continues in parallel with product development; it is not a stop condition for the roadmap. Product work may follow an "if you build it, they will come" path when it meaningfully improves Ripple. Customer evidence can reprioritize work, but lack of customer evidence does not halt an active Sprint or backlog. Sprint 33 continues improving Ripple's Space/community product while preserving the existing launch, safety, cost, and standards gates. New numbered sprints must be added to `docs/ROADMAP.md` only when real scope is selected, rather than invented solely for process compliance.
+Commercialization validation for Issue #372 continues in parallel with product development; it is not a stop condition for the roadmap. Product work may follow an "if you build it, they will come" path when it meaningfully improves Ripple. Customer evidence can reprioritize work, but lack of customer evidence does not halt an active Sprint or backlog. Sprint 34 continues improving Ripple's Space/community product while preserving the existing launch, safety, cost, and standards gates. New numbered sprints must be added to `docs/ROADMAP.md` only when real scope is selected, rather than invented solely for process compliance.

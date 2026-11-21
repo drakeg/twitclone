@@ -313,6 +313,14 @@ Delivered capabilities include an operator-only bounded CSV export using roster 
 
 Delivered capabilities include persistent member-only operator announcements, non-destructive edit/withdraw/restore with prior/new wording audit history, bounded operator lifecycle history, lightweight per-member read state created only on member action, archived-Space read continuity, and regression boundaries preventing notification fanout, global-feed placement, ranking/reputation effects, verification effects, or paid reach.
 
+## Sprint 34 — Space events and meetups
+
+**Goal:** Give Space operators a durable, timezone-safe way to schedule member meetups without introducing global-feed promotion, paid reach, or external calendar infrastructure.
+
+**Status:** In progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_34.md`.
+
+Story 34.1 adds persistent member-only upcoming events with operator creation, explicit IANA timezone input, UTC storage, DST ambiguity/nonexistence rejection, archived-Space read continuity, and bounded chronological display.
+
 ## Cross-cutting release gates and deferred work
 
 These are not new product sprints and remain independently tracked:

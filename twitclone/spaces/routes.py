@@ -4,6 +4,7 @@ import csv
 import io
 import re
 from datetime import UTC, datetime, timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from flask import Response, abort, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -18,6 +19,7 @@ from twitclone.spaces.models import (
     SpaceAnnouncementAction,
     SpaceAnnouncementRead,
     SpaceCurationAction,
+    SpaceEvent,
     SpaceInvitation,
     SpaceLifecycleAction,
     SpaceMembership,
@@ -41,6 +43,49 @@ def _utcnow():
 def _slugify(value):
     slug = _SLUG_RE.sub("-", (value or "").strip().casefold()).strip("-")
     return slug[:80]
+
+
+def _parse_event_start(local_value, timezone_name):
+    try:
+        local_start = datetime.fromisoformat(local_value)
+    except (TypeError, ValueError):
+        abort(400, description="Choose a valid event date and time.")
+
+    if local_start.tzinfo is not None:
+        abort(400, description="Enter event time without an embedded timezone offset.")
+
+    try:
+        timezone = ZoneInfo(timezone_name)
+    except (ZoneInfoNotFoundError, ValueError):
+        abort(400, description="Choose a valid IANA timezone such as America/New_York.")
+
+    utc_candidates = set()
+    for fold in (0, 1):
+        candidate = local_start.replace(tzinfo=timezone, fold=fold)
+        utc_value = candidate.astimezone(UTC)
+        round_trip = utc_value.astimezone(timezone).replace(tzinfo=None)
+        if round_trip == local_start:
+            utc_candidates.add(utc_value.replace(tzinfo=None))
+
+    if len(utc_candidates) != 1:
+        abort(
+            400,
+            description=(
+                "That local event time is ambiguous or does not exist because of "
+                "a daylight-saving transition. Choose another time."
+            ),
+        )
+
+    return utc_candidates.pop()
+
+
+def _event_display_start(event):
+    timezone = ZoneInfo(event.timezone)
+    return (
+        event.starts_at.replace(tzinfo=UTC)
+        .astimezone(timezone)
+        .strftime("%Y-%m-%d %H:%M")
+    )
 
 
 def _membership(space):
@@ -329,6 +374,25 @@ def detail(slug):
             .limit(20)
             .all()
         )
+    space_events = []
+    if membership is not None:
+        upcoming_events = (
+            SpaceEvent.query.filter(
+                SpaceEvent.space_id == space.id,
+                SpaceEvent.starts_at >= _utcnow(),
+            )
+            .order_by(SpaceEvent.starts_at.asc(), SpaceEvent.id.asc())
+            .limit(20)
+            .all()
+        )
+        space_events = [
+            {
+                "event": event,
+                "display_start": _event_display_start(event),
+            }
+            for event in upcoming_events
+        ]
+
     space_announcements = []
     announcement_history = []
     if membership is not None:
@@ -391,6 +455,7 @@ def detail(slug):
         membership=membership,
         member_count=member_count,
         member_rows=member_rows,
+        space_events=space_events,
         space_announcements=space_announcements,
         announcement_history=announcement_history,
         announcement_read_ids=announcement_read_ids,
@@ -407,6 +472,50 @@ def detail(slug):
 
 
 
+
+
+@spaces_blueprint.post("/<slug>/events")
+@login_required
+def create_event(slug):
+    """Create a timezone-explicit upcoming event for Space members."""
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    _require_space_active(space)
+    if not _can_moderate(_membership(space)):
+        abort(403)
+
+    title = (request.form.get("title") or "").strip()
+    description = (request.form.get("description") or "").strip()
+    location = (request.form.get("location") or "").strip()
+    timezone_name = (request.form.get("timezone") or "").strip()
+    local_start = (request.form.get("starts_at") or "").strip()
+
+    if not title or len(title) > 120:
+        abort(400, description="Event title must be between 1 and 120 characters.")
+    if not description or len(description) > 1000:
+        abort(400, description="Event description must be between 1 and 1000 characters.")
+    if len(location) > 200:
+        abort(400, description="Event location must be 200 characters or fewer.")
+    if not timezone_name or len(timezone_name) > 64:
+        abort(400, description="Event timezone must be a valid IANA timezone.")
+
+    starts_at = _parse_event_start(local_start, timezone_name)
+    if starts_at <= _utcnow():
+        abort(400, description="Event start time must be in the future.")
+
+    db.session.add(
+        SpaceEvent(
+            space_id=space.id,
+            created_by_id=current_user.id,
+            title=title,
+            description=description,
+            location=location or None,
+            starts_at=starts_at,
+            timezone=timezone_name,
+        )
+    )
+    db.session.commit()
+    flash("Space event scheduled.", "success")
+    return redirect(url_for("spaces.detail", slug=space.slug))
 
 
 @spaces_blueprint.post("/<slug>/announcements")
