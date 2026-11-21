@@ -450,8 +450,14 @@ def test_rsvp_summary_is_aggregate_only_and_member_specific(client, app):
     member_page = client.get(f"/spaces/{ids['slug']}")
     assert b"1 going" in member_page.data
     assert b"0 maybe" in member_page.data
-    assert b"event_member" not in member_page.data.split(b'data-event-rsvp-summary', 1)[1]
-    assert b"Clear RSVP" in member_page.data
+    rsvp_fragment = (
+        member_page.data
+        .split(b'data-event-rsvp-summary="', 1)[1]
+        .split(b"</div>", 1)[0]
+    )
+    assert b"event_member" not in rsvp_fragment
+    assert b"event-member@example.com" not in rsvp_fragment
+    assert b"Clear RSVP" in rsvp_fragment
 
     _login(client, ids["moderator"])
     moderator_page = client.get(f"/spaces/{ids['slug']}")
