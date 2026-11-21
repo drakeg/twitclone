@@ -7,7 +7,7 @@ it does not renumber or rewrite completed roadmap history.
 
 ## Completed product roadmap
 
-Sprints 0 through 33 are documented as completed in `docs/ROADMAP.md`, subject
+Sprints 0 through 34 are documented as completed in `docs/ROADMAP.md`, subject
 to the explicitly documented manual/live launch evidence gates. Do not recreate
 completed sprint work.
 
@@ -44,15 +44,15 @@ Completed work:
 
 See `docs/sprints/SPRINT_33.md` for acceptance criteria and scope boundaries.
 
-## Active product sprint — Sprint 34
+## Completed product sprint — Sprint 34
 
 **Goal:** Add timezone-safe Space events and meetups.
 
-Current work:
+Completed work:
 
 - [x] Story 34.1 — Timezone-safe upcoming events.
-- [ ] Story 34.2 — Non-destructive event lifecycle and audit (implementation in review).
-- [ ] Story 34.3 — RSVP state and sprint regression hardening.
+- [x] Story 34.2 — Non-destructive event lifecycle and audit.
+- [x] Story 34.3 — Aggregate-only member RSVP state and sprint regression hardening.
 
 See `docs/sprints/SPRINT_34.md` for acceptance criteria and scope boundaries.
 

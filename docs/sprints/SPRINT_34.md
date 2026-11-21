@@ -1,6 +1,6 @@
 # Sprint 34 — Space events and meetups
 
-**Status:** In progress.
+**Status:** Closeout implementation in progress.
 
 ## Goal
 
@@ -58,11 +58,26 @@ history.
 
 ## Story 34.3 — RSVP and sprint hardening
 
-**Status:** Ready after Story 34.2 validation.
+**Status:** Implemented; validation in progress.
 
-Add lightweight member RSVP state without event-time fanout, then close the
-sprint with timezone, authorization, archive, lifecycle, migration, and
-no-ranking/no-paid-reach regressions.
+Add lightweight member RSVP state and close the sprint with regression
+hardening.
+
+### Acceptance criteria
+
+- Current Space members can set Going or Maybe for an upcoming active event and
+  clear/change their own RSVP; nonmembers cannot RSVP.
+- RSVP state is unique per event/user and updates idempotently rather than
+  creating duplicates.
+- Member UI exposes aggregate Going/Maybe counts plus only the current member's
+  own RSVP; it does not expose attendee identity lists.
+- Event creation creates no per-member RSVP rows, notification fanout, or
+  delivery jobs.
+- Canceled, past, and archived-Space events reject RSVP writes.
+- Event/user deletion cascades remove obsolete RSVP rows.
+- Reversible migration, timezone/DST validation, authorization, lifecycle,
+  ordering, archive, and no-ranking/no-paid-reach regressions remain covered.
+- Email/push/calendar-provider delivery and ticketing remain out of scope.
 
 ## Boundary
 

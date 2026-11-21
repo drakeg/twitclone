@@ -21,6 +21,7 @@ from twitclone.spaces.models import (
     SpaceCurationAction,
     SpaceEvent,
     SpaceEventAction,
+    SpaceEventRsvp,
     SpaceInvitation,
     SpaceLifecycleAction,
     SpaceMembership,
@@ -425,10 +426,27 @@ def detail(slug):
             .limit(20)
             .all()
         )
+        visible_event_ids = [event.id for event in upcoming_events]
+        rsvp_counts = {
+            event_id: {"going": 0, "maybe": 0}
+            for event_id in visible_event_ids
+        }
+        my_rsvps = {}
+        if visible_event_ids:
+            rsvp_rows = SpaceEventRsvp.query.filter(
+                SpaceEventRsvp.event_id.in_(visible_event_ids)
+            ).all()
+            for row in rsvp_rows:
+                rsvp_counts[row.event_id][row.status] += 1
+                if row.user_id == current_user.id:
+                    my_rsvps[row.event_id] = row.status
+
         space_events = [
             {
                 "event": event,
                 "display_start": _event_display_start(event),
+                "rsvp_counts": rsvp_counts[event.id],
+                "my_rsvp": my_rsvps.get(event.id),
             }
             for event in upcoming_events
         ]
@@ -714,6 +732,51 @@ def restore_event(slug, event_id):
         db.session.commit()
         flash("Space event restored.", "success")
     return redirect(url_for("spaces.detail", slug=space.slug))
+
+
+@spaces_blueprint.post("/<slug>/events/<int:event_id>/rsvp")
+@login_required
+def rsvp_event(slug, event_id):
+    """Set or clear this member's lightweight RSVP for an upcoming event."""
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    _require_space_active(space)
+    membership = _membership(space)
+    if membership is None:
+        abort(403)
+
+    event = SpaceEvent.query.filter_by(id=event_id, space_id=space.id).first_or_404()
+    if event.is_canceled:
+        abort(409, description="Canceled events do not accept RSVPs.")
+    if event.starts_at <= _utcnow():
+        abort(409, description="Past events do not accept RSVPs.")
+
+    status = (request.form.get("status") or "").strip().lower()
+    if status not in {"going", "maybe", "clear"}:
+        abort(400, description="RSVP status must be going, maybe, or clear.")
+
+    existing = SpaceEventRsvp.query.filter_by(
+        event_id=event.id,
+        user_id=current_user.id,
+    ).first()
+    if status == "clear":
+        if existing is not None:
+            db.session.delete(existing)
+            db.session.commit()
+    elif existing is None:
+        db.session.add(
+            SpaceEventRsvp(
+                event_id=event.id,
+                user_id=current_user.id,
+                status=status,
+            )
+        )
+        db.session.commit()
+    elif existing.status != status:
+        existing.status = status
+        existing.updated_at = _utcnow()
+        db.session.commit()
+
+    return redirect(url_for("spaces.detail", slug=space.slug) + "#space-events-heading")
 
 
 @spaces_blueprint.post("/<slug>/announcements")

@@ -103,6 +103,44 @@ class SpaceEvent(db.Model):
         cascade="all, delete-orphan",
         lazy=True,
     )
+    rsvps = db.relationship(
+        "SpaceEventRsvp",
+        back_populates="event",
+        cascade="all, delete-orphan",
+        lazy=True,
+    )
+
+
+class SpaceEventRsvp(db.Model):
+    __tablename__ = "space_event_rsvp"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "event_id",
+            "user_id",
+            name="uq_space_event_rsvp_event_user",
+        ),
+        db.CheckConstraint(
+            "status in ('going', 'maybe')",
+            name="ck_space_event_rsvp_status",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(
+        db.Integer,
+        db.ForeignKey("space_event.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    status = db.Column(db.String(20), nullable=False)
+    updated_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+
+    event = db.relationship("SpaceEvent", back_populates="rsvps")
+    user = db.relationship("User")
 
 
 class SpaceEventAction(db.Model):

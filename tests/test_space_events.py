@@ -8,6 +8,7 @@ from twitclone.spaces.models import (
     Space,
     SpaceEvent,
     SpaceEventAction,
+    SpaceEventRsvp,
     SpaceMembership,
 )
 
@@ -393,3 +394,136 @@ def test_operator_detail_shows_event_audit_history(client, app):
     assert b"Event audit history" in page.data
     assert b'data-event-action="edited"' in page.data
     assert b'data-event-action="canceled"' in page.data
+
+
+def test_member_can_set_change_and_clear_event_rsvp(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _create(client, ids["slug"])
+
+    with app.app_context():
+        event_id = SpaceEvent.query.one().id
+
+    _login(client, ids["member"])
+    going = client.post(
+        f"/spaces/{ids['slug']}/events/{event_id}/rsvp",
+        data={"status": "going"},
+    )
+    assert going.status_code == 302
+    with app.app_context():
+        row = SpaceEventRsvp.query.one()
+        assert row.status == "going"
+        assert row.user_id == ids["member"]
+
+    maybe = client.post(
+        f"/spaces/{ids['slug']}/events/{event_id}/rsvp",
+        data={"status": "maybe"},
+    )
+    assert maybe.status_code == 302
+    with app.app_context():
+        rows = SpaceEventRsvp.query.all()
+        assert len(rows) == 1
+        assert rows[0].status == "maybe"
+
+    clear = client.post(
+        f"/spaces/{ids['slug']}/events/{event_id}/rsvp",
+        data={"status": "clear"},
+    )
+    assert clear.status_code == 302
+    with app.app_context():
+        assert SpaceEventRsvp.query.count() == 0
+
+
+def test_rsvp_summary_is_aggregate_only_and_member_specific(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _create(client, ids["slug"])
+
+    with app.app_context():
+        event_id = SpaceEvent.query.one().id
+
+    _login(client, ids["member"])
+    client.post(
+        f"/spaces/{ids['slug']}/events/{event_id}/rsvp",
+        data={"status": "going"},
+    )
+    member_page = client.get(f"/spaces/{ids['slug']}")
+    assert b"1 going" in member_page.data
+    assert b"0 maybe" in member_page.data
+    rsvp_fragment = (
+        member_page.data
+        .split(b'data-event-rsvp-summary="', 1)[1]
+        .split(b"</div>", 1)[0]
+    )
+    assert b"event_member" not in rsvp_fragment
+    assert b"event-member@example.com" not in rsvp_fragment
+    assert b"Clear RSVP" in rsvp_fragment
+
+    _login(client, ids["moderator"])
+    moderator_page = client.get(f"/spaces/{ids['slug']}")
+    assert b"1 going" in moderator_page.data
+    assert b"Clear RSVP" not in moderator_page.data
+
+
+def test_nonmember_cannot_rsvp(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _create(client, ids["slug"])
+
+    with app.app_context():
+        event_id = SpaceEvent.query.one().id
+
+    _login(client, ids["outsider"])
+    response = client.post(
+        f"/spaces/{ids['slug']}/events/{event_id}/rsvp",
+        data={"status": "going"},
+    )
+    assert response.status_code == 403
+    with app.app_context():
+        assert SpaceEventRsvp.query.count() == 0
+
+
+def test_invalid_canceled_and_archived_rsvps_are_rejected(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _create(client, ids["slug"])
+
+    with app.app_context():
+        event_id = SpaceEvent.query.one().id
+
+    _login(client, ids["member"])
+    assert client.post(
+        f"/spaces/{ids['slug']}/events/{event_id}/rsvp",
+        data={"status": "yes"},
+    ).status_code == 400
+
+    _login(client, ids["owner"])
+    client.post(f"/spaces/{ids['slug']}/events/{event_id}/cancel")
+    _login(client, ids["member"])
+    assert client.post(
+        f"/spaces/{ids['slug']}/events/{event_id}/rsvp",
+        data={"status": "going"},
+    ).status_code == 409
+
+    _login(client, ids["owner"])
+    client.post(f"/spaces/{ids['slug']}/events/{event_id}/restore")
+    with app.app_context():
+        space = db.session.get(Space, ids["space_id"])
+        space.archived_at = space.created_at
+        space.archived_by_id = ids["owner"]
+        db.session.commit()
+    _login(client, ids["member"])
+    assert client.post(
+        f"/spaces/{ids['slug']}/events/{event_id}/rsvp",
+        data={"status": "maybe"},
+    ).status_code == 409
+
+
+def test_event_creation_does_not_precreate_rsvp_rows(client, app):
+    ids = _fixture(app)
+    _login(client, ids["moderator"])
+
+    assert _create(client, ids["slug"]).status_code == 302
+    with app.app_context():
+        assert SpaceEvent.query.count() == 1
+        assert SpaceEventRsvp.query.count() == 0

@@ -317,9 +317,9 @@ Delivered capabilities include persistent member-only operator announcements, no
 
 **Goal:** Give Space operators a durable, timezone-safe way to schedule member meetups without introducing global-feed promotion, paid reach, or external calendar infrastructure.
 
-**Status:** In progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_34.md`.
+**Status:** Completed. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_34.md`.
 
-Story 34.1 adds persistent member-only upcoming events with operator creation, explicit IANA timezone input, UTC storage, DST ambiguity/nonexistence rejection, archived-Space read continuity, and bounded chronological display.
+Delivered capabilities include persistent member-only upcoming events, explicit IANA timezone input with UTC storage and DST ambiguity/nonexistence rejection, non-destructive edit/cancel/restore with attributable audit history, lightweight member Going/Maybe RSVP state with aggregate-only counts, archived-Space safeguards, and regression boundaries preventing notification fanout, global-feed promotion, ranking/reputation effects, verification effects, or paid reach.
 
 ## Cross-cutting release gates and deferred work
 
