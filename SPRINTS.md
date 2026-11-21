@@ -38,8 +38,8 @@ tests remain green; no completed roadmap work is restarted.
 
 Current work:
 
-- [ ] Story 33.1 — Persistent member-only operator announcements (implementation in review).
-- [ ] Story 33.2 — Announcement lifecycle and audit.
+- [x] Story 33.1 — Persistent member-only operator announcements.
+- [ ] Story 33.2 — Non-destructive announcement lifecycle and audit (implementation in review).
 - [ ] Story 33.3 — Member read state and sprint regression hardening.
 
 See `docs/sprints/SPRINT_33.md` for acceptance criteria and scope boundaries.

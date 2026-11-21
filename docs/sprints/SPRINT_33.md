@@ -34,15 +34,30 @@ current Space members.
 
 ## Story 33.2 — Announcement lifecycle and audit
 
-**Status:** Planned.
+**Status:** Implemented; validation in progress.
 
-Add operator-controlled edit/withdraw behavior with attributable audit history
-so corrections are possible without silently rewriting or deleting member
-communication.
+Add operator-controlled edit, withdraw, and restore behavior with attributable
+audit history so corrections are possible without silently rewriting or
+deleting member communication.
+
+### Acceptance criteria
+
+- Owners/moderators can edit active announcements within Story 33.1 bounds.
+- Edits preserve previous/new title and body in an attributable audit record.
+- Withdraw is non-destructive: regular members no longer see the announcement,
+  while operators retain visibility and can restore it.
+- Restore makes the same announcement visible to members again without creating
+  a replacement record.
+- Archived Spaces block edit/withdraw/restore writes.
+- Announcement audit history is operator-only, newest-first, and bounded.
+- Actor deletion may null attribution without deleting audit history.
+- Lifecycle actions do not fan out notifications or affect global feeds,
+  ranking, reputation, verification, or paid status.
+- Schema changes use a reversible Alembic migration.
 
 ## Story 33.3 — Member read state and sprint hardening
 
-**Status:** Planned.
+**Status:** Ready after Story 33.2 validation.
 
 Add a lightweight read/unread member experience and close the sprint with
 authorization, archive, deletion, ordering, migration, and no-ranking/no-paid-

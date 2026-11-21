@@ -4,7 +4,12 @@ from datetime import timedelta
 
 from twitclone.extensions import db
 from twitclone.models import Notification, User
-from twitclone.spaces.models import Space, SpaceAnnouncement, SpaceMembership
+from twitclone.spaces.models import (
+    Space,
+    SpaceAnnouncement,
+    SpaceAnnouncementAction,
+    SpaceMembership,
+)
 
 
 def _login(client, user_id):
@@ -191,3 +196,162 @@ def test_publishing_announcement_does_not_fan_out_notifications(client, app):
     with app.app_context():
         assert Notification.query.count() == before
         assert SpaceAnnouncement.query.count() == 1
+
+
+def test_operator_can_edit_announcement_with_prior_wording_audited(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _publish(client, ids["slug"])
+
+    with app.app_context():
+        announcement = SpaceAnnouncement.query.one()
+        announcement_id = announcement.id
+
+    response = client.post(
+        f"/spaces/{ids['slug']}/announcements/{announcement_id}/edit",
+        data={"title": "Updated schedule", "body": "Saturday meetup now starts at 11 AM."},
+    )
+    assert response.status_code == 302
+
+    with app.app_context():
+        announcement = db.session.get(SpaceAnnouncement, announcement_id)
+        assert announcement.title == "Updated schedule"
+        assert announcement.body == "Saturday meetup now starts at 11 AM."
+        assert announcement.updated_at is not None
+        action = SpaceAnnouncementAction.query.filter_by(
+            announcement_id=announcement_id,
+            action_type="edited",
+        ).one()
+        assert action.previous_title == "Schedule update"
+        assert action.new_title == "Updated schedule"
+        assert action.previous_body == "Saturday meetup starts at 10 AM."
+        assert action.new_body == "Saturday meetup now starts at 11 AM."
+
+
+def test_withdraw_hides_announcement_from_members_but_not_operators(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _publish(client, ids["slug"])
+
+    with app.app_context():
+        announcement_id = SpaceAnnouncement.query.one().id
+
+    response = client.post(
+        f"/spaces/{ids['slug']}/announcements/{announcement_id}/withdraw"
+    )
+    assert response.status_code == 302
+
+    _login(client, ids["member"])
+    member_page = client.get(f"/spaces/{ids['slug']}")
+    assert b"Schedule update" not in member_page.data
+
+    _login(client, ids["moderator"])
+    operator_page = client.get(f"/spaces/{ids['slug']}")
+    assert b"Schedule update" in operator_page.data
+    assert b"Withdrawn" in operator_page.data
+    assert b"Restore announcement" in operator_page.data
+
+    with app.app_context():
+        announcement = db.session.get(SpaceAnnouncement, announcement_id)
+        assert announcement.is_withdrawn is True
+        assert announcement.withdrawn_at is not None
+        assert SpaceAnnouncementAction.query.filter_by(
+            announcement_id=announcement_id,
+            action_type="withdrawn",
+        ).count() == 1
+
+
+def test_operator_can_restore_withdrawn_announcement(client, app):
+    ids = _fixture(app)
+    _login(client, ids["moderator"])
+    _publish(client, ids["slug"])
+
+    with app.app_context():
+        announcement_id = SpaceAnnouncement.query.one().id
+
+    client.post(f"/spaces/{ids['slug']}/announcements/{announcement_id}/withdraw")
+    response = client.post(
+        f"/spaces/{ids['slug']}/announcements/{announcement_id}/restore"
+    )
+    assert response.status_code == 302
+
+    _login(client, ids["member"])
+    member_page = client.get(f"/spaces/{ids['slug']}")
+    assert b"Schedule update" in member_page.data
+
+    with app.app_context():
+        announcement = db.session.get(SpaceAnnouncement, announcement_id)
+        assert announcement.is_withdrawn is False
+        assert announcement.withdrawn_at is None
+        assert announcement.withdrawn_by_id is None
+        assert SpaceAnnouncementAction.query.filter_by(
+            announcement_id=announcement_id,
+            action_type="restored",
+        ).count() == 1
+
+
+def test_regular_member_cannot_edit_withdraw_or_restore_announcements(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _publish(client, ids["slug"])
+
+    with app.app_context():
+        announcement_id = SpaceAnnouncement.query.one().id
+
+    _login(client, ids["member"])
+    assert client.post(
+        f"/spaces/{ids['slug']}/announcements/{announcement_id}/edit",
+        data={"title": "Nope", "body": "Nope"},
+    ).status_code == 403
+    assert client.post(
+        f"/spaces/{ids['slug']}/announcements/{announcement_id}/withdraw"
+    ).status_code == 403
+    assert client.post(
+        f"/spaces/{ids['slug']}/announcements/{announcement_id}/restore"
+    ).status_code == 403
+
+
+def test_archived_space_blocks_announcement_lifecycle_writes(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _publish(client, ids["slug"])
+
+    with app.app_context():
+        announcement_id = SpaceAnnouncement.query.one().id
+        space = db.session.get(Space, ids["space_id"])
+        space.archived_at = space.created_at
+        space.archived_by_id = ids["owner"]
+        db.session.commit()
+
+    assert client.post(
+        f"/spaces/{ids['slug']}/announcements/{announcement_id}/edit",
+        data={"title": "Blocked", "body": "Blocked"},
+    ).status_code == 409
+    assert client.post(
+        f"/spaces/{ids['slug']}/announcements/{announcement_id}/withdraw"
+    ).status_code == 409
+    assert client.post(
+        f"/spaces/{ids['slug']}/announcements/{announcement_id}/restore"
+    ).status_code == 409
+
+
+def test_operator_detail_shows_bounded_attributable_announcement_audit(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _publish(client, ids["slug"])
+
+    with app.app_context():
+        announcement_id = SpaceAnnouncement.query.one().id
+
+    client.post(
+        f"/spaces/{ids['slug']}/announcements/{announcement_id}/edit",
+        data={"title": "Edited title", "body": "Edited body"},
+    )
+    client.post(f"/spaces/{ids['slug']}/announcements/{announcement_id}/withdraw")
+
+    page = client.get(f"/spaces/{ids['slug']}")
+    assert page.status_code == 200
+    assert b"Announcement audit history" in page.data
+    assert b'data-announcement-action="edited"' in page.data
+    assert b'data-announcement-action="withdrawn"' in page.data
+    assert b"@announce_owner" in page.data
