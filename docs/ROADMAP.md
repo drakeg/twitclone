@@ -321,6 +321,14 @@ Delivered capabilities include persistent member-only operator announcements, no
 
 Delivered capabilities include persistent member-only upcoming events, explicit IANA timezone input with UTC storage and DST ambiguity/nonexistence rejection, non-destructive edit/cancel/restore with attributable audit history, lightweight member Going/Maybe RSVP state with aggregate-only counts, archived-Space safeguards, and regression boundaries preventing notification fanout, global-feed promotion, ranking/reputation effects, verification effects, or paid reach.
 
+## Sprint 35 — Space calendar portability
+
+**Goal:** Make Space events portable to members' existing calendar workflows without requiring Ripple to operate an external calendar service or expose attendee/private member data.
+
+**Status:** In progress. Detailed acceptance and implementation notes are maintained in docs/sprints/SPRINT_35.md.
+
+Story 35.1 adds a private member-only iCalendar export of upcoming active Space events with UTC timestamps, text escaping/UTF-8 line folding, stable UIDs, bounded output, and no RSVP/member identity data.
+
 ## Cross-cutting release gates and deferred work
 
 These are not new product sprints and remain independently tracked:
