@@ -1,4 +1,4 @@
-"""Sprint 29 Story 29.1 operator member roster coverage."""
+"""Space operator member roster and Sprint 32 CSV export coverage."""
 
 from twitclone.extensions import db
 from twitclone.models import User
@@ -281,3 +281,118 @@ def test_archived_space_keeps_operator_roster_readable(client, app):
     response = client.get(f"/spaces/{ids['slug']}/members")
     assert response.status_code == 200
     assert b"Member roster" in response.data
+
+
+def test_owner_and_moderator_can_export_filtered_roster_csv(client, app):
+    ids = _fixture(app, member_count=3)
+
+    _login(client, ids["owner"])
+    owner_export = client.get(
+        f"/spaces/{ids['slug']}/members/export.csv?q=MEMBER&role=member"
+    )
+    assert owner_export.status_code == 200
+    assert owner_export.mimetype == "text/csv"
+    assert owner_export.headers["Content-Disposition"] == (
+        'attachment; filename="roster-space-members.csv"'
+    )
+    lines = owner_export.data.decode().splitlines()
+    assert lines[0] == "username,space_role,joined_at"
+    assert [line.split(",", 1)[0] for line in lines[1:]] == [
+        "member_00",
+        "member_01",
+        "member_02",
+    ]
+
+    _login(client, ids["moderator"])
+    moderator_export = client.get(
+        f"/spaces/{ids['slug']}/members/export.csv?role=moderator"
+    )
+    assert moderator_export.status_code == 200
+    assert b"roster_moderator,moderator," in moderator_export.data
+    assert b"roster_owner" not in moderator_export.data
+
+
+def test_roster_export_is_operator_only(client, app):
+    ids = _fixture(app, member_count=1)
+
+    _login(client, ids["regular"])
+    assert client.get(
+        f"/spaces/{ids['slug']}/members/export.csv"
+    ).status_code == 403
+
+    with client.session_transaction() as session:
+        session.clear()
+    anonymous = client.get(f"/spaces/{ids['slug']}/members/export.csv")
+    assert anonymous.status_code == 302
+    assert "/login" in anonymous.headers["Location"]
+
+
+def test_roster_export_excludes_private_account_data(client, app):
+    ids = _fixture(app, member_count=1)
+    _login(client, ids["owner"])
+
+    response = client.get(f"/spaces/{ids['slug']}/members/export.csv")
+    body = response.data.decode()
+
+    assert response.status_code == 200
+    assert "email" not in body.splitlines()[0].lower()
+    assert "private-00@example.com" not in body
+    assert "owner-roster@example.com" not in body
+    assert "password" not in body.lower()
+
+
+def test_roster_export_matches_case_insensitive_search_and_role_filters(client, app):
+    ids = _fixture(app, member_count=3)
+    _login(client, ids["owner"])
+
+    response = client.get(
+        f"/spaces/{ids['slug']}/members/export.csv?q=MEMBER_01&role=member"
+    )
+    body = response.data.decode()
+
+    assert response.status_code == 200
+    assert "member_01,member," in body
+    assert "member_00" not in body
+    assert "member_02" not in body
+
+
+def test_roster_page_export_link_preserves_filters_and_documents_cap(client, app):
+    ids = _fixture(app, member_count=2)
+    _login(client, ids["owner"])
+
+    response = client.get(
+        f"/spaces/{ids['slug']}/members?q=member&role=member"
+    )
+
+    assert response.status_code == 200
+    assert b"Export CSV" in response.data
+    assert b"export.csv?q=member&amp;role=member" in response.data
+    assert b"capped at 5000 rows" in response.data
+
+
+def test_roster_export_enforces_bounded_safe_maximum(client, app, monkeypatch):
+    ids = _fixture(app, member_count=3)
+    _login(client, ids["owner"])
+    monkeypatch.setattr("twitclone.spaces.routes._MEMBER_EXPORT_MAX_ROWS", 2)
+
+    response = client.get(
+        f"/spaces/{ids['slug']}/members/export.csv?q=member_&role=member"
+    )
+
+    assert response.status_code == 413
+    assert b"Membership export is limited to 2 rows" in response.data
+
+
+def test_archived_space_roster_remains_exportable(client, app):
+    ids = _fixture(app, member_count=1)
+    with app.app_context():
+        space = Space.query.filter_by(slug=ids["slug"]).one()
+        space.archived_at = space.created_at
+        space.archived_by_id = ids["owner"]
+        db.session.commit()
+
+    _login(client, ids["owner"])
+    response = client.get(f"/spaces/{ids['slug']}/members/export.csv")
+
+    assert response.status_code == 200
+    assert b"roster_owner,owner," in response.data
