@@ -71,9 +71,66 @@ class SpaceAnnouncement(db.Model):
     title = db.Column(db.String(120), nullable=False)
     body = db.Column(db.String(1000), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+    updated_at = db.Column(db.DateTime, nullable=True)
+    is_withdrawn = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default=db.false(),
+    )
+    withdrawn_at = db.Column(db.DateTime, nullable=True)
+    withdrawn_by_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
     space = db.relationship("Space", back_populates="announcements")
     author = db.relationship("User", foreign_keys=[author_id])
+    withdrawn_by = db.relationship("User", foreign_keys=[withdrawn_by_id])
+    actions = db.relationship(
+        "SpaceAnnouncementAction",
+        back_populates="announcement",
+        cascade="all, delete-orphan",
+        lazy=True,
+    )
+
+
+class SpaceAnnouncementAction(db.Model):
+    __tablename__ = "space_announcement_action"
+    __table_args__ = (
+        db.CheckConstraint(
+            "action_type in ('created', 'edited', 'withdrawn', 'restored')",
+            name="ck_space_announcement_action_type",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    space_id = db.Column(
+        db.Integer,
+        db.ForeignKey("space.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    announcement_id = db.Column(
+        db.Integer,
+        db.ForeignKey("space_announcement.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    actor_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    action_type = db.Column(db.String(20), nullable=False)
+    previous_title = db.Column(db.String(120), nullable=True)
+    new_title = db.Column(db.String(120), nullable=True)
+    previous_body = db.Column(db.String(1000), nullable=True)
+    new_body = db.Column(db.String(1000), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+
+    space = db.relationship("Space")
+    announcement = db.relationship("SpaceAnnouncement", back_populates="actions")
+    actor = db.relationship("User", foreign_keys=[actor_id])
 
 
 class SpaceMembership(db.Model):
@@ -331,6 +388,7 @@ class SpaceModerationAppeal(db.Model):
 __all__ = [
     "Space",
     "SpaceAnnouncement",
+    "SpaceAnnouncementAction",
     "SpaceInvitation",
     "SpaceLifecycleAction",
     "SpaceCurationAction",
