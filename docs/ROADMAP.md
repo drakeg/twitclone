@@ -329,6 +329,14 @@ Delivered capabilities include persistent member-only upcoming events, explicit 
 
 Delivered capabilities include private member-only full and single-event iCalendar downloads for upcoming active Space events, shared stable UIDs, UTC timestamps, escaped text, UTF-8-aware line folding, bounded chronological output, archived-Space read continuity, private/no-store response handling, and regression coverage excluding attendee/RSVP/private member data.
 
+## Sprint 36 — Space member directory and privacy
+
+**Goal:** Give current Space members a useful people directory while treating Space membership association as private by default.
+
+**Status:** In progress. Detailed acceptance and implementation notes are maintained in docs/sprints/SPRINT_36.md.
+
+Story 36.1 adds a member-only opt-in directory with per-Space membership visibility defaulting off, public username/bio/role only, case-insensitive search, deterministic pagination, and archived-Space privacy continuity.
+
 ## Cross-cutting release gates and deferred work
 
 These are not new product sprints and remain independently tracked:
