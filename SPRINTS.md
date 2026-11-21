@@ -50,8 +50,8 @@ See `docs/sprints/SPRINT_33.md` for acceptance criteria and scope boundaries.
 
 Current work:
 
-- [ ] Story 34.1 — Timezone-safe upcoming events (implementation in review).
-- [ ] Story 34.2 — Event lifecycle and audit.
+- [x] Story 34.1 — Timezone-safe upcoming events.
+- [ ] Story 34.2 — Non-destructive event lifecycle and audit (implementation in review).
 - [ ] Story 34.3 — RSVP state and sprint regression hardening.
 
 See `docs/sprints/SPRINT_34.md` for acceptance criteria and scope boundaries.
