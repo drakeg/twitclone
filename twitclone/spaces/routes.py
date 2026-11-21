@@ -128,6 +128,21 @@ def _ical_fold_line(line, limit=75):
     return "\r\n".join(chunks)
 
 
+def _ical_event_lines(event):
+    lines = [
+        "BEGIN:VEVENT",
+        f"UID:space-event-{event.id}@ripple.local",
+        f"DTSTAMP:{_ical_datetime(event.created_at)}",
+        f"DTSTART:{_ical_datetime(event.starts_at)}",
+        f"SUMMARY:{_ical_escape(event.title)}",
+        f"DESCRIPTION:{_ical_escape(event.description)}",
+    ]
+    if event.location:
+        lines.append(f"LOCATION:{_ical_escape(event.location)}")
+    lines.append("END:VEVENT")
+    return lines
+
+
 def _membership(space):
     if not current_user.is_authenticated:
         return None
@@ -846,25 +861,46 @@ def export_event_calendar(slug):
         f"X-WR-CALNAME:{_ical_escape(space.name)}",
     ]
     for event in events:
-        lines.extend(
-            [
-                "BEGIN:VEVENT",
-                f"UID:space-event-{event.id}@ripple.local",
-                f"DTSTAMP:{_ical_datetime(event.created_at)}",
-                f"DTSTART:{_ical_datetime(event.starts_at)}",
-                f"SUMMARY:{_ical_escape(event.title)}",
-                f"DESCRIPTION:{_ical_escape(event.description)}",
-            ]
-        )
-        if event.location:
-            lines.append(f"LOCATION:{_ical_escape(event.location)}")
-        lines.append("END:VEVENT")
+        lines.extend(_ical_event_lines(event))
     lines.append("END:VCALENDAR")
 
     payload = "\r\n".join(_ical_fold_line(line) for line in lines) + "\r\n"
     response = Response(payload, content_type="text/calendar; charset=utf-8")
     response.headers["Content-Disposition"] = (
         f'attachment; filename="{space.slug}-events.ics"'
+    )
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@spaces_blueprint.get("/<slug>/events/<int:event_id>/calendar.ics")
+@login_required
+def export_single_event_calendar(slug, event_id):
+    """Export one upcoming active Space event as a private iCalendar attachment."""
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    membership = _membership(space)
+    if membership is None:
+        abort(403)
+
+    event = SpaceEvent.query.filter_by(id=event_id, space_id=space.id).first_or_404()
+    if event.is_canceled or event.starts_at < _utcnow():
+        abort(404)
+
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Ripple//Space Events//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        f"X-WR-CALNAME:{_ical_escape(space.name)}",
+        *_ical_event_lines(event),
+        "END:VCALENDAR",
+    ]
+    payload = "\r\n".join(_ical_fold_line(line) for line in lines) + "\r\n"
+    response = Response(payload, content_type="text/calendar; charset=utf-8")
+    response.headers["Content-Disposition"] = (
+        f'attachment; filename="{space.slug}-event-{event.id}.ics"'
     )
     response.headers["Cache-Control"] = "private, no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
