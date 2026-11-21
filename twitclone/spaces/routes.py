@@ -1359,6 +1359,75 @@ def _utc_export_timestamp(value):
     return value.isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
+@spaces_blueprint.get("/<slug>/directory")
+@login_required
+def member_directory(slug):
+    """Member-only opt-in directory using public profile fields."""
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    membership = _membership(space)
+    if membership is None:
+        abort(403)
+
+    search = (request.args.get("q") or "").strip()
+    query = (
+        SpaceMembership.query.join(SpaceMembership.user)
+        .filter(
+            SpaceMembership.space_id == space.id,
+            SpaceMembership.directory_visible.is_(True),
+        )
+    )
+    if search:
+        query = query.filter(
+            db.func.lower(User.username).like(f"%{search.casefold()}%")
+        )
+
+    total_items = query.count()
+    per_page = 25
+    total_pages = max(1, (total_items + per_page - 1) // per_page)
+    requested_page = request.args.get("page", default=1, type=int) or 1
+    page = min(max(requested_page, 1), total_pages)
+    rows = (
+        query.order_by(
+            db.func.lower(User.username).asc(),
+            SpaceMembership.id.asc(),
+        )
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+        .all()
+    )
+    return render_template(
+        "spaces/member_directory.html",
+        space=space,
+        membership=membership,
+        rows=rows,
+        search=search,
+        page=page,
+        total_pages=total_pages,
+        total_items=total_items,
+    )
+
+
+@spaces_blueprint.post("/<slug>/directory-preference")
+@login_required
+def update_directory_preference(slug):
+    """Update only the current member's directory visibility preference."""
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    membership = _membership(space)
+    if membership is None:
+        abort(403)
+
+    value = (request.form.get("directory_visible") or "").strip().lower()
+    if value not in {"yes", "no"}:
+        abort(400)
+    membership.directory_visible = value == "yes"
+    db.session.commit()
+    flash(
+        "Your Space directory visibility preference was updated.",
+        "success",
+    )
+    return redirect(url_for("spaces.detail", slug=space.slug))
+
+
 @spaces_blueprint.get("/<slug>/members")
 @login_required
 def member_roster(slug):
