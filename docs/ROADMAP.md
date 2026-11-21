@@ -301,9 +301,17 @@ Delivered capabilities include a privacy-preserving request-access surface, oper
 
 **Goal:** Give Space operators a practical, portable view of membership operations without exporting private account data or turning the roster into a ranking surface.
 
-**Status:** Closeout in progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_32.md`.
+**Status:** Completed. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_32.md`.
 
-Story 32.1 adds an operator-only bounded CSV export of the current roster/search/role-filter result using public username, Space role, and join timestamp only. Story 32.2 hardens spreadsheet handling, explicit UTC timestamps, and private/non-cacheable download behavior. Story 32.3 closes the sprint with regression coverage for authorization, filter parity, escaping, deterministic ordering, exact size bounds, archived Spaces, and non-mutation.
+Delivered capabilities include an operator-only bounded CSV export using roster search/role filters, public username/Space role/explicit UTC join timestamp only, spreadsheet-formula neutralization, private/non-cacheable downloads, deterministic ordering, exact size-bound handling, archived-Space reporting, and regression coverage proving export does not mutate membership or audit state.
+
+## Sprint 33 — Space announcements and operator communication
+
+**Goal:** Give Space operators durable member communication without turning announcements into global-feed reach, ranking authority, or paid distribution.
+
+**Status:** In progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_33.md`.
+
+Story 33.1 adds persistent member-only announcements authored by owners/moderators, bounded content validation, archived-Space read-only behavior, newest-first bounded display, and no notification/ranking/paid-reach side effects.
 
 ## Cross-cutting release gates and deferred work
 
