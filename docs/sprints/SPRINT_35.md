@@ -27,12 +27,25 @@ Add a downloadable iCalendar (.ics) attachment containing upcoming active Space 
 
 ## Story 35.2 — Individual event calendar download
 
-**Status:** Planned.
+**Status:** Implemented; validation in progress.
 
-Add a single-event .ics download/share surface with the same privacy and standards boundaries.
+Add a member-only single-event iCalendar download using the same renderer and
+privacy boundaries as the full Space calendar.
+
+### Acceptance criteria
+
+- Current Space members can download one upcoming active event; nonmembers
+  cannot.
+- Canceled and past events are not exportable individually.
+- Single-event and full-calendar exports share UID, UTC time, text escaping, line
+  folding, cache/privacy, and no-private-data behavior.
+- Event detail exposes an Add to calendar control for active upcoming events.
+- Stable filename includes the Space slug and persistent event ID.
+- No external calendar provider, background sync, attendee identity, or RSVP
+  state is included.
 
 ## Story 35.3 — Calendar regression hardening
 
-**Status:** Planned.
+**Status:** Ready after Story 35.2 validation.
 
 Close the sprint with escaping, line-folding, bounds, authorization, archived Space, canceled-event, UTF-8, and no-private-data regression coverage.
