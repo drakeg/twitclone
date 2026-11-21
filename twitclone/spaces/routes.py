@@ -20,6 +20,7 @@ from twitclone.spaces.models import (
     SpaceAnnouncementRead,
     SpaceCurationAction,
     SpaceEvent,
+    SpaceEventAction,
     SpaceInvitation,
     SpaceLifecycleAction,
     SpaceMembership,
@@ -176,6 +177,42 @@ def _audit_lifecycle(
         previous_visibility=previous_visibility,
         new_visibility=new_visibility,
         details=details,
+    )
+    db.session.add(action)
+    return action
+
+
+def _audit_event(
+    space,
+    event,
+    *,
+    action_type,
+    previous_title=None,
+    new_title=None,
+    previous_description=None,
+    new_description=None,
+    previous_location=None,
+    new_location=None,
+    previous_starts_at=None,
+    new_starts_at=None,
+    previous_timezone=None,
+    new_timezone=None,
+):
+    action = SpaceEventAction(
+        space_id=space.id,
+        event_id=event.id,
+        actor_id=current_user.id,
+        action_type=action_type,
+        previous_title=previous_title,
+        new_title=new_title,
+        previous_description=previous_description,
+        new_description=new_description,
+        previous_location=previous_location,
+        new_location=new_location,
+        previous_starts_at=previous_starts_at,
+        new_starts_at=new_starts_at,
+        previous_timezone=previous_timezone,
+        new_timezone=new_timezone,
     )
     db.session.add(action)
     return action
@@ -375,13 +412,16 @@ def detail(slug):
             .all()
         )
     space_events = []
+    event_history = []
     if membership is not None:
+        event_query = SpaceEvent.query.filter(
+            SpaceEvent.space_id == space.id,
+            SpaceEvent.starts_at >= _utcnow(),
+        )
+        if not _can_moderate(membership):
+            event_query = event_query.filter(SpaceEvent.is_canceled.is_(False))
         upcoming_events = (
-            SpaceEvent.query.filter(
-                SpaceEvent.space_id == space.id,
-                SpaceEvent.starts_at >= _utcnow(),
-            )
-            .order_by(SpaceEvent.starts_at.asc(), SpaceEvent.id.asc())
+            event_query.order_by(SpaceEvent.starts_at.asc(), SpaceEvent.id.asc())
             .limit(20)
             .all()
         )
@@ -392,6 +432,16 @@ def detail(slug):
             }
             for event in upcoming_events
         ]
+        if _can_moderate(membership):
+            event_history = (
+                SpaceEventAction.query.filter_by(space_id=space.id)
+                .order_by(
+                    SpaceEventAction.created_at.desc(),
+                    SpaceEventAction.id.desc(),
+                )
+                .limit(50)
+                .all()
+            )
 
     space_announcements = []
     announcement_history = []
@@ -456,6 +506,7 @@ def detail(slug):
         member_count=member_count,
         member_rows=member_rows,
         space_events=space_events,
+        event_history=event_history,
         space_announcements=space_announcements,
         announcement_history=announcement_history,
         announcement_read_ids=announcement_read_ids,
@@ -502,19 +553,166 @@ def create_event(slug):
     if starts_at <= _utcnow():
         abort(400, description="Event start time must be in the future.")
 
-    db.session.add(
-        SpaceEvent(
-            space_id=space.id,
-            created_by_id=current_user.id,
-            title=title,
-            description=description,
-            location=location or None,
-            starts_at=starts_at,
-            timezone=timezone_name,
-        )
+    event = SpaceEvent(
+        space_id=space.id,
+        created_by_id=current_user.id,
+        title=title,
+        description=description,
+        location=location or None,
+        starts_at=starts_at,
+        timezone=timezone_name,
+    )
+    db.session.add(event)
+    db.session.flush()
+    _audit_event(
+        space,
+        event,
+        action_type="created",
+        new_title=title,
+        new_description=description,
+        new_location=location or None,
+        new_starts_at=starts_at,
+        new_timezone=timezone_name,
     )
     db.session.commit()
     flash("Space event scheduled.", "success")
+    return redirect(url_for("spaces.detail", slug=space.slug))
+
+
+@spaces_blueprint.post("/<slug>/events/<int:event_id>/edit")
+@login_required
+def edit_event(slug, event_id):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    _require_space_active(space)
+    if not _can_moderate(_membership(space)):
+        abort(403)
+    event = SpaceEvent.query.filter_by(id=event_id, space_id=space.id).first_or_404()
+    if event.is_canceled:
+        abort(409, description="Restore a canceled event before editing it.")
+
+    title = (request.form.get("title") or "").strip()
+    description = (request.form.get("description") or "").strip()
+    location = (request.form.get("location") or "").strip()
+    timezone_name = (request.form.get("timezone") or "").strip()
+    local_start = (request.form.get("starts_at") or "").strip()
+
+    if not title or len(title) > 120:
+        abort(400, description="Event title must be between 1 and 120 characters.")
+    if not description or len(description) > 1000:
+        abort(400, description="Event description must be between 1 and 1000 characters.")
+    if len(location) > 200:
+        abort(400, description="Event location must be 200 characters or fewer.")
+    if not timezone_name or len(timezone_name) > 64:
+        abort(400, description="Event timezone must be a valid IANA timezone.")
+
+    starts_at = _parse_event_start(local_start, timezone_name)
+    if starts_at <= _utcnow():
+        abort(400, description="Event start time must be in the future.")
+
+    changed = (
+        event.title != title
+        or event.description != description
+        or event.location != (location or None)
+        or event.starts_at != starts_at
+        or event.timezone != timezone_name
+    )
+    if changed:
+        previous = {
+            "title": event.title,
+            "description": event.description,
+            "location": event.location,
+            "starts_at": event.starts_at,
+            "timezone": event.timezone,
+        }
+        event.title = title
+        event.description = description
+        event.location = location or None
+        event.starts_at = starts_at
+        event.timezone = timezone_name
+        event.updated_at = _utcnow()
+        _audit_event(
+            space,
+            event,
+            action_type="edited",
+            previous_title=previous["title"],
+            new_title=title,
+            previous_description=previous["description"],
+            new_description=description,
+            previous_location=previous["location"],
+            new_location=location or None,
+            previous_starts_at=previous["starts_at"],
+            new_starts_at=starts_at,
+            previous_timezone=previous["timezone"],
+            new_timezone=timezone_name,
+        )
+        db.session.commit()
+        flash("Space event updated.", "success")
+    return redirect(url_for("spaces.detail", slug=space.slug))
+
+
+@spaces_blueprint.post("/<slug>/events/<int:event_id>/cancel")
+@login_required
+def cancel_event(slug, event_id):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    _require_space_active(space)
+    if not _can_moderate(_membership(space)):
+        abort(403)
+    event = SpaceEvent.query.filter_by(id=event_id, space_id=space.id).first_or_404()
+    if not event.is_canceled:
+        event.is_canceled = True
+        event.canceled_at = _utcnow()
+        event.canceled_by_id = current_user.id
+        _audit_event(
+            space,
+            event,
+            action_type="canceled",
+            previous_title=event.title,
+            new_title=event.title,
+            previous_description=event.description,
+            new_description=event.description,
+            previous_location=event.location,
+            new_location=event.location,
+            previous_starts_at=event.starts_at,
+            new_starts_at=event.starts_at,
+            previous_timezone=event.timezone,
+            new_timezone=event.timezone,
+        )
+        db.session.commit()
+        flash("Space event canceled.", "success")
+    return redirect(url_for("spaces.detail", slug=space.slug))
+
+
+@spaces_blueprint.post("/<slug>/events/<int:event_id>/restore")
+@login_required
+def restore_event(slug, event_id):
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    _require_space_active(space)
+    if not _can_moderate(_membership(space)):
+        abort(403)
+    event = SpaceEvent.query.filter_by(id=event_id, space_id=space.id).first_or_404()
+    if event.is_canceled:
+        if event.starts_at <= _utcnow():
+            abort(409, description="Past events cannot be restored.")
+        event.is_canceled = False
+        event.canceled_at = None
+        event.canceled_by_id = None
+        _audit_event(
+            space,
+            event,
+            action_type="restored",
+            previous_title=event.title,
+            new_title=event.title,
+            previous_description=event.description,
+            new_description=event.description,
+            previous_location=event.location,
+            new_location=event.location,
+            previous_starts_at=event.starts_at,
+            new_starts_at=event.starts_at,
+            previous_timezone=event.timezone,
+            new_timezone=event.timezone,
+        )
+        db.session.commit()
+        flash("Space event restored.", "success")
     return redirect(url_for("spaces.detail", slug=space.slug))
 
 
