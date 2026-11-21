@@ -62,8 +62,8 @@ See `docs/sprints/SPRINT_34.md` for acceptance criteria and scope boundaries.
 
 Current work:
 
-- [ ] Story 35.1 — Member-only iCalendar export (implementation in review).
-- [ ] Story 35.2 — Individual event calendar download.
+- [x] Story 35.1 — Member-only iCalendar export.
+- [ ] Story 35.2 — Individual event calendar download (implementation in review).
 - [ ] Story 35.3 — Calendar regression hardening.
 
 See `docs/sprints/SPRINT_35.md` for acceptance criteria and scope boundaries.
