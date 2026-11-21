@@ -1,6 +1,6 @@
 # Sprint 35 — Space calendar portability
 
-**Status:** In progress.
+**Status:** Closeout implemented; validation in progress.
 
 ## Goal
 
@@ -46,6 +46,16 @@ privacy boundaries as the full Space calendar.
 
 ## Story 35.3 — Calendar regression hardening
 
-**Status:** Ready after Story 35.2 validation.
+**Status:** Implemented; validation in progress.
 
-Close the sprint with escaping, line-folding, bounds, authorization, archived Space, canceled-event, UTF-8, and no-private-data regression coverage.
+Close the sprint with regression coverage for:
+
+- archived-Space full/single calendar downloads;
+- valid empty calendars;
+- stable UID parity between full and single-event exports;
+- exact configured export bounds;
+- CRLF output and UTF-8-aware continuation-line folding;
+- member-only authorization and canceled/past-event exclusion;
+- iCalendar text escaping;
+- absence of member email, attendee identity, RSVP, ranking, verification, and
+  paid-status data.
