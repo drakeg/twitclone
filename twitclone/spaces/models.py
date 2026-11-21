@@ -133,6 +133,33 @@ class SpaceAnnouncementAction(db.Model):
     actor = db.relationship("User", foreign_keys=[actor_id])
 
 
+class SpaceAnnouncementRead(db.Model):
+    __tablename__ = "space_announcement_read"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "announcement_id",
+            "user_id",
+            name="uq_space_announcement_read_announcement_user",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    announcement_id = db.Column(
+        db.Integer,
+        db.ForeignKey("space_announcement.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    read_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+
+    announcement = db.relationship("SpaceAnnouncement")
+    user = db.relationship("User")
+
+
 class SpaceMembership(db.Model):
     __tablename__ = "space_membership"
     __table_args__ = (
@@ -389,6 +416,7 @@ __all__ = [
     "Space",
     "SpaceAnnouncement",
     "SpaceAnnouncementAction",
+    "SpaceAnnouncementRead",
     "SpaceInvitation",
     "SpaceLifecycleAction",
     "SpaceCurationAction",
