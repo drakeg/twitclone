@@ -7,7 +7,7 @@ it does not renumber or rewrite completed roadmap history.
 
 ## Completed product roadmap
 
-Sprints 0 through 34 are documented as completed in `docs/ROADMAP.md`, subject
+Sprints 0 through 35 are documented as completed in `docs/ROADMAP.md`, subject
 to the explicitly documented manual/live launch evidence gates. Do not recreate
 completed sprint work.
 
@@ -56,15 +56,15 @@ Completed work:
 
 See `docs/sprints/SPRINT_34.md` for acceptance criteria and scope boundaries.
 
-## Active product sprint — Sprint 35
+## Completed product sprint — Sprint 35
 
 **Goal:** Add private Space calendar portability.
 
-Current work:
+Completed work:
 
 - [x] Story 35.1 — Member-only iCalendar export.
-- [ ] Story 35.2 — Individual event calendar download (implementation in review).
-- [ ] Story 35.3 — Calendar regression hardening.
+- [x] Story 35.2 — Individual event calendar download.
+- [x] Story 35.3 — Calendar regression hardening.
 
 See `docs/sprints/SPRINT_35.md` for acceptance criteria and scope boundaries.
 

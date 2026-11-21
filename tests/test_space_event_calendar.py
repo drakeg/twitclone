@@ -261,3 +261,121 @@ def test_space_event_page_exposes_single_event_calendar_control(client, app):
     assert response.status_code == 200
     assert b"Add to calendar" in response.data
     assert f"/events/{event_id}/calendar.ics".encode() in response.data
+
+
+def test_archived_space_calendar_exports_remain_available(client, app):
+    ids = _fixture(app)
+    event_id = _event(
+        app,
+        ids,
+        title="Archived-space event",
+        starts_at=datetime(2030, 6, 15, 14, 0),
+    )
+    with app.app_context():
+        space = db.session.get(Space, ids["space_id"])
+        space.archived_at = space.created_at
+        space.archived_by_id = ids["owner"]
+        db.session.commit()
+
+    _login(client, ids["member"])
+    full = client.get(f"/spaces/{ids['slug']}/events/calendar.ics")
+    single = client.get(
+        f"/spaces/{ids['slug']}/events/{event_id}/calendar.ics"
+    )
+
+    assert full.status_code == 200
+    assert single.status_code == 200
+    assert "SUMMARY:Archived-space event" in full.data.decode()
+    assert "SUMMARY:Archived-space event" in single.data.decode()
+
+
+def test_empty_space_calendar_is_valid_without_events(client, app):
+    ids = _fixture(app)
+    _login(client, ids["member"])
+
+    body = client.get(f"/spaces/{ids['slug']}/events/calendar.ics").data.decode()
+
+    assert body.startswith("BEGIN:VCALENDAR\r\n")
+    assert body.endswith("END:VCALENDAR\r\n")
+    assert "BEGIN:VEVENT" not in body
+
+
+def test_full_and_single_exports_use_same_stable_uid(client, app):
+    ids = _fixture(app)
+    event_id = _event(
+        app,
+        ids,
+        title="Stable UID event",
+        starts_at=datetime(2030, 6, 15, 14, 0),
+    )
+    _login(client, ids["member"])
+
+    full = client.get(f"/spaces/{ids['slug']}/events/calendar.ics").data.decode()
+    single = client.get(
+        f"/spaces/{ids['slug']}/events/{event_id}/calendar.ics"
+    ).data.decode()
+    uid = f"UID:space-event-{event_id}@ripple.local"
+
+    assert uid in full
+    assert uid in single
+
+
+def test_calendar_export_succeeds_at_exact_configured_bound(client, app, monkeypatch):
+    ids = _fixture(app)
+    for index in range(3):
+        _event(
+            app,
+            ids,
+            title=f"Bound {index}",
+            starts_at=datetime(2030, 7, 1, 12, index),
+        )
+    monkeypatch.setattr("twitclone.spaces.routes._EVENT_CALENDAR_MAX_ROWS", 3)
+    _login(client, ids["member"])
+
+    body = client.get(f"/spaces/{ids['slug']}/events/calendar.ics").data.decode()
+
+    assert body.count("BEGIN:VEVENT") == 3
+    assert "SUMMARY:Bound 0" in body
+    assert "SUMMARY:Bound 2" in body
+
+
+def test_calendar_export_uses_crlf_and_continuation_whitespace(client, app):
+    ids = _fixture(app)
+    _event(
+        app,
+        ids,
+        title="Long " + ("é" * 60),
+        starts_at=datetime(2030, 6, 15, 14, 0),
+    )
+    _login(client, ids["member"])
+
+    payload = client.get(f"/spaces/{ids['slug']}/events/calendar.ics").data
+    text = payload.decode()
+
+    assert b"\r\n" in payload
+    assert "\n " in text
+    assert all(
+        len(line.encode("utf-8")) <= 75
+        for line in text.split("\r\n")
+        if line
+    )
+
+
+def test_single_event_export_excludes_member_and_rsvp_identity_data(client, app):
+    ids = _fixture(app)
+    event_id = _event(
+        app,
+        ids,
+        title="Private-safe event",
+        starts_at=datetime(2030, 6, 15, 14, 0),
+    )
+    _login(client, ids["member"])
+
+    body = client.get(
+        f"/spaces/{ids['slug']}/events/{event_id}/calendar.ics"
+    ).data.decode()
+
+    assert "ical-member@example.com" not in body
+    assert "ical_owner" not in body
+    assert "going" not in body.lower()
+    assert "maybe" not in body.lower()
