@@ -11,7 +11,7 @@ This file summarizes ready and deferred work. Detailed product history remains i
 | P1 | Review and merge safe dependency updates after green CI | Renovate / Issue #22 | Continuous; current queue cleared |
 | P1 | Complete manual NVDA/VoiceOver and 200%/400% zoom evidence before public launch | Sprint 7/25 launch gate | Awaiting manual evidence |
 | P1 | Complete real AWS plan/apply/idempotence/network/backup/restore evidence | Issue #16 | Blocked on explicit spend authorization |
-| P1 | Continue Space product development through Sprint 35 calendar portability | Sprint 35 | Story 35.1 implemented; Story 35.2 single-event export in progress |
+| P1 | Continue Space product development beyond Sprint 35 calendar portability | Sprint 35 | Sprint closeout implemented; next Space capability to be selected |
 | P1 | Validate SMB member-community wedge with operator dashboard pilot | Issue #372 | Engineering/demo readiness verified; validation can proceed in parallel |
 | P1 | Run real prospect interviews and test $49–$79/month hosted-community pricing hypothesis | Issue #372 | Outreach/qualification kit prepared; real conversations next |
 | P2 | Add release automation only after the first meaningful release candidate and license decision | RELEASES.md | Backlog |
