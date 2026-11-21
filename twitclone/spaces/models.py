@@ -304,6 +304,12 @@ class SpaceMembership(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)
     role = db.Column(db.String(20), nullable=False, default="member", server_default="member")
     joined_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+    directory_visible = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default=db.false(),
+    )
 
     space = db.relationship("Space", back_populates="memberships")
     user = db.relationship("User")
