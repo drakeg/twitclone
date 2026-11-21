@@ -8,6 +8,7 @@ from twitclone.spaces.models import (
     Space,
     SpaceAnnouncement,
     SpaceAnnouncementAction,
+    SpaceAnnouncementRead,
     SpaceMembership,
 )
 
@@ -355,3 +356,125 @@ def test_operator_detail_shows_bounded_attributable_announcement_audit(client, a
     assert b'data-announcement-action="edited"' in page.data
     assert b'data-announcement-action="withdrawn"' in page.data
     assert b"@announce_owner" in page.data
+
+
+def test_member_can_mark_visible_announcement_read_idempotently(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _publish(client, ids["slug"])
+
+    with app.app_context():
+        announcement_id = SpaceAnnouncement.query.one().id
+
+    _login(client, ids["member"])
+    first = client.post(
+        f"/spaces/{ids['slug']}/announcements/{announcement_id}/read"
+    )
+    second = client.post(
+        f"/spaces/{ids['slug']}/announcements/{announcement_id}/read"
+    )
+
+    assert first.status_code == 302
+    assert second.status_code == 302
+    with app.app_context():
+        rows = SpaceAnnouncementRead.query.filter_by(
+            announcement_id=announcement_id,
+            user_id=ids["member"],
+        ).all()
+        assert len(rows) == 1
+
+
+def test_unread_count_and_mark_read_ui_are_member_specific(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _publish(client, ids["slug"])
+
+    with app.app_context():
+        announcement_id = SpaceAnnouncement.query.one().id
+
+    _login(client, ids["member"])
+    before = client.get(f"/spaces/{ids['slug']}")
+    assert b"1 unread" in before.data
+    assert b"Mark read" in before.data
+    assert b'data-space-announcement-read="false"' in before.data
+
+    client.post(f"/spaces/{ids['slug']}/announcements/{announcement_id}/read")
+    after = client.get(f"/spaces/{ids['slug']}")
+    assert b"0 unread" in after.data
+    assert b"Mark read" not in after.data
+    assert b'data-space-announcement-read="true"' in after.data
+
+    _login(client, ids["moderator"])
+    moderator_page = client.get(f"/spaces/{ids['slug']}")
+    assert b"1 unread" in moderator_page.data
+    assert b"Mark read" in moderator_page.data
+
+
+def test_nonmember_cannot_create_read_state(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _publish(client, ids["slug"])
+
+    with app.app_context():
+        announcement_id = SpaceAnnouncement.query.one().id
+
+    _login(client, ids["outsider"])
+    response = client.post(
+        f"/spaces/{ids['slug']}/announcements/{announcement_id}/read"
+    )
+    assert response.status_code == 403
+    with app.app_context():
+        assert SpaceAnnouncementRead.query.count() == 0
+
+
+def test_withdrawn_announcement_cannot_be_marked_read(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _publish(client, ids["slug"])
+
+    with app.app_context():
+        announcement_id = SpaceAnnouncement.query.one().id
+
+    client.post(f"/spaces/{ids['slug']}/announcements/{announcement_id}/withdraw")
+    response = client.post(
+        f"/spaces/{ids['slug']}/announcements/{announcement_id}/read"
+    )
+    assert response.status_code == 404
+    with app.app_context():
+        assert SpaceAnnouncementRead.query.count() == 0
+
+
+def test_archived_space_member_can_still_mark_existing_announcement_read(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _publish(client, ids["slug"])
+
+    with app.app_context():
+        announcement_id = SpaceAnnouncement.query.one().id
+        space = db.session.get(Space, ids["space_id"])
+        space.archived_at = space.created_at
+        space.archived_by_id = ids["owner"]
+        db.session.commit()
+
+    _login(client, ids["member"])
+    response = client.post(
+        f"/spaces/{ids['slug']}/announcements/{announcement_id}/read"
+    )
+    assert response.status_code == 302
+    with app.app_context():
+        assert SpaceAnnouncementRead.query.filter_by(
+            announcement_id=announcement_id,
+            user_id=ids["member"],
+        ).count() == 1
+
+
+def test_announcement_publication_does_not_precreate_member_read_rows(client, app):
+    ids = _fixture(app)
+    _login(client, ids["moderator"])
+
+    response = _publish(client, ids["slug"])
+    assert response.status_code == 302
+
+    with app.app_context():
+        assert SpaceAnnouncement.query.count() == 1
+        assert SpaceAnnouncementRead.query.count() == 0
