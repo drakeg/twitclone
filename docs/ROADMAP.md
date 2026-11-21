@@ -309,9 +309,9 @@ Delivered capabilities include an operator-only bounded CSV export using roster 
 
 **Goal:** Give Space operators durable member communication without turning announcements into global-feed reach, ranking authority, or paid distribution.
 
-**Status:** In progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_33.md`.
+**Status:** Completed. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_33.md`.
 
-Story 33.1 adds persistent member-only announcements authored by owners/moderators, bounded content validation, archived-Space read-only behavior, newest-first bounded display, and no notification/ranking/paid-reach side effects.
+Delivered capabilities include persistent member-only operator announcements, non-destructive edit/withdraw/restore with prior/new wording audit history, bounded operator lifecycle history, lightweight per-member read state created only on member action, archived-Space read continuity, and regression boundaries preventing notification fanout, global-feed placement, ranking/reputation effects, verification effects, or paid reach.
 
 ## Cross-cutting release gates and deferred work
 

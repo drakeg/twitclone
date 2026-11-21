@@ -7,7 +7,7 @@ it does not renumber or rewrite completed roadmap history.
 
 ## Completed product roadmap
 
-Sprints 0 through 32 are documented as completed in `docs/ROADMAP.md`, subject
+Sprints 0 through 33 are documented as completed in `docs/ROADMAP.md`, subject
 to the explicitly documented manual/live launch evidence gates. Do not recreate
 completed sprint work.
 
@@ -32,15 +32,15 @@ Current work:
 from repository configuration; CI validates the standards contract; existing
 tests remain green; no completed roadmap work is restarted.
 
-## Active product sprint — Sprint 33
+## Completed product sprint — Sprint 33
 
 **Goal:** Add durable Space announcements and operator communication.
 
-Current work:
+Completed work:
 
 - [x] Story 33.1 — Persistent member-only operator announcements.
-- [ ] Story 33.2 — Non-destructive announcement lifecycle and audit (implementation in review).
-- [ ] Story 33.3 — Member read state and sprint regression hardening.
+- [x] Story 33.2 — Non-destructive announcement lifecycle and audit.
+- [x] Story 33.3 — Per-member read state and sprint regression hardening.
 
 See `docs/sprints/SPRINT_33.md` for acceptance criteria and scope boundaries.
 

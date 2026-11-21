@@ -1,6 +1,6 @@
 # Sprint 33 — Space announcements and operator communication
 
-**Status:** In progress.
+**Status:** Closeout implementation in progress.
 
 ## Goal
 
@@ -57,12 +57,27 @@ deleting member communication.
 
 ## Story 33.3 — Member read state and sprint hardening
 
-**Status:** Ready after Story 33.2 validation.
+**Status:** Implemented; validation in progress.
 
-Add a lightweight read/unread member experience and close the sprint with
-authorization, archive, deletion, ordering, migration, and no-ranking/no-paid-
-reach regression coverage. Do not add email/push delivery or unbounded
-per-member fanout without a separate design/cost decision.
+Add lightweight per-member read state and close the sprint with regression
+hardening.
+
+### Acceptance criteria
+
+- Current Space members can mark a visible announcement read; nonmembers cannot.
+- Read state is per-member and idempotent through a unique
+  announcement/user record.
+- Announcement publication creates no per-member read rows, notification fanout,
+  or delivery jobs; read rows are created only when a member acts.
+- The member view shows a bounded unread count for the already bounded
+  announcement list plus explicit Read/Unread state and a Mark read control.
+- Withdrawn announcements cannot create read state.
+- Archived Spaces keep existing announcements/read-state interaction available
+  because it is personal read tracking, not new Space communication.
+- Announcement/user deletion cascades remove obsolete read rows.
+- Reversible migration, authorization, lifecycle, ordering, and no-ranking/no-
+  paid-reach regressions remain covered.
+- Email/push delivery and unbounded fanout remain out of scope.
 
 ## Boundary
 

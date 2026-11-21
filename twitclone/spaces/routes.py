@@ -16,6 +16,7 @@ from twitclone.spaces.models import (
     Space,
     SpaceAnnouncement,
     SpaceAnnouncementAction,
+    SpaceAnnouncementRead,
     SpaceCurationAction,
     SpaceInvitation,
     SpaceLifecycleAction,
@@ -355,6 +356,27 @@ def detail(slug):
                 .all()
             )
 
+    announcement_read_ids = set()
+    unread_announcement_count = 0
+    if membership is not None and space_announcements:
+        visible_ids = [
+            row.id
+            for row in space_announcements
+            if not row.is_withdrawn
+        ]
+        if visible_ids:
+            announcement_read_ids = {
+                row.announcement_id
+                for row in SpaceAnnouncementRead.query.filter(
+                    SpaceAnnouncementRead.user_id == current_user.id,
+                    SpaceAnnouncementRead.announcement_id.in_(visible_ids),
+                ).all()
+            }
+            unread_announcement_count = sum(
+                1 for announcement_id in visible_ids
+                if announcement_id not in announcement_read_ids
+            )
+
     appeals_by_action = {}
     if my_moderation:
         appeals_by_action = {
@@ -371,6 +393,8 @@ def detail(slug):
         member_rows=member_rows,
         space_announcements=space_announcements,
         announcement_history=announcement_history,
+        announcement_read_ids=announcement_read_ids,
+        unread_announcement_count=unread_announcement_count,
         space_posts=_visible_space_posts(space),
         space_resources=_visible_space_resources(space),
         resource_candidates=_resource_candidates(space) if membership else [],
@@ -519,6 +543,40 @@ def restore_announcement(slug, announcement_id):
         db.session.commit()
         flash("Space announcement restored to members.", "success")
     return redirect(url_for("spaces.detail", slug=space.slug))
+
+
+@spaces_blueprint.post("/<slug>/announcements/<int:announcement_id>/read")
+@login_required
+def mark_announcement_read(slug, announcement_id):
+    """Mark a currently visible Space announcement read for this member only."""
+    space = Space.query.filter_by(slug=slug).first_or_404()
+    membership = _membership(space)
+    if membership is None:
+        abort(403)
+
+    announcement = SpaceAnnouncement.query.filter_by(
+        id=announcement_id,
+        space_id=space.id,
+    ).first_or_404()
+    if announcement.is_withdrawn:
+        abort(404)
+
+    existing = SpaceAnnouncementRead.query.filter_by(
+        announcement_id=announcement.id,
+        user_id=current_user.id,
+    ).first()
+    if existing is None:
+        db.session.add(
+            SpaceAnnouncementRead(
+                announcement_id=announcement.id,
+                user_id=current_user.id,
+            )
+        )
+        db.session.commit()
+
+    return redirect(
+        url_for("spaces.detail", slug=space.slug) + "#space-announcements-heading"
+    )
 
 
 @spaces_blueprint.post("/<slug>/archive")
