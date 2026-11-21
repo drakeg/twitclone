@@ -1,5 +1,8 @@
 """Space operator member roster and Sprint 32 CSV export coverage."""
 
+import csv
+import io
+
 from twitclone.extensions import db
 from twitclone.models import User
 from twitclone.spaces.models import Space, SpaceMembership, SpaceMembershipAction
@@ -452,3 +455,160 @@ def test_roster_export_is_private_noncacheable_attachment(client, app):
     assert response.headers["Cache-Control"] == "private, no-store"
     assert response.headers["X-Content-Type-Options"] == "nosniff"
     assert response.headers["Content-Disposition"].startswith("attachment;")
+
+
+def _csv_rows(response):
+    return list(csv.reader(io.StringIO(response.data.decode())))
+
+
+def test_roster_export_succeeds_at_exact_safe_maximum(client, app, monkeypatch):
+    ids = _fixture(app, member_count=2)
+    _login(client, ids["owner"])
+    monkeypatch.setattr("twitclone.spaces.routes._MEMBER_EXPORT_MAX_ROWS", 2)
+
+    response = client.get(
+        f"/spaces/{ids['slug']}/members/export.csv?q=member_&role=member"
+    )
+    rows = _csv_rows(response)
+
+    assert response.status_code == 200
+    assert len(rows) == 3
+    assert [row[0] for row in rows[1:]] == ["member_00", "member_01"]
+
+
+def test_roster_export_uses_real_csv_escaping_for_usernames(client, app):
+    ids = _fixture(app, member_count=0)
+    with app.app_context():
+        space = Space.query.filter_by(slug=ids["slug"]).one()
+        user = User(
+            username='comma,"quote',
+            email="quoted-roster@example.com",
+            password="hash",
+        )
+        db.session.add(user)
+        db.session.flush()
+        db.session.add(
+            SpaceMembership(space_id=space.id, user_id=user.id, role="member")
+        )
+        db.session.commit()
+
+    _login(client, ids["owner"])
+    response = client.get(
+        f"/spaces/{ids['slug']}/members/export.csv?q=comma&role=member"
+    )
+    rows = _csv_rows(response)
+
+    assert response.status_code == 200
+    assert rows[1][0] == 'comma,"quote'
+    assert rows[1][1] == "member"
+
+
+def test_roster_export_order_is_case_insensitive_and_deterministic(client, app):
+    ids = _fixture(app, member_count=0)
+    with app.app_context():
+        space = Space.query.filter_by(slug=ids["slug"]).one()
+        for username in ("Alpha", "alpha", "beta"):
+            user = User(
+                username=username,
+                email=f"{username}-order@example.com",
+                password="hash",
+            )
+            db.session.add(user)
+            db.session.flush()
+            db.session.add(
+                SpaceMembership(space_id=space.id, user_id=user.id, role="member")
+            )
+        db.session.commit()
+
+    _login(client, ids["moderator"])
+    response = client.get(
+        f"/spaces/{ids['slug']}/members/export.csv?role=member"
+    )
+    rows = _csv_rows(response)
+
+    assert response.status_code == 200
+    assert [row[0] for row in rows[1:]] == [
+        "Alpha",
+        "alpha",
+        "beta",
+        "roster_regular",
+    ]
+
+
+def test_invalid_export_role_filter_matches_roster_fallback(client, app):
+    ids = _fixture(app, member_count=0)
+    _login(client, ids["owner"])
+
+    response = client.get(
+        f"/spaces/{ids['slug']}/members/export.csv?role=administrator"
+    )
+    usernames = [row[0] for row in _csv_rows(response)[1:]]
+
+    assert response.status_code == 200
+    assert usernames == [
+        "roster_moderator",
+        "roster_owner",
+        "roster_regular",
+    ]
+
+
+def test_roster_export_does_not_mutate_membership_or_audit_history(client, app):
+    ids = _fixture(app, member_count=2)
+    _login(client, ids["owner"])
+
+    with app.app_context():
+        before_memberships = SpaceMembership.query.count()
+        before_actions = SpaceMembershipAction.query.count()
+
+    response = client.get(
+        f"/spaces/{ids['slug']}/members/export.csv?q=member&role=member"
+    )
+    assert response.status_code == 200
+
+    with app.app_context():
+        assert SpaceMembership.query.count() == before_memberships
+        assert SpaceMembershipAction.query.count() == before_actions
+
+
+def test_archived_space_moderator_can_export_roster(client, app):
+    ids = _fixture(app, member_count=1)
+    with app.app_context():
+        space = Space.query.filter_by(slug=ids["slug"]).one()
+        space.archived_at = space.created_at
+        space.archived_by_id = ids["owner"]
+        db.session.commit()
+
+    _login(client, ids["moderator"])
+    response = client.get(
+        f"/spaces/{ids['slug']}/members/export.csv?role=member"
+    )
+
+    assert response.status_code == 200
+    assert b"member_00,member," in response.data
+    assert b"roster_regular,member," in response.data
+
+
+def test_roster_export_neutralizes_whitespace_prefixed_formula(client, app):
+    ids = _fixture(app, member_count=0)
+    with app.app_context():
+        space = Space.query.filter_by(slug=ids["slug"]).one()
+        user = User(
+            username="  =HYPERLINK(1)",
+            email="whitespace-formula@example.com",
+            password="hash",
+        )
+        db.session.add(user)
+        db.session.flush()
+        db.session.add(
+            SpaceMembership(space_id=space.id, user_id=user.id, role="member")
+        )
+        db.session.commit()
+
+    _login(client, ids["owner"])
+    response = client.get(
+        f"/spaces/{ids['slug']}/members/export.csv?q=HYPERLINK&role=member"
+    )
+    rows = _csv_rows(response)
+
+    assert response.status_code == 200
+    assert rows[1][0] == "'  =HYPERLINK(1)"

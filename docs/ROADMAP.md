@@ -301,9 +301,9 @@ Delivered capabilities include a privacy-preserving request-access surface, oper
 
 **Goal:** Give Space operators a practical, portable view of membership operations without exporting private account data or turning the roster into a ranking surface.
 
-**Status:** In progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_32.md`.
+**Status:** Closeout in progress. Detailed acceptance and implementation notes are maintained in `docs/sprints/SPRINT_32.md`.
 
-Story 32.1 adds an operator-only CSV export of the current roster/search/role-filter result using public username, Space role, and join timestamp only.
+Story 32.1 adds an operator-only bounded CSV export of the current roster/search/role-filter result using public username, Space role, and join timestamp only. Story 32.2 hardens spreadsheet handling, explicit UTC timestamps, and private/non-cacheable download behavior. Story 32.3 closes the sprint with regression coverage for authorization, filter parity, escaping, deterministic ordering, exact size bounds, archived Spaces, and non-mutation.
 
 ## Cross-cutting release gates and deferred work
 

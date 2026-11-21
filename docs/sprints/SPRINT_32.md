@@ -1,6 +1,6 @@
 # Sprint 32 — Space membership reporting and export
 
-**Status:** In progress.
+**Status:** Closeout implementation in progress.
 
 ## Goal
 
@@ -51,10 +51,19 @@ ranking/scoring, or mutations.
 
 ## Story 32.3 — Sprint regression hardening
 
-**Status:** Ready after Story 32.2 validation.
+**Status:** Implemented; validation in progress.
 
-Close the sprint with authorization, filter parity, escaping, size-bound,
-archived-Space, and privacy regression coverage.
+Close the sprint with regression coverage for:
+
+- exact-safe-maximum success and over-limit rejection;
+- standards-compliant CSV escaping of user-controlled usernames;
+- case-insensitive deterministic export ordering;
+- invalid-role filter parity with the on-screen roster;
+- no membership or membership-audit mutation;
+- owner/moderator access to archived-Space reporting;
+- spreadsheet neutralization for formula-leading and whitespace-prefixed
+  formula-like usernames;
+- the privacy, authorization, and no-ranking boundaries from Stories 32.1–32.2.
 
 ## Boundary
 
