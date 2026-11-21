@@ -80,9 +80,72 @@ class SpaceEvent(db.Model):
     starts_at = db.Column(db.DateTime, nullable=False)
     timezone = db.Column(db.String(64), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+    updated_at = db.Column(db.DateTime, nullable=True)
+    is_canceled = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False,
+        server_default=db.false(),
+    )
+    canceled_at = db.Column(db.DateTime, nullable=True)
+    canceled_by_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id", ondelete="SET NULL"),
+        nullable=True,
+    )
 
     space = db.relationship("Space", back_populates="events")
     created_by = db.relationship("User", foreign_keys=[created_by_id])
+    canceled_by = db.relationship("User", foreign_keys=[canceled_by_id])
+    actions = db.relationship(
+        "SpaceEventAction",
+        back_populates="event",
+        cascade="all, delete-orphan",
+        lazy=True,
+    )
+
+
+class SpaceEventAction(db.Model):
+    __tablename__ = "space_event_action"
+    __table_args__ = (
+        db.CheckConstraint(
+            "action_type in ('created', 'edited', 'canceled', 'restored')",
+            name="ck_space_event_action_type",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    space_id = db.Column(
+        db.Integer,
+        db.ForeignKey("space.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    event_id = db.Column(
+        db.Integer,
+        db.ForeignKey("space_event.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    actor_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    action_type = db.Column(db.String(20), nullable=False)
+    previous_title = db.Column(db.String(120), nullable=True)
+    new_title = db.Column(db.String(120), nullable=True)
+    previous_description = db.Column(db.String(1000), nullable=True)
+    new_description = db.Column(db.String(1000), nullable=True)
+    previous_location = db.Column(db.String(200), nullable=True)
+    new_location = db.Column(db.String(200), nullable=True)
+    previous_starts_at = db.Column(db.DateTime, nullable=True)
+    new_starts_at = db.Column(db.DateTime, nullable=True)
+    previous_timezone = db.Column(db.String(64), nullable=True)
+    new_timezone = db.Column(db.String(64), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+
+    space = db.relationship("Space")
+    event = db.relationship("SpaceEvent", back_populates="actions")
+    actor = db.relationship("User", foreign_keys=[actor_id])
 
 
 class SpaceAnnouncement(db.Model):

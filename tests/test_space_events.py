@@ -4,7 +4,12 @@ from datetime import datetime
 
 from twitclone.extensions import db
 from twitclone.models import User
-from twitclone.spaces.models import Space, SpaceEvent, SpaceMembership
+from twitclone.spaces.models import (
+    Space,
+    SpaceEvent,
+    SpaceEventAction,
+    SpaceMembership,
+)
 
 
 def _login(client, user_id):
@@ -213,3 +218,178 @@ def test_upcoming_events_are_chronological_and_bounded(client, app):
     assert b"Event 19" in page.data
     assert b"Event 20" not in page.data
     assert page.data.index(b"Event 00") < page.data.index(b"Event 01")
+
+
+def test_operator_can_edit_event_and_preserve_prior_values_in_audit(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _create(client, ids["slug"])
+
+    with app.app_context():
+        event_id = SpaceEvent.query.one().id
+
+    response = client.post(
+        f"/spaces/{ids['slug']}/events/{event_id}/edit",
+        data={
+            "title": "Updated meetup",
+            "description": "Updated agenda.",
+            "location": "Library",
+            "starts_at": "2030-06-15T11:30",
+            "timezone": "America/New_York",
+        },
+    )
+    assert response.status_code == 302
+
+    with app.app_context():
+        event = db.session.get(SpaceEvent, event_id)
+        assert event.title == "Updated meetup"
+        assert event.description == "Updated agenda."
+        assert event.location == "Library"
+        assert event.starts_at == datetime(2030, 6, 15, 15, 30)
+        assert event.updated_at is not None
+        action = SpaceEventAction.query.filter_by(
+            event_id=event_id,
+            action_type="edited",
+        ).one()
+        assert action.previous_title == "Monthly meetup"
+        assert action.new_title == "Updated meetup"
+        assert action.previous_location == "Community room"
+        assert action.new_location == "Library"
+
+
+def test_cancel_hides_event_from_members_but_not_operators(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _create(client, ids["slug"])
+
+    with app.app_context():
+        event_id = SpaceEvent.query.one().id
+
+    response = client.post(f"/spaces/{ids['slug']}/events/{event_id}/cancel")
+    assert response.status_code == 302
+
+    _login(client, ids["member"])
+    member_page = client.get(f"/spaces/{ids['slug']}")
+    assert b"Monthly meetup" not in member_page.data
+
+    _login(client, ids["moderator"])
+    operator_page = client.get(f"/spaces/{ids['slug']}")
+    assert b"Monthly meetup" in operator_page.data
+    assert b"Canceled" in operator_page.data
+    assert b"Restore event" in operator_page.data
+
+    with app.app_context():
+        event = db.session.get(SpaceEvent, event_id)
+        assert event.is_canceled is True
+        assert event.canceled_at is not None
+        assert SpaceEventAction.query.filter_by(
+            event_id=event_id,
+            action_type="canceled",
+        ).count() == 1
+
+
+def test_operator_can_restore_future_canceled_event(client, app):
+    ids = _fixture(app)
+    _login(client, ids["moderator"])
+    _create(client, ids["slug"])
+
+    with app.app_context():
+        event_id = SpaceEvent.query.one().id
+
+    client.post(f"/spaces/{ids['slug']}/events/{event_id}/cancel")
+    response = client.post(f"/spaces/{ids['slug']}/events/{event_id}/restore")
+    assert response.status_code == 302
+
+    _login(client, ids["member"])
+    page = client.get(f"/spaces/{ids['slug']}")
+    assert b"Monthly meetup" in page.data
+
+    with app.app_context():
+        event = db.session.get(SpaceEvent, event_id)
+        assert event.is_canceled is False
+        assert event.canceled_at is None
+        assert event.canceled_by_id is None
+
+
+def test_regular_member_cannot_edit_cancel_or_restore_events(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _create(client, ids["slug"])
+
+    with app.app_context():
+        event_id = SpaceEvent.query.one().id
+
+    _login(client, ids["member"])
+    assert client.post(
+        f"/spaces/{ids['slug']}/events/{event_id}/edit",
+        data={
+            "title": "Nope",
+            "description": "Nope",
+            "location": "",
+            "starts_at": "2030-06-15T10:00",
+            "timezone": "UTC",
+        },
+    ).status_code == 403
+    assert client.post(
+        f"/spaces/{ids['slug']}/events/{event_id}/cancel"
+    ).status_code == 403
+    assert client.post(
+        f"/spaces/{ids['slug']}/events/{event_id}/restore"
+    ).status_code == 403
+
+
+def test_archived_space_blocks_event_lifecycle_writes(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _create(client, ids["slug"])
+
+    with app.app_context():
+        event_id = SpaceEvent.query.one().id
+        space = db.session.get(Space, ids["space_id"])
+        space.archived_at = space.created_at
+        space.archived_by_id = ids["owner"]
+        db.session.commit()
+
+    assert client.post(
+        f"/spaces/{ids['slug']}/events/{event_id}/edit",
+        data={
+            "title": "Blocked",
+            "description": "Blocked",
+            "location": "",
+            "starts_at": "2030-06-15T10:00",
+            "timezone": "UTC",
+        },
+    ).status_code == 409
+    assert client.post(
+        f"/spaces/{ids['slug']}/events/{event_id}/cancel"
+    ).status_code == 409
+    assert client.post(
+        f"/spaces/{ids['slug']}/events/{event_id}/restore"
+    ).status_code == 409
+
+
+def test_operator_detail_shows_event_audit_history(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    _create(client, ids["slug"])
+
+    with app.app_context():
+        event_id = SpaceEvent.query.one().id
+
+    client.post(
+        f"/spaces/{ids['slug']}/events/{event_id}/edit",
+        data={
+            "title": "Edited event",
+            "description": "Edited description",
+            "location": "Edited place",
+            "starts_at": "2030-06-15T11:00",
+            "timezone": "America/New_York",
+        },
+    )
+    client.post(f"/spaces/{ids['slug']}/events/{event_id}/cancel")
+
+    page = client.get(f"/spaces/{ids['slug']}")
+    assert page.status_code == 200
+    assert b"Event audit history" in page.data
+    assert b'data-event-action="edited"' in page.data
+    assert b'data-event-action="canceled"' in page.data
