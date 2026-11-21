@@ -52,6 +52,37 @@ class Space(db.Model):
         cascade="all, delete-orphan",
         lazy=True,
     )
+    events = db.relationship(
+        "SpaceEvent",
+        back_populates="space",
+        cascade="all, delete-orphan",
+        lazy=True,
+    )
+
+
+class SpaceEvent(db.Model):
+    __tablename__ = "space_event"
+
+    id = db.Column(db.Integer, primary_key=True)
+    space_id = db.Column(
+        db.Integer,
+        db.ForeignKey("space.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    created_by_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    title = db.Column(db.String(120), nullable=False)
+    description = db.Column(db.String(1000), nullable=False)
+    location = db.Column(db.String(200), nullable=True)
+    starts_at = db.Column(db.DateTime, nullable=False)
+    timezone = db.Column(db.String(64), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+
+    space = db.relationship("Space", back_populates="events")
+    created_by = db.relationship("User", foreign_keys=[created_by_id])
 
 
 class SpaceAnnouncement(db.Model):
