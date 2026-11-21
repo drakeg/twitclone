@@ -46,6 +46,34 @@ class Space(db.Model):
         cascade="all, delete-orphan",
         lazy=True,
     )
+    announcements = db.relationship(
+        "SpaceAnnouncement",
+        back_populates="space",
+        cascade="all, delete-orphan",
+        lazy=True,
+    )
+
+
+class SpaceAnnouncement(db.Model):
+    __tablename__ = "space_announcement"
+
+    id = db.Column(db.Integer, primary_key=True)
+    space_id = db.Column(
+        db.Integer,
+        db.ForeignKey("space.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    author_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    title = db.Column(db.String(120), nullable=False)
+    body = db.Column(db.String(1000), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=_utcnow)
+
+    space = db.relationship("Space", back_populates="announcements")
+    author = db.relationship("User", foreign_keys=[author_id])
 
 
 class SpaceMembership(db.Model):
@@ -302,6 +330,7 @@ class SpaceModerationAppeal(db.Model):
 
 __all__ = [
     "Space",
+    "SpaceAnnouncement",
     "SpaceInvitation",
     "SpaceLifecycleAction",
     "SpaceCurationAction",
