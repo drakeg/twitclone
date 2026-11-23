@@ -32,7 +32,7 @@ preference.
 
 ## Story 36.2 — Directory usability
 
-**Status:** Planned.
+**Status:** Implemented; CI validation pending.
 
 Add role filtering and lightweight member profile cards while preserving opt-in
 visibility and public-data-only boundaries.
