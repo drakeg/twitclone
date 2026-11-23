@@ -1369,6 +1369,9 @@ def member_directory(slug):
         abort(403)
 
     search = (request.args.get("q") or "").strip()
+    role = (request.args.get("role") or "").strip().lower()
+    if role not in {"", "owner", "moderator", "member"}:
+        abort(400, description="Choose a valid directory role.")
     query = (
         SpaceMembership.query.join(SpaceMembership.user)
         .filter(
@@ -1380,6 +1383,8 @@ def member_directory(slug):
         query = query.filter(
             db.func.lower(User.username).like(f"%{search.casefold()}%")
         )
+    if role:
+        query = query.filter(SpaceMembership.role == role)
 
     total_items = query.count()
     per_page = 25
@@ -1401,6 +1406,7 @@ def member_directory(slug):
         membership=membership,
         rows=rows,
         search=search,
+        selected_role=role,
         page=page,
         total_pages=total_pages,
         total_items=total_items,

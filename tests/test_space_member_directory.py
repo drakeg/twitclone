@@ -196,3 +196,31 @@ def test_archived_space_keeps_directory_and_privacy_preference_available(client,
         data={"directory_visible": "yes"},
     ).status_code == 302
     assert client.get(f"/spaces/{ids['slug']}/directory").status_code == 200
+
+
+def test_role_filter_only_returns_opted_in_members(client, app):
+    ids = _fixture(app)
+    with app.app_context():
+        member = db.session.get(SpaceMembership, SpaceMembership.query.filter_by(space_id=ids["space_id"], user_id=ids["visible"]).first().id)
+        member.role = "moderator"
+        db.session.commit()
+    _login(client, ids["owner"])
+    response = client.get(f"/spaces/{ids['slug']}/directory?role=moderator")
+    assert response.status_code == 200
+    assert b'data-directory-user="directory_visible"' in response.data
+    assert b'data-directory-user="directory_hidden"' not in response.data
+    assert b'data-directory-user="directory_owner"' not in response.data
+    assert b'directory-visible@example.com' not in response.data
+    assert b'<option value="moderator" selected' in response.data
+    assert client.get(f"/spaces/{ids['slug']}/directory?role=invalid").status_code == 400
+
+
+def test_directory_search_and_role_filter_compose(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    assert b'data-directory-user="directory_visible"' in client.get(
+        f"/spaces/{ids['slug']}/directory?q=VISIBLE&role=member"
+    ).data
+    assert b'data-directory-user="directory_visible"' not in client.get(
+        f"/spaces/{ids['slug']}/directory?q=VISIBLE&role=owner"
+    ).data
