@@ -1,5 +1,8 @@
 # Ripple
 
+[![License](https://img.shields.io/github/license/drakeg/twitclone)](https://github.com/drakeg/twitclone/blob/main/LICENSE)
+
+
 <!-- madmallard-badges:start -->
 ![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white) ![Flask 3.1.3](https://img.shields.io/badge/Flask-3.1.3-000000?logo=flask&logoColor=white) ![PostgreSQL 18](https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-supported-2496ED?logo=docker&logoColor=white) ![Docker Compose](https://img.shields.io/badge/Docker_Compose-supported-2496ED?logo=docker&logoColor=white)
 
