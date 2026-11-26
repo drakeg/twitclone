@@ -39,8 +39,12 @@ visibility and public-data-only boundaries.
 
 ## Story 36.3 — Directory regression hardening
 
-**Status:** Planned.
+**Status:** Regression tests added; CI validation pending. Account-deletion coverage remains outstanding.
 
 Close the sprint with pagination, privacy default, search/filter parity,
 archived-Space, account deletion, role changes, and no-private-data regression
 coverage.
+
+Regression coverage now includes combined search/role pagination, page bounds,
+opted-out member exclusion, role changes, membership removal, and attempts to
+change another member's visibility. Account deletion requires separate coverage.

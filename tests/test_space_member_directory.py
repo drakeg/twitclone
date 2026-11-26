@@ -1,4 +1,4 @@
-"""Sprint 36 Story 36.1 member directory privacy coverage."""
+"""Sprint 36 member directory privacy and usability coverage."""
 
 from twitclone.extensions import db
 from twitclone.models import User
@@ -201,7 +201,9 @@ def test_archived_space_keeps_directory_and_privacy_preference_available(client,
 def test_role_filter_only_returns_opted_in_members(client, app):
     ids = _fixture(app)
     with app.app_context():
-        member = db.session.get(SpaceMembership, SpaceMembership.query.filter_by(space_id=ids["space_id"], user_id=ids["visible"]).first().id)
+        member = SpaceMembership.query.filter_by(
+            space_id=ids["space_id"], user_id=ids["visible"]
+        ).one()
         member.role = "moderator"
         db.session.commit()
     _login(client, ids["owner"])
@@ -224,3 +226,86 @@ def test_directory_search_and_role_filter_compose(client, app):
     assert b'data-directory-user="directory_visible"' not in client.get(
         f"/spaces/{ids['slug']}/directory?q=VISIBLE&role=owner"
     ).data
+
+
+def test_directory_pagination_preserves_filters_and_excludes_hidden_members(client, app):
+    ids = _fixture(app)
+    with app.app_context():
+        for index in range(27):
+            username = f"page_member_{index:02d}"
+            user = User(username=username, email=f"{username}@example.com", password="hash")
+            db.session.add(user)
+            db.session.flush()
+            db.session.add(
+                SpaceMembership(
+                    space_id=ids["space_id"],
+                    user_id=user.id,
+                    role="member",
+                    directory_visible=index != 26,
+                )
+            )
+        db.session.commit()
+
+    _login(client, ids["owner"])
+    url = f"/spaces/{ids['slug']}/directory?q=PAGE_MEMBER&role=member"
+    first = client.get(url)
+    assert first.status_code == 200
+    assert first.data.count(b'data-directory-user=') == 25
+    assert b'data-directory-user="page_member_00"' in first.data
+    assert b'data-directory-user="page_member_24"' in first.data
+    assert b'data-directory-user="page_member_25"' not in first.data
+    assert b"role=member" in first.data
+    assert b"q=PAGE_MEMBER" in first.data
+
+    second = client.get(url + "&page=2")
+    assert second.status_code == 200
+    assert second.data.count(b'data-directory-user=') == 1
+    assert b'data-directory-user="page_member_25"' in second.data
+    assert b'data-directory-user="page_member_26"' not in second.data
+    assert b"page_member_25@example.com" not in second.data
+    assert client.get(url + "&page=999").data.count(b'data-directory-user=') == 1
+    assert client.get(url + "&page=-1").data.count(b'data-directory-user=') == 25
+
+
+def test_directory_role_changes_and_membership_removal_are_reflected(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    url = f"/spaces/{ids['slug']}/directory"
+    marker = b'data-directory-user="directory_visible"'
+    assert marker in client.get(url + "?role=member").data
+    with app.app_context():
+        membership = SpaceMembership.query.filter_by(
+            space_id=ids["space_id"], user_id=ids["visible"]
+        ).one()
+        membership.role = "moderator"
+        db.session.commit()
+    assert marker not in client.get(url + "?role=member").data
+    assert marker in client.get(url + "?role=moderator").data
+    with app.app_context():
+        membership = SpaceMembership.query.filter_by(
+            space_id=ids["space_id"], user_id=ids["visible"]
+        ).one()
+        db.session.delete(membership)
+        db.session.commit()
+    assert marker not in client.get(url).data
+    _login(client, ids["visible"])
+    assert client.get(url).status_code == 403
+
+
+def test_directory_preference_cannot_opt_in_another_member(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    response = client.post(
+        f"/spaces/{ids['slug']}/directory-preference",
+        data={"directory_visible": "yes", "user_id": str(ids["hidden"])},
+    )
+    assert response.status_code == 302
+    with app.app_context():
+        owner = SpaceMembership.query.filter_by(
+            space_id=ids["space_id"], user_id=ids["owner"]
+        ).one()
+        hidden = SpaceMembership.query.filter_by(
+            space_id=ids["space_id"], user_id=ids["hidden"]
+        ).one()
+        assert owner.directory_visible is True
+        assert hidden.directory_visible is False
