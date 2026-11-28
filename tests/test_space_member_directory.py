@@ -309,3 +309,24 @@ def test_directory_preference_cannot_opt_in_another_member(client, app):
         ).one()
         assert owner.directory_visible is True
         assert hidden.directory_visible is False
+
+
+def test_deleted_account_disappears_from_directory(client, app):
+    ids = _fixture(app)
+    _login(client, ids["owner"])
+    url = f"/spaces/{ids['slug']}/directory"
+    marker = b'data-directory-user="directory_visible"'
+    assert marker in client.get(url).data
+
+    with app.app_context():
+        user = db.session.get(User, ids["visible"])
+        db.session.delete(user)
+        db.session.commit()
+        assert db.session.get(User, ids["visible"]) is None
+
+    for suffix in ("", "?q=VISIBLE", "?role=member", "?q=VISIBLE&role=member"):
+        response = client.get(url + suffix)
+        assert response.status_code == 200
+        assert marker not in response.data
+        assert b"Public visible bio." not in response.data
+        assert b"directory-visible@example.com" not in response.data

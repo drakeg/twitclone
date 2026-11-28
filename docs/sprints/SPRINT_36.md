@@ -10,7 +10,7 @@ fields after explicit member opt-in.
 
 ## Story 36.1 — Opt-in member directory
 
-**Status:** Implemented; validation in progress.
+**Status:** Implemented; CI passed in PR #421.
 
 Add a member-only searchable directory backed by a per-Space membership privacy
 preference.
@@ -32,14 +32,14 @@ preference.
 
 ## Story 36.2 — Directory usability
 
-**Status:** Implemented; CI validation pending.
+**Status:** Implemented; CI passed in PR #421.
 
 Add role filtering and lightweight member profile cards while preserving opt-in
 visibility and public-data-only boundaries.
 
 ## Story 36.3 — Directory regression hardening
 
-**Status:** Regression tests added; CI validation pending. Account-deletion coverage remains outstanding.
+**Status:** Final account-deletion regression added; CI validation pending.
 
 Close the sprint with pagination, privacy default, search/filter parity,
 archived-Space, account deletion, role changes, and no-private-data regression
@@ -47,4 +47,4 @@ coverage.
 
 Regression coverage now includes combined search/role pagination, page bounds,
 opted-out member exclusion, role changes, membership removal, and attempts to
-change another member's visibility. Account deletion requires separate coverage.
+change another member's visibility. Account-deletion regression checks removal from unfiltered, searched, role-filtered, and combined directory views after deleting the user record. PR #421 passed CI after correcting the Next-page role filter.
