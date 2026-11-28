@@ -14,6 +14,7 @@ This file summarizes ready and deferred work. Detailed product history remains i
 | P1 | Continue Space product development through Sprint 36 member directory/privacy | Sprint 36 | Story 36.1 opt-in directory implementation in progress |
 | P1 | Validate SMB member-community wedge with operator dashboard pilot | Issue #372 | Engineering/demo readiness verified; validation can proceed in parallel |
 | P1 | Run real prospect interviews and test $49–$79/month hosted-community pricing hypothesis | Issue #372 | Outreach/qualification kit prepared; real conversations next |
+| P1 | Cross-platform Ripple clients: Windows, macOS, Linux, Android, iOS/iPadOS and web | Issue #424 | Backlog; architecture and staged MVP to be scoped |
 | P2 | Add release automation only after the first meaningful release candidate and license decision | RELEASES.md | Backlog |
 | P2 | Resolve repository license intentionally; do not infer one from placeholder text | Owner decision | Blocked on consequential legal choice |
 
