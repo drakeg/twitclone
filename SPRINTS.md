@@ -74,9 +74,9 @@ See `docs/sprints/SPRINT_35.md` for acceptance criteria and scope boundaries.
 
 Current work:
 
-- [ ] Story 36.1 — Opt-in member directory (implementation in review).
-- [ ] Story 36.2 — Directory usability.
-- [ ] Story 36.3 — Directory regression hardening.
+- [x] Story 36.1 — Opt-in member directory.
+- [x] Story 36.2 — Directory usability.
+- [ ] Story 36.3 — Directory regression hardening (final account-deletion test in review).
 
 See `docs/sprints/SPRINT_36.md` for acceptance criteria and scope boundaries.
 
